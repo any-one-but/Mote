@@ -73,6 +73,7 @@ const MOOD_NAMES: Record<Mood, string> = {
   yawn: "Yawn",
   fidget: "Fidget",
   hum: "Hum",
+  checkin: "Check in",
 };
 
 const TAB_KEY = "mote.debug.tab";
@@ -355,6 +356,30 @@ function MindTab({ snap, command }: Ctx) {
         <div className="button-row">
           <Button onClick={() => command({ do: "resetFeelings" })}>All back to 5</Button>
         </div>
+      </Section>
+
+      <Section title="Interest">
+        <Row
+          label={
+            snap.intrigued === "media"
+              ? "Intrigued by what’s playing"
+              : snap.intrigued === "you"
+                ? "Intrigued by you"
+                : "Not intrigued by anything"
+          }
+          hint={
+            snap.intrigued === "media"
+              ? "Watching the window that’s playing sound; only checks in on you now and then."
+              : snap.intrigued === "you"
+                ? "You’ve been using Mote’s window: fewer random moods, no getting tired."
+                : "Doing their own thing. Alertness slowly wears off."
+          }
+        >
+          <span className={`chip ${snap.intrigued ? "is-mood" : "is-off"}`}>
+            <span className="chip-dot" />
+            {snap.intrigued ? "On" : "Off"}
+          </span>
+        </Row>
       </Section>
 
       <Section title="Lasting moods">

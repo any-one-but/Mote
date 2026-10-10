@@ -27,17 +27,25 @@ Mote has three feelings, each scored 0 to 10, starting at 5:
 
 | Feeling | 0 means | 10 means | On its own |
 |---|---|---|---|
-| Happy | Frustrated | Happy | settles one step toward 5 every 40 seconds |
-| Restless | Calm | Restless | settles one step toward 5 every 40 seconds |
-| Alert | Sleepy | Alert | drops one step every 60 seconds awake; recharges while asleep |
+| Happy | Frustrated | Happy | settles one step toward 5 every 30 seconds |
+| Restless | Calm | Restless | settles one step toward 5 every 30 seconds |
+| Alert | Sleepy | Alert | drops one step every 4 minutes awake (not while intrigued); recharges asleep |
 
 Things that happen to Mote (pokes, petting, being shaken, sound, and so on)
-push these up and down. When a feeling gets far enough from the middle, Mote
-falls into a lasting mood (Frustrated, Annoyed, Happy, Restless, Calm, Sleepy,
+nudge these a little. Mote spends most of the time near the middle; only when a
+feeling gets far from it does Mote fall into a lasting mood (Frustrated, Annoyed, Happy, Restless, Calm, Sleepy,
 Alert) that changes the resting face and which idle moods come up: a frustrated
 Mote scowls, huffs, sulks and looks away; a sleepy one has heavy eyelids and
 yawns; a restless one fidgets; a happy one hums. Feelings carry over when the
-app is closed and reopened (time away counts as rest).
+app is closed and reopened (time away counts as rest). Grumpiness and sleep are
+never picked at random: they only come from how Mote actually feels.
+
+Mote is **intrigued** while you're using the window (moving around it, poking,
+petting, dragging) and while another window plays sound. Intrigued, Mote does
+fewer random things and doesn't get tired. While watching something, the only
+thing Mote does is look out to check in on you now and then (with a small,
+happiness-based chance of something sweet). Only a really sleepy Mote nods off
+while watching, and only an exhausted one actually falls asleep.
 
 Every stimulus → response rule lives in `src/components/companion/reactions.ts`,
 with the feelings it changes. The Debug window's **Mind** tab shows the feelings,

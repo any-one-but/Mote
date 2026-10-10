@@ -14,10 +14,11 @@ export const ATTRS: Array<{
   every: number;
   toward: number;
 }> = [
-  { key: "happy", low: "Frustrated", high: "Happy", every: 40_000, toward: 5 },
-  { key: "restless", low: "Calm", high: "Restless", every: 40_000, toward: 5 },
-  // Unlike the others, alertness wears off on its own: left be, Mote gets tired.
-  { key: "alert", low: "Sleepy", high: "Alert", every: 60_000, toward: 0 },
+  { key: "happy", low: "Frustrated", high: "Happy", every: 30_000, toward: 5 },
+  { key: "restless", low: "Calm", high: "Restless", every: 30_000, toward: 5 },
+  // Unlike the others, alertness wears off on its own: left be, Mote slowly
+  // gets tired. It doesn't wear off while Mote is intrigued by something.
+  { key: "alert", low: "Sleepy", high: "Alert", every: 240_000, toward: 0 },
 ];
 
 export const MIND_START: MindValues = { happy: 5, restless: 5, alert: 5 };
@@ -36,13 +37,14 @@ export type LastingMood =
 
 export const LASTING_MOODS: Array<{ id: LastingMood; label: string; test: (v: MindValues) => boolean }> =
   [
-    { id: "frustrated", label: "Frustrated", test: (v) => v.happy <= 2.5 },
-    { id: "annoyed", label: "Annoyed", test: (v) => v.happy > 2.5 && v.happy < 4 },
-    { id: "happy", label: "Happy", test: (v) => v.happy >= 7.5 },
-    { id: "restless", label: "Restless", test: (v) => v.restless >= 7.5 },
-    { id: "calm", label: "Calm", test: (v) => v.restless <= 2.5 },
-    { id: "sleepy", label: "Sleepy", test: (v) => v.alert <= 2.5 },
-    { id: "alert", label: "Alert", test: (v) => v.alert >= 7.5 },
+    // The far ends are meant to be rare: Mote spends most of the time near 5.
+    { id: "frustrated", label: "Frustrated", test: (v) => v.happy <= 2 },
+    { id: "annoyed", label: "Annoyed", test: (v) => v.happy > 2 && v.happy <= 3.5 },
+    { id: "happy", label: "Happy", test: (v) => v.happy >= 8 },
+    { id: "restless", label: "Restless", test: (v) => v.restless >= 8 },
+    { id: "calm", label: "Calm", test: (v) => v.restless <= 2 },
+    { id: "sleepy", label: "Sleepy", test: (v) => v.alert <= 2 },
+    { id: "alert", label: "Alert", test: (v) => v.alert >= 8 },
   ];
 
 export function lastingMoods(v: MindValues): LastingMood[] {
@@ -72,12 +74,12 @@ export function driftStep(value: number, toward: number) {
 export function feelings(v: MindValues) {
   const ramp = (n: number) => Math.max(0, Math.min(1, n));
   return {
-    frustrated: ramp((4 - v.happy) / 3),
-    happy: ramp((v.happy - 6) / 3),
-    restless: ramp((v.restless - 6) / 3),
-    calm: ramp((4 - v.restless) / 3),
-    sleepy: ramp((3.5 - v.alert) / 3),
-    alert: ramp((v.alert - 6.5) / 3),
+    frustrated: ramp((3 - v.happy) / 2.5),
+    happy: ramp((v.happy - 7) / 3),
+    restless: ramp((v.restless - 7) / 3),
+    calm: ramp((3 - v.restless) / 3),
+    sleepy: ramp((2.5 - v.alert) / 2.5),
+    alert: ramp((v.alert - 7) / 3),
   };
 }
 
@@ -101,7 +103,7 @@ export function loadMind(): MindValues {
       alert: REST_PER_MINUTE.alert * minutes,
       restless: Math.max(-3, REST_PER_MINUTE.restless * minutes),
     });
-    const happySteps = Math.floor(away / 40_000);
+    const happySteps = Math.floor(away / 30_000);
     for (let i = 0; i < happySteps && v.happy !== 5; i++) v.happy = driftStep(v.happy, 5);
     return v;
   } catch {
