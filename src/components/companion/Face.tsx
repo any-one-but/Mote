@@ -1,6 +1,6 @@
 import { useEffect, useRef, type RefObject } from "react";
-import { startFaceEngine } from "@/components/companion/engine";
-import { GEO } from "@/lib/companion/theme";
+import { REST, eyeShape, startFaceEngine } from "@/components/companion/engine";
+import { GEO, INK } from "@/lib/companion/theme";
 
 type FaceProps = {
   pokeAt: RefObject<number>;
@@ -21,74 +21,79 @@ export function Face({ pokeAt, onMood }: FaceProps) {
     });
   }, [pokeAt]);
 
-  const { vbW, vbH, cx, cy, faceRx, faceRy, eyeLX, eyeRX, eyeY, eyeW, eyeH } = GEO;
-  const eye = (x: number) => ({
-    x: x - eyeW / 2,
-    y: eyeY - eyeH / 2,
-  });
-  const left = eye(eyeLX);
-  const right = eye(eyeRX);
+  const { vbW, vbH, cx, cy, faceRx, faceRy } = GEO;
 
   return (
-    <svg
-      ref={svgRef}
-      className="face"
-      viewBox={`0 0 ${vbW} ${vbH}`}
-      aria-hidden="true"
-    >
+    <svg ref={svgRef} className="face" viewBox={`0 0 ${vbW} ${vbH}`} aria-hidden="true">
       <defs>
-        <EyeMask id="mote-eye-l" side="l" x={left.x} y={left.y} w={eyeW} h={eyeH} cx={eyeLX} cy={eyeY} />
-        <EyeMask id="mote-eye-r" side="r" x={right.x} y={right.y} w={eyeW} h={eyeH} cx={eyeRX} cy={eyeY} />
+        {/* Rounds every corner where a cut meets the pill, so shapes stay soft. */}
+        <filter
+          id="mote-soft"
+          x="-20%"
+          y="-20%"
+          width="140%"
+          height="140%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" result="blur" />
+          <feComponentTransfer in="blur" result="shape">
+            <feFuncA type="linear" slope="12" intercept="-5.6" />
+          </feComponentTransfer>
+          <feFlood floodColor={INK} />
+          <feComposite in2="shape" operator="in" />
+        </filter>
+        <Eye side="l" />
+        <Eye side="r" />
       </defs>
 
-      <ellipse cx={cx} cy={cy} rx={faceRx} ry={faceRy} className="skin" />
+      <ellipse
+        data-part="shadow"
+        className="shadow"
+        cx={cx}
+        cy={GEO.shadowY}
+        rx={GEO.shadowRx}
+        ry={GEO.shadowRy}
+      />
 
-      <g mask="url(#mote-eye-l)">
-        <rect className="ink" x={left.x - 16} y={left.y - 20} width={eyeW + 36} height={eyeH + 48} />
-      </g>
-      <g mask="url(#mote-eye-r)">
-        <rect className="ink" x={right.x - 16} y={right.y - 20} width={eyeW + 36} height={eyeH + 48} />
+      <g data-part="body">
+        <ellipse cx={cx} cy={cy} rx={faceRx} ry={faceRy} className="skin" />
+        <g data-part="eyes" filter="url(#mote-soft)">
+          <g mask="url(#mote-eye-l)">
+            <rect className="ink" x={GEO.eyeLX - 60} y={GEO.eyeY - 72} width={120} height={144} />
+          </g>
+          <g mask="url(#mote-eye-r)">
+            <rect className="ink" x={GEO.eyeRX - 60} y={GEO.eyeY - 72} width={120} height={144} />
+          </g>
+        </g>
       </g>
     </svg>
   );
 }
 
-function EyeMask({
-  id,
-  side,
-  x,
-  y,
-  w,
-  h,
-  cx,
-  cy,
-}: {
-  id: string;
-  side: "l" | "r";
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  cx: number;
-  cy: number;
-}) {
-  const inward = side === "l" ? 1 : -1;
-  const browR = w * 0.8;
-  const bite = h * (0.1 + 0.24 * 0.48);
-  const cheekR = w * 0.92;
-  const lift = h * (0.04 + 0.42 * 0.5);
+function Eye({ side }: { side: "l" | "r" }) {
+  const shape = eyeShape(side, REST, 0, 0, 0);
+  const { pill } = shape;
   return (
-    <mask id={id} maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width={GEO.vbW} height={GEO.vbH}>
-      <rect data-part={`base-${side}`} fill="white" x={x} y={y} width={w} height={h} rx={Math.min(w, h) * 0.48} />
-      <circle data-part={`brow-${side}`} fill="black" r={browR} cx={cx} cy={y - browR + bite} />
-      <circle
-        data-part={`cheek-${side}`}
-        fill="black"
-        r={cheekR}
-        cx={cx - inward * 0.42 * w * 0.14}
-        cy={y + h + cheekR - lift}
+    <mask
+      id={`mote-eye-${side}`}
+      maskUnits="userSpaceOnUse"
+      maskContentUnits="userSpaceOnUse"
+      x="0"
+      y="0"
+      width={GEO.vbW}
+      height={GEO.vbH}
+    >
+      <rect
+        data-part={`pill-${side}`}
+        fill="white"
+        x={pill.x}
+        y={pill.y}
+        width={pill.w}
+        height={pill.h}
+        rx={pill.r}
       />
-      <circle data-part={`glint-${side}`} fill="black" r="5" cx={cx - w * 0.18} cy={cy - h * 0.22} />
+      <path data-part={`lid-${side}`} fill="black" d={shape.lid} />
+      <path data-part={`cheek-${side}`} fill="black" d={shape.cheek} />
     </mask>
   );
 }

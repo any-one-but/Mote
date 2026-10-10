@@ -53,10 +53,7 @@
   width: min(94vw, 42rem, calc(90dvh * 0.895));
   height: auto;
   overflow: visible;
-  transform-box: view-box;
-  transform-origin: 50% 46.3%;
   touch-action: manipulation;
-  will-change: transform;
 }
 
 .ink {
@@ -67,8 +64,7 @@
   fill: var(--color-face);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .face {
-    will-change: auto;
-  }
+.shadow {
+  fill: var(--color-ink);
+  opacity: 0.1;
 }

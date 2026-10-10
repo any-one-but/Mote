@@ -1,32 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <rect width="32" height="32" rx="7" fill="#E4DDD2"/>
-  <g transform="translate(16 16.6) scale(0.148) translate(-120 -124)">
-    <defs>
-      <radialGradient id="skin" cx="38%" cy="32%" r="72%">
-        <stop offset="0%" stop-color="#FFFAF4"/>
-        <stop offset="55%" stop-color="#FFF1E4"/>
-        <stop offset="100%" stop-color="#F0D3BE"/>
-      </radialGradient>
-      <mask id="eye-l" maskUnits="userSpaceOnUse">
-        <rect fill="#fff" x="60" y="82" width="48" height="60" rx="23.04"/>
-        <circle fill="#000" cx="84" cy="54.784" r="38.4"/>
-        <circle fill="#000" cx="81.581" cy="172.96" r="44.16"/>
-        <circle fill="#000" cx="75.36" cy="98.8" r="11"/>
-      </mask>
-      <mask id="eye-r" maskUnits="userSpaceOnUse">
-        <rect fill="#fff" x="132" y="82" width="48" height="60" rx="23.04"/>
-        <circle fill="#000" cx="156" cy="54.784" r="38.4"/>
-        <circle fill="#000" cx="158.419" cy="172.96" r="44.16"/>
-        <circle fill="#000" cx="147.36" cy="98.8" r="11"/>
-      </mask>
-    </defs>
-    <ellipse cx="120" cy="238" rx="64" ry="10" fill="#231C18" opacity="0.1"/>
-    <ellipse cx="120" cy="124" rx="96" ry="100" fill="url(#skin)"/>
-    <g mask="url(#eye-l)">
-      <rect fill="#231C18" x="44" y="62" width="84" height="108"/>
-    </g>
-    <g mask="url(#eye-r)">
-      <rect fill="#231C18" x="116" y="62" width="84" height="108"/>
-    </g>
-  </g>
+  <ellipse cx="16" cy="16.5" rx="13.5" ry="12.7" fill="#FFF1E4"/>
+  <rect x="8.6" y="12.4" width="5.2" height="8" rx="2.6" fill="#231C18"/>
+  <rect x="18.2" y="12.4" width="5.2" height="8" rx="2.6" fill="#231C18"/>
 </svg>

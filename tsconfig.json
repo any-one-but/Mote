@@ -31,6 +31,8 @@
   },
   "include": [
     "src",
-    "server"
-  ]
+    "server",
+    "desktop"
+  ],
+  "exclude": ["desktop/dist"]
 }
