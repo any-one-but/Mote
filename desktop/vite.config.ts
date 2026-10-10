@@ -1,7 +1,12 @@
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+
+const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
+  version: string;
+};
 
 const page = (name: string) => fileURLToPath(new URL(`./${name}.html`, import.meta.url));
 
@@ -11,6 +16,7 @@ export default defineConfig({
   root: fileURLToPath(new URL(".", import.meta.url)),
   base: "./",
   plugins: [viteReact(), tailwindcss()],
+  define: { __MOTE_VERSION__: JSON.stringify(pkg.version) },
   resolve: {
     alias: { "@": fileURLToPath(new URL("../src", import.meta.url)) },
   },

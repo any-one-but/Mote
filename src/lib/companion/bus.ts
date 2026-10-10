@@ -1,5 +1,6 @@
 import { emit, listen } from "@tauri-apps/api/event";
 import type { EngineSnapshot, ManualFace, Mood } from "@/components/companion/engine";
+import type { Attr } from "@/components/companion/mind";
 import type { Settings } from "@/lib/companion/settings";
 import { isDesktopApp } from "@/lib/companion/desktop";
 
@@ -16,6 +17,9 @@ export type DebugCommand =
   | { do: "guides"; value: boolean }
   | { do: "sleepLine"; value: boolean }
   | { do: "fakeAudio"; value: "left" | "right" | null }
+  | { do: "feeling"; attr: Attr; value: number }
+  | { do: "resetFeelings" }
+  | { do: "react"; id: string }
   | { do: "manual"; face: ManualFace | null };
 
 /** The debug knobs as Mote's window currently has them. */

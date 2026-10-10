@@ -83,6 +83,9 @@ export function Companion() {
       else if (cmd.do === "loop") e.setLoop((d.loop = cmd.value));
       else if (cmd.do === "guides") e.setGuides((d.guides = cmd.value));
       else if (cmd.do === "sleepLine") e.setSleepLine((d.sleepLine = cmd.value));
+      else if (cmd.do === "feeling") e.setFeeling(cmd.attr, cmd.value);
+      else if (cmd.do === "resetFeelings") e.resetFeelings();
+      else if (cmd.do === "react") e.react(cmd.id);
       else if (cmd.do === "fakeAudio") {
         d.fakeAudio = cmd.value;
         applyAudio();
@@ -117,7 +120,10 @@ export function Companion() {
       className="window"
       aria-label="Mote"
       onPointerDown={(e) => {
-        if (!engineRef.current?.hitTest(e.clientX, e.clientY)) return;
+        if (!engineRef.current?.hitTest(e.clientX, e.clientY)) {
+          engineRef.current?.react("empty-click");
+          return;
+        }
         press.current = { x: e.clientX, y: e.clientY, moved: 0, stroked: 0, at: performance.now() };
         e.currentTarget.setPointerCapture(e.pointerId);
       }}

@@ -17,6 +17,8 @@ import {
   type DebugCommand,
   type DebugState,
 } from "@/lib/companion/bus";
+import { ATTRS, LASTING_MOODS, type Attr } from "@/components/companion/mind";
+import { REACTION_GROUPS, REACTIONS, type Reaction } from "@/components/companion/reactions";
 import { DEFAULT_SETTINGS, useSettings, type Settings } from "@/lib/companion/settings";
 import { Button, Page, Row, Section, Segmented, Slider, Toggle } from "./ui";
 
@@ -40,6 +42,7 @@ type Ctx = {
 
 const TABS: Array<{ id: string; label: string; render: (ctx: Ctx) => ReactNode }> = [
   { id: "moods", label: "Moods", render: (ctx) => <MoodsTab {...ctx} /> },
+  { id: "mind", label: "Mind", render: (ctx) => <MindTab {...ctx} /> },
   { id: "pose", label: "Pose", render: (ctx) => <PoseTab {...ctx} /> },
   { id: "motion", label: "Motion", render: (ctx) => <MotionTab {...ctx} /> },
   { id: "log", label: "Log", render: (ctx) => <LogTab {...ctx} /> },
@@ -65,6 +68,11 @@ const MOOD_NAMES: Record<Mood, string> = {
   flick: "Ear flick",
   dizzy: "Dizzy",
   purr: "Purr",
+  huff: "Huff",
+  sulk: "Sulk",
+  yawn: "Yawn",
+  fidget: "Fidget",
+  hum: "Hum",
 };
 
 const TAB_KEY = "mote.debug.tab";
@@ -282,6 +290,164 @@ function MoodsTab({ snap, debug, command, settings, updateSettings }: Ctx) {
         </Row>
       </Section>
     </>
+  );
+}
+
+/* Mind */
+
+const ATTR_NAME: Record<Attr, string> = { happy: "Happy", restless: "Restless", alert: "Alert" };
+
+// Soft colours for each end of a feeling's track.
+const TINT: Record<Attr, [string, string]> = {
+  happy: ["#e7b7a2", "#b9cfa0"],
+  restless: ["#b9cbd9", "#e9c08f"],
+  alert: ["#c9bfdc", "#ead48f"],
+};
+
+const seconds = (ms: number) => `${Math.max(0, Math.ceil(ms / 1000))}s`;
+
+function MindTab({ snap, command }: Ctx) {
+  const [show, setShow] = useState<"all" | "live" | "idea">("all");
+  if (!snap) return <p className="empty">Nothing yet. Is Mote’s window open?</p>;
+  const asleep = snap.mood === "sleep";
+  const list = REACTIONS.filter((r) => show === "all" || r.status === show);
+  return (
+    <>
+      <Section title="Feelings">
+        {ATTRS.map((a) => {
+          const v = snap.mind[a.key];
+          const note =
+            a.key === "alert"
+              ? asleep
+                ? `Resting: recharges in ${seconds(snap.driftIn.alert)}`
+                : `Wears off a step in ${seconds(snap.driftIn.alert)}`
+              : v === a.toward
+                ? "At rest"
+                : `Settles a step toward 5 in ${seconds(snap.driftIn[a.key])}`;
+          return (
+            <div key={a.key} className="meter">
+              <div className="meter-top">
+                <span>{a.low}</span>
+                <span className="mono meter-value">{v.toFixed(1)}</span>
+                <span>{a.high}</span>
+              </div>
+              <div
+                className="meter-track"
+                style={{
+                  ["--v" as string]: `${v * 10}%`,
+                  ["--lo" as string]: TINT[a.key][0],
+                  ["--hi" as string]: TINT[a.key][1],
+                }}
+              >
+                <span className="meter-mid" />
+                <span className="meter-dot" />
+              </div>
+              <div className="meter-foot">
+                <span className="meter-note">{note}</span>
+                <span className="meter-buttons">
+                  <Button onClick={() => command({ do: "feeling", attr: a.key, value: v - 1 })}>−1</Button>
+                  <Button onClick={() => command({ do: "feeling", attr: a.key, value: v + 1 })}>+1</Button>
+                </span>
+              </div>
+            </div>
+          );
+        })}
+        <div className="button-row">
+          <Button onClick={() => command({ do: "resetFeelings" })}>All back to 5</Button>
+        </div>
+      </Section>
+
+      <Section title="Lasting moods">
+        <div className="chips mood-chips">
+          {snap.moods.length ? (
+            snap.moods.map((m) => (
+              <span key={m} className="chip is-mood">
+                <span className="chip-dot" />
+                {LASTING_MOODS.find((x) => x.id === m)?.label}
+              </span>
+            ))
+          ) : (
+            <span className="empty">None right now. Mote feels pretty even.</span>
+          )}
+        </div>
+      </Section>
+
+      <div className="reaction-head">
+        <h2 className="section-title">Reactions</h2>
+        <Segmented
+          label="Which reactions"
+          options={[
+            { value: "all", label: "All" },
+            { value: "live", label: "Built" },
+            { value: "idea", label: "Ideas" },
+          ]}
+          value={show}
+          onChange={setShow}
+        />
+      </div>
+      {REACTION_GROUPS.map((g) => {
+        const rows = list.filter((r) => r.group === g);
+        if (!rows.length) return null;
+        return (
+          <Section key={g} title={g}>
+            {rows.map((r) => (
+              <ReactionRow
+                key={r.id}
+                r={r}
+                fired={snap.reactions[r.id]}
+                onApply={() => command({ do: "react", id: r.id })}
+              />
+            ))}
+          </Section>
+        );
+      })}
+    </>
+  );
+}
+
+function ReactionRow({
+  r,
+  fired,
+  onApply,
+}: {
+  r: Reaction;
+  fired?: { count: number; ago: number };
+  onApply: () => void;
+}) {
+  const recent = fired && fired.ago < 1500;
+  const effects = Object.entries(r.effects ?? {}) as Array<[Attr, number]>;
+  return (
+    <div className={`reaction${recent ? " is-recent" : ""}${r.status === "idea" ? " is-idea" : ""}`}>
+      <div className="reaction-title">
+        <span className="row-label">{r.name}</span>
+        <span className={`tag is-${r.status}`}>{r.status === "live" ? "Built" : "Idea"}</span>
+      </div>
+      <div className="reaction-rule">
+        <span className="reaction-word">When</span> {r.when}
+      </div>
+      <div className="reaction-rule">
+        <span className="reaction-word">Then</span> {r.then}
+      </div>
+      {effects.length || fired ? (
+        <div className="reaction-foot">
+          {effects.map(([k, n]) => (
+            <span key={k} className="effect">
+              {ATTR_NAME[k]} {n > 0 ? "↑" : "↓"} {Math.abs(n)}
+            </span>
+          ))}
+          {fired ? (
+            <span className="mono reaction-count">
+              {fired.count}× · {seconds(fired.ago)} ago
+            </span>
+          ) : null}
+          {effects.length && r.status === "live" ? (
+            <button type="button" className="link" onClick={onApply}>
+              Apply its feelings
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -519,6 +685,9 @@ function LogTab({ log, clearLog }: Ctx) {
 function DataTab({ settings, updateSettings, snap }: Ctx) {
   return (
     <>
+      <Section title="Version">
+        <p className="mono data">Mote {__MOTE_VERSION__}</p>
+      </Section>
       <Section title="Saved settings">
         <pre className="mono data">{JSON.stringify(settings, null, 2)}</pre>
       </Section>

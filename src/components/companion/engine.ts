@@ -3,6 +3,20 @@ import {
   headphoneShape,
   mustacheShape,
 } from "@/components/companion/accessories";
+import {
+  ATTRS,
+  feelings,
+  lastingMoods,
+  loadMind,
+  MIND_START,
+  nudge,
+  driftStep,
+  saveMind,
+  type Attr,
+  type LastingMood,
+  type MindValues,
+} from "@/components/companion/mind";
+import { reactionById } from "@/components/companion/reactions";
 import { GEO } from "@/lib/companion/theme";
 
 export type Mood =
@@ -18,6 +32,12 @@ export type Mood =
   | "wake"
   | "dizzy"
   | "purr"
+  // Idles that come from lasting moods.
+  | "huff"
+  | "sulk"
+  | "yawn"
+  | "fidget"
+  | "hum"
   // Only with the mustache on.
   | "sniffle"
   | "twirl"
@@ -128,6 +148,13 @@ export type EngineSnapshot = {
   pose: Pose;
   petting: boolean;
   audio: boolean;
+  /** Mote's feelings, 0–10, and the lasting moods they add up to. */
+  mind: MindValues;
+  moods: LastingMood[];
+  /** ms until each feeling's next drift step. */
+  driftIn: MindValues;
+  /** How often each reaction has fired, and when last (ms of Mote's clock ago). */
+  reactions: Record<string, { count: number; ago: number }>;
 };
 
 export type FaceEngine = {
@@ -149,6 +176,11 @@ export type FaceEngine = {
   pet: (clientX: number, clientY: number) => void;
   /** The window moved by this much (CSS px), for inertia and dizziness. */
   windowMoved: (dx: number, dy: number) => void;
+  /** Fire a reaction by id (see reactions.ts), applying its feelings. */
+  react: (id: string) => void;
+  /** Debug: set one feeling directly, or put them all back to 5. */
+  setFeeling: (attr: Attr, value: number) => void;
+  resetFeelings: () => void;
   snapshot: () => EngineSnapshot;
 };
 
@@ -165,6 +197,11 @@ export const MOOD_LIST: Mood[] = [
   "wake",
   "dizzy",
   "purr",
+  "huff",
+  "sulk",
+  "yawn",
+  "fidget",
+  "hum",
 ];
 
 /** The extra idle moods each accessory brings with it. */
@@ -261,6 +298,11 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   groove: { dur: 3500, tempo: 1.1 },
   flick: { dur: 1700, tempo: 1 },
   dizzy: { dur: 3000, tempo: 1 },
+  huff: { dur: 1600, tempo: 1 },
+  sulk: { dur: 3200, tempo: 0.8 },
+  yawn: { dur: 2600, tempo: 0.7 },
+  fidget: { dur: 2000, tempo: 1.2 },
+  hum: { dur: 3000, tempo: 0.9 },
   // Purring lasts as long as the petting does; see `PURR_AFTER`.
   purr: { dur: Number.POSITIVE_INFINITY, tempo: 0.8 },
 };
@@ -293,6 +335,11 @@ const LABELS: Partial<Record<Mood, string>> = {
   listen: "Mote is listening for something.",
   groove: "Mote is bopping along to music.",
   dizzy: "Mote is dizzy.",
+  huff: "Mote huffs.",
+  sulk: "Mote is sulking.",
+  yawn: "Mote yawns.",
+  fidget: "Mote is fidgeting.",
+  hum: "Mote is humming happily.",
   purr: "Mote is enjoying the pets.",
 };
 
@@ -540,6 +587,57 @@ export function poseFor(
       [1080, look],
       [1350, {}],
     ];
+  } else if (mood === "huff") {
+    // A big, cross breath in… and out through the nose.
+    const cross: Partial<Pose> = { lid: 0.26, lidTilt: 0.6, lidCurve: 0.06, open: 0.96 };
+    keys = [
+      [0, { ...cross, sy: 1.05, sx: 0.97, y: -2 }],
+      [450, { ...cross, sy: 0.93, sx: 1.06, y: 2.5, mFlutter: 0.8, mPuff: 0.3, earTiltL: 14, earTiltR: 14 }],
+      [900, { ...cross, lid: 0.24, lidTilt: 0.55, y: 1 }],
+      [1300, {}],
+    ];
+    if (t > 450 && t < 700) {
+      const decay = 1 - (t - 450) / 250;
+      shakeX = Math.sin(((t - 450) / 1000) * Math.PI * 2 * 12) * 1.2 * decay;
+    }
+  } else if (mood === "sulk") {
+    // Turns away, sneaks a glance back, then turns away again. Hmph.
+    const cross: Partial<Pose> = { lid: 0.22, lidTilt: 0.45, lidCurve: 0.04 };
+    keys = [
+      [0, { ...cross, lookX: dir * 0.95, lookY: 0.15, lookMix: 1, rot: dir * 8, x: dir * 3 }],
+      [1400, { ...cross, lookX: -dir * 0.3, lookY: 0.05, lookMix: 1, rot: dir * 6, x: dir * 2 }],
+      [1800, { ...cross, lookX: dir * 0.95, lookY: 0.2, lookMix: 1, rot: dir * 9, x: dir * 3, sy: 0.97, sx: 1.02 }],
+      [2800, {}],
+    ];
+  } else if (mood === "yawn") {
+    // A long stretch with eyes squeezed shut (edges kept parallel), then droops.
+    keys = [
+      [0, { sy: 1.02, lid: 0.2, lidCurve: 0.05 }],
+      [250, { sy: 1.08, sx: 0.95, y: -4, lid: 0.58, lidCurve: 0.2, cheek: 0.2, cheekCurve: -0.2, earPerk: 0.4, mPuff: 0.2 }],
+      [1500, { sy: 0.97, sx: 1.03, y: 2, lid: 0.4, lidCurve: 0.05, earPerk: -0.3 }],
+      [2000, { lid: 0.36, lidCurve: 0.04 }],
+      [2400, {}],
+    ];
+  } else if (mood === "fidget") {
+    // Can’t sit still: little shuffles side to side and darting glances.
+    keys = [];
+    for (let i = 0; i < 6; i++) {
+      const s = i % 2 ? 1 : -1;
+      keys.push([
+        i * 260,
+        { x: s * 4, rot: s * 4, y: i % 3 === 0 ? -3 : 0, lookX: -s * 0.7, lookY: (i % 3) * 0.2 - 0.2, lookMix: 0.8 },
+      ]);
+    }
+    keys.push([1600, {}]);
+  } else if (mood === "hum") {
+    // A contented little sway, as if humming a tune.
+    const glad: Partial<Pose> = { cheek: 0.54, cheekCurve: 0.15, open: 1.06, wide: 1.04, mLift: 0.3 };
+    keys = [[0, glad]];
+    for (let i = 0; i < 6; i++) {
+      const s = i % 2 ? 1 : -1;
+      keys.push([150 + i * 380, { ...glad, rot: s * 4, x: s * 1.5, y: -1.5, sy: 1.02 }]);
+    }
+    keys.push([2600, {}]);
   } else if (mood === "dizzy") {
     // Whoa — eyes swirl, Mote wobbles in little circles, then shakes it off.
     const woozy: Partial<Pose> = { open: 0.88, wide: 0.95, lookMix: 1, mLift: -0.3 };
@@ -862,7 +960,28 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   let swirlNow = 0;
   let purrNow = 0;
 
+  // The mind: feelings, their drift timers, and a tally of reactions.
+  let feel: MindValues = loadMind();
+  const driftAt: MindValues = { happy: 40_000, restless: 40_000, alert: 60_000 };
+  const fired: Record<string, { count: number; at: number }> = {};
+  let moodsNow: LastingMood[] = lastingMoods(feel);
+  let savedAt = 0;
+  const tally = { pet: 0, company: 0, sound: 0 };
+  let lastDragReact = Number.NEGATIVE_INFINITY;
+  let watching = false;
+  let wasClose = false;
+
   const log = (text: string) => hooks.onEvent?.(text);
+
+  const react = (id: string) => {
+    const r = reactionById.get(id);
+    if (!r) return;
+    const tick = (fired[id] ??= { count: 0, at: 0 });
+    tick.count++;
+    tick.at = clock;
+    if (r.effects) feel = nudge(feel, r.effects);
+    log(`reaction: ${r.name.toLowerCase()}`);
+  };
 
   const announce = (label: string | null) => {
     if (label === announced) return;
@@ -893,17 +1012,53 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (next === "settle" && prev === "doze") blinkAt(now + 60, true);
   };
 
+  /** Which little idle moods are on the cards depends on how Mote feels. */
   const pick = (): Mood => {
-    const bag = [
-      ...(options.naps ? BAG : BAG.filter((m) => m !== "doze")),
-      ...(options.mustache ? ACCESSORY_MOODS.mustache : []),
-      ...(options.headphones ? ACCESSORY_MOODS.headphones : []),
-    ];
+    const has = (m: LastingMood) => moodsNow.includes(m);
+    const sleepyEnough = feel.alert <= 4 && options.naps && options.audio === null;
+    let bag: Mood[] = BAG.filter((m) => m !== "doze" || sleepyEnough);
+    const more = (m: Mood, n: number) => {
+      for (let i = 0; i < n; i++) bag.push(m);
+    };
+    if (has("frustrated")) {
+      bag = bag.filter((m) => m !== "cute" && m !== "surprise");
+      more("huff", 3);
+      more("sulk", 3);
+      more("frustrate", 1);
+    } else if (has("annoyed")) {
+      bag.splice(bag.indexOf("cute"), 1);
+      more("huff", 1);
+      more("sulk", 1);
+    }
+    if (has("happy")) {
+      more("hum", 2);
+      more("cute", 2);
+    }
+    if (has("restless")) {
+      more("fidget", 3);
+      more("glance", 2);
+    }
+    if (has("calm")) bag = bag.filter((m) => m !== "surprise");
+    if (has("sleepy")) {
+      more("yawn", 3);
+      if (sleepyEnough) more("doze", 1);
+    }
+    if (has("alert")) {
+      more("glance", 1);
+      more("surprise", 1);
+    }
+    if (options.mustache) bag.push(...ACCESSORY_MOODS.mustache);
+    if (options.headphones) bag.push(...ACCESSORY_MOODS.headphones);
     const opts = bag.filter((m) => m !== lastAct);
+    react("idle-mood");
     return opts[Math.floor(Math.random() * opts.length)] ?? "glance";
   };
 
-  const restGap = () => (3500 + Math.random() * 5000) * ENERGY_GAP[options.energy];
+  const restGap = () => {
+    const has = (m: LastingMood) => moodsNow.includes(m);
+    const pace = has("restless") ? 0.55 : has("calm") ? 1.6 : 1;
+    return (3500 + Math.random() * 5000) * ENERGY_GAP[options.energy] * pace * (has("sleepy") ? 1.3 : 1);
+  };
 
   /**
    * Adds up how far something has travelled in the last ~0.7s; going much too
@@ -918,6 +1073,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const calm = mood !== "sleep" && mood !== "doze" && mood !== "dizzy" && mood !== "purr";
     if (travelled > limit && calm && clock > dizzyReadyAt && !debug.manual) {
       list.length = 0;
+      react(kind === "pointer" ? "shake-pointer" : "throw");
       start("dizzy", clock);
     }
   };
@@ -935,6 +1091,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
   };
   window.addEventListener("pointermove", onMove, { passive: true });
+  const keepFeelings = () => saveMind(feel);
+  window.addEventListener("pagehide", keepFeelings);
 
   let raf = 0;
   let running = true;
@@ -965,16 +1123,87 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     el.setAttribute("rx", f(p.r));
   };
 
-  // Pokes: a happy hop, unless you keep pestering.
+  // Pokes: a happy hop, unless Mote is cross or you keep pestering.
   const handlePoke = (now: number) => {
-    log("poke");
     pokes.push(now);
     while (pokes.length && now - pokes[0] > 2200) pokes.shift();
-    if (mood === "sleep" || mood === "doze") start("wake", now);
-    else if (pokes.length >= 4 && mood !== "frustrate") {
+    if (mood === "sleep" || mood === "doze") {
+      react(feel.alert < 4 ? "wake-groggy" : "wake-rested");
+      start("wake", now);
+    } else if (pokes.length >= 4 && mood !== "frustrate") {
       pokes.length = 0;
+      react("poke-spam");
       start("frustrate", now);
-    } else if (mood !== "frustrate") start("delight", now);
+    } else if (moodsNow.includes("frustrated")) {
+      react("poke-grumpy");
+      if (mood !== "frustrate") start("frustrate", now);
+    } else if (mood !== "frustrate") {
+      react("poke");
+      start("delight", now);
+    }
+  };
+
+  /**
+   * The slow side of the mind: feelings drift back toward their baselines
+   * (alertness wears off, or recharges while asleep), timed stimuli tick up,
+   * and lasting moods are re-read.
+   */
+  const think = (dt: number, now: number, attention: number, sincePet: number) => {
+    const ms = dt * 1000;
+    for (const a of ATTRS) {
+      driftAt[a.key] -= ms;
+      if (driftAt[a.key] > 0) continue;
+      driftAt[a.key] += a.every;
+      if (a.key === "alert") {
+        if (mood === "sleep") react("resting");
+        else react("tiring");
+      } else {
+        const before = feel[a.key];
+        feel = { ...feel, [a.key]: driftStep(before, a.toward) };
+        if (before !== feel[a.key]) react("drift");
+      }
+    }
+
+    if (sincePet < 350) {
+      tally.pet += ms;
+      if (tally.pet >= 1000) {
+        tally.pet -= 1000;
+        react(mood === "sleep" ? "pet-asleep" : "pet");
+      }
+    } else tally.pet = 0;
+
+    if (attention > 0.5 && mood !== "sleep") {
+      tally.company += ms;
+      if (tally.company >= 15_000) {
+        tally.company = 0;
+        react("company");
+      }
+    }
+    if (attention > 0.5 && !watching) {
+      watching = true;
+      react("follow");
+    } else if (attention < 0.05 && watching) {
+      watching = false;
+      react("left-alone");
+    }
+
+    if (options.audio !== null) {
+      tally.sound += ms;
+      if (tally.sound >= 30_000) {
+        tally.sound = 0;
+        react("sound-ongoing");
+      }
+    } else tally.sound = 0;
+
+    const next = lastingMoods(feel);
+    for (const m of next) if (!moodsNow.includes(m)) react(`mood-${m}`);
+    for (const m of moodsNow) if (!next.includes(m)) log(`no longer ${m}`);
+    moodsNow = next;
+
+    if (now - savedAt > 5000) {
+      savedAt = now;
+      saveMind(feel);
+    }
   };
 
   const step = (dt: number, now: number) => {
@@ -988,14 +1217,18 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     // Something playing in another window keeps Mote company instead of napping.
     const listening = options.audio !== null;
     const sincePet = now - petAt.t;
+    // How long Mote can be left alone before nodding off: sooner when sleepy,
+    // never when very alert.
+    const dozeAfter = feel.alert >= 7.5 ? Number.POSITIVE_INFINITY : 8000 + (feel.alert / 7.5) * 37_000;
     if (
       debug.autoMoods &&
       options.naps &&
       !listening &&
       mood === "settle" &&
       pointer.has &&
-      idleFor > 30000
+      idleFor > dozeAfter
     ) {
+      react("doze");
       start("doze", now);
     }
     const over =
@@ -1025,6 +1258,24 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     swirlNow = swirl;
     // Petting a sleeping Mote gets a sleepy little purr without waking them.
     purrNow = mood === "sleep" && sincePet < 350 ? 0.6 : purr;
+
+    // Lasting moods colour the idle face: a scowl when frustrated, heavy lids
+    // when sleepy, brighter eyes when happy or alert. Moods with their own
+    // expression mostly override it.
+    const fl = feelings(feel);
+    const tone = mood === "settle" ? 1 : mood === "glance" ? 0.7 : mood === "think" ? 0.5 : 0;
+    if (tone > 0) {
+      const heavy = fl.sleepy > 0.3 ? 0.36 + 0.08 * fl.sleepy : 0;
+      const scowl = fl.frustrated > 0.2 ? 0.2 + 0.06 * fl.frustrated : 0;
+      target.lid += Math.max(heavy, scowl) * tone;
+      target.lidTilt += (scowl ? 0.5 * fl.frustrated : 0) * tone;
+      target.lidCurve += 0.04 * fl.sleepy * tone;
+      target.open += (0.05 * fl.happy + 0.06 * fl.alert - 0.04 * fl.sleepy) * tone;
+      target.earPerk += (0.4 * fl.alert - 0.4 * fl.sleepy - 0.3 * fl.frustrated) * tone;
+      target.earTiltL += 10 * fl.frustrated * tone;
+      target.earTiltR += 10 * fl.frustrated * tone;
+      target.mLift += (0.3 * fl.happy - 0.3 * fl.frustrated) * tone;
+    }
     const tempo = mood === "sleep" ? 0.12 : mood === "settle" ? 1 : MOODS[mood].tempo;
 
     // Pointer & idle gaze.
@@ -1042,6 +1293,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
           ? 1
           : clamp(1 - (idleFor - 2000) / 1000, 0, 1);
     lastAttention = attention;
+    think(dt, now, attention, sincePet);
     if (now > wander.next) {
       const audio = options.audio;
       if (audio && Math.random() < 0.7) {
@@ -1052,16 +1304,21 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
           next: now + 1800 + Math.random() * 3000,
         };
       } else {
-        const home = Math.random() < 0.45;
+        const fl = feelings(feel);
+        const home = Math.random() < 0.45 - 0.25 * fl.restless;
+        const reach = 1 + 0.5 * fl.restless;
+        const pace = 1 - 0.5 * fl.restless + 0.6 * fl.calm;
         wander = {
-          x: home ? 0 : (Math.random() - 0.5) * 0.9,
-          y: home ? 0 : (Math.random() - 0.5) * 0.5,
-          next: now + 1200 + Math.random() * 2400,
+          x: home ? 0 : (Math.random() - 0.5) * 0.9 * reach,
+          y: home ? 0 : (Math.random() - 0.5) * 0.5 * reach,
+          next: now + (1200 + Math.random() * 2400) * pace,
         };
       }
     }
-    const freeX = lerp(wander.x, px, attention);
-    const freeY = lerp(wander.y, py, attention);
+    // A frustrated Mote doesn't want to look at you quite as much.
+    const engaged = attention * (1 - 0.45 * feelings(feel).frustrated);
+    const freeX = lerp(wander.x, px, engaged);
+    const freeY = lerp(wander.y, py, engaged);
     const nextGX = lerp(freeX, target.lookX, target.lookMix);
     const nextGY = lerp(freeY, target.lookY, target.lookMix);
     if (
@@ -1075,10 +1332,13 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     gazeTarget = { x: nextGX, y: nextGY };
 
     // Looking straight at you up close makes the eyes a touch bigger.
-    if (mood === "settle" && attention > 0.6 && Math.hypot(px, py) < 0.45) {
+    const close = mood === "settle" && attention > 0.6 && Math.hypot(px, py) < 0.45;
+    if (close) {
       target.open += 0.05;
       target.wide += 0.03;
     }
+    if (close && !wasClose) react("close");
+    wasClose = close;
 
     // Leaning into the hand that's petting.
     if (mood === "purr" || (mood === "sleep" && sincePet < 600)) {
@@ -1124,11 +1384,12 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const blinkFree = !["sleep", "wake", "delight", "cute", "sniffle", "groove", "dizzy", "purr"].includes(
       mood,
     );
+    const fb = feelings(feel);
     if (blinkFree && now >= nextBlink) {
       blinkAt(now, Math.random() < 0.16);
-      nextBlink = now + 2400 + Math.random() * 3600;
+      nextBlink = now + (2400 + Math.random() * 3600) * (1 + 0.5 * fb.calm - 0.35 * fb.sleepy);
     }
-    const slow = mood === "doze";
+    const slow = mood === "doze" || fb.sleepy > 0.5 || fb.calm > 0.6;
     let blink = 0;
     blinks = blinks.filter((b) => now - b < 900);
     for (const b of blinks) blink = Math.max(blink, blinkCurve(now - b, slow));
@@ -1149,7 +1410,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
 
     // Breathing.
     if (!reduced) {
-      const period = mood === "sleep" ? 3400 : mood === "think" ? 1600 : 2600;
+      const base = mood === "sleep" ? 3400 : mood === "think" ? 1600 : 2600;
+      const period = base * (1 + 0.35 * fb.calm - 0.2 * fb.restless);
       const b = Math.sin((now / period) * Math.PI * 2);
       const deep = mood === "sleep" ? 1.4 : 1;
       target.sy += b * 0.012 * deep;
@@ -1278,6 +1540,10 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (d === 0 || d > 2000) return;
     winMoved.x += dx;
     winMoved.y += dy;
+    if (clock - lastDragReact > 5000) {
+      lastDragReact = clock;
+      react("drag");
+    }
     if (!debug.manual) shaken("window", d, window.innerWidth * 3.5);
   };
 
@@ -1360,11 +1626,20 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       running = false;
       if (raf) cancelAnimationFrame(raf);
       window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pagehide", keepFeelings);
+      keepFeelings();
       document.removeEventListener("visibilitychange", onVis);
       mq.removeEventListener("change", onMq);
     },
     configure: (opts) => {
+      const before = { ...options };
       Object.assign(options, opts);
+      if (before.audio === null && options.audio !== null) react("sound-start");
+      // (Skips the first moments, when saved settings are just being restored.)
+      if (clock > 1500) {
+        if (!before.headphones && options.headphones) react("wear-headphones");
+        if (!before.mustache && options.mustache) react("wear-mustache");
+      }
       if (!options.naps && (mood === "doze" || mood === "sleep")) start("wake", clock);
       for (const a of ["headphones", "mustache"] as const) {
         if (!options[a] && ACCESSORY_MOODS[a].includes(mood)) start("settle", clock);
@@ -1417,6 +1692,15 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       if (mood !== "purr" && mood !== "sleep" && mood !== "dizzy") start("purr", clock);
     },
     windowMoved: (dx, dy) => windowMoved(dx, dy),
+    react,
+    setFeeling: (attr, value) => {
+      feel = { ...feel, [attr]: clamp(value, 0, 10) };
+      log(`set ${attr} to ${feel[attr].toFixed(1)}`);
+    },
+    resetFeelings: () => {
+      feel = { ...MIND_START };
+      log("feelings reset to 5");
+    },
     setManual: (face) => {
       debug.manual = face;
     },
@@ -1432,6 +1716,12 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       pose: { ...view },
       petting: clock - petAt.t < 350,
       audio: options.audio !== null,
+      mind: { ...feel },
+      moods: [...moodsNow],
+      driftIn: { ...driftAt },
+      reactions: Object.fromEntries(
+        Object.entries(fired).map(([id, r]) => [id, { count: r.count, ago: clock - r.at }]),
+      ),
     }),
   };
   // Also reachable from the console while tuning: $0.moteEngine.
