@@ -77,6 +77,8 @@ const MOOD_NAMES: Record<Mood, string> = {
   hum: "Hum",
   checkin: "Check in",
   startle: "Startled awake",
+  snack: "Snack",
+  play: "Play ball",
 };
 
 const TAB_KEY = "mote.debug.tab";
@@ -374,13 +376,27 @@ function MindTab({ snap, command, debug }: Ctx) {
           label={
             snap.intrigued.length
               ? `Intrigued by ${snap.intrigued
-                  .map((i) => (i === "media" ? "what’s playing" : i === "you" ? "you" : "your pointer"))
+                  .map((i) =>
+                    i === "media"
+                      ? "what’s playing"
+                      : i === "you"
+                        ? "you"
+                        : i === "typing"
+                          ? "your typing"
+                          : "your pointer",
+                  )
                   .join(" and ")}`
               : "Not intrigued by anything"
           }
           hint={
             snap.focus
-              ? `Looking at ${snap.focus === "media" ? "what’s playing" : "your pointer"} right now.`
+              ? `Looking at ${
+                  snap.focus === "media"
+                    ? "what’s playing"
+                    : snap.focus === "typing"
+                      ? "where you’re typing"
+                      : "your pointer"
+                } right now.`
               : snap.intrigued.includes("you")
                 ? "You’ve been using Mote’s window: fewer random moods, no getting tired."
                 : "Doing their own thing. Alertness slowly wears off."

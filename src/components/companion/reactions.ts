@@ -10,6 +10,7 @@ export type ReactionGroup =
   | "Window"
   | "Sound"
   | "Interest"
+  | "Things you give Mote"
   | "Learning"
   | "Speech"
   | "Accessories"
@@ -58,6 +59,15 @@ export const REACTIONS: Reaction[] = [
     when: "Four pokes within about two seconds",
     then: "Gets grumpy: scowls and stomps",
     effects: { happy: -2.5, restless: 1 },
+    status: "live",
+  },
+  {
+    id: "poke-giggle",
+    group: "Touch",
+    name: "Lots of pokes (Friendly mode)",
+    when: "Four pokes within about two seconds, with Friendly mode on",
+    then: "It tickles! A giggly little wiggle",
+    effects: { happy: 0.3 },
     status: "live",
   },
   {
@@ -255,6 +265,22 @@ export const REACTIONS: Reaction[] = [
     status: "live",
   },
   {
+    id: "typing",
+    group: "Interest",
+    name: "Watching you type",
+    when: "You type steadily in another app (Mote only notices that keys are being pressed, never which)",
+    then: "Looks over at the window you’re typing in; counts as being intrigued",
+    status: "live",
+  },
+  {
+    id: "swaying",
+    group: "Interest",
+    name: "Swaying along",
+    when: "Music is playing but Mote can’t make out its beat (e.g. copy-protected songs)",
+    then: "Sways gently instead of bouncing on the beat",
+    status: "live",
+  },
+  {
     id: "split-attention",
     group: "Interest",
     name: "Split attention",
@@ -292,6 +318,66 @@ export const REACTIONS: Reaction[] = [
     name: "Falling asleep while watching",
     when: "Mote is intrigued but utterly exhausted (Alert ½ or less)",
     then: "Dozes off for real",
+    status: "live",
+  },
+
+  // Things from the tray
+  {
+    id: "sleepset-on",
+    group: "Things you give Mote",
+    name: "Earmuffs and mask on",
+    when: "You put the sleep set on Mote (from the tray)",
+    then: "Mote can’t see or hear what’s playing, your pointer or your typing, so they sleep right through it",
+    status: "live",
+  },
+  {
+    id: "sleepset-sleepy",
+    group: "Things you give Mote",
+    name: "Just what they needed",
+    when: "The sleep set goes on a sleepy Mote (Alert 4 or less)",
+    then: "“Ooh, perfect. Night night…” and off to sleep",
+    status: "live",
+  },
+  {
+    id: "sleepset-awake",
+    group: "Things you give Mote",
+    name: "Not even sleepy",
+    when: "The sleep set goes on a wide-awake Mote",
+    then: "Asks if they have to: yes and they nap anyway, no (or no answer) and they take it off",
+    status: "live",
+  },
+  {
+    id: "sleepset-off",
+    group: "Things you give Mote",
+    name: "Earmuffs and mask off",
+    when: "You take the sleep set off, or poke Mote awake while wearing it",
+    then: "Taking it off doesn’t wake a sleeping Mote; awake, they blink at the light",
+    status: "live",
+  },
+  {
+    id: "snack",
+    group: "Things you give Mote",
+    name: "A snack",
+    when: "You give Mote a cookie from the tray",
+    then: "Leans in and munches it happily",
+    effects: { happy: 0.5, alert: 0.2 },
+    status: "live",
+  },
+  {
+    id: "snack-full",
+    group: "Things you give Mote",
+    name: "Too many snacks",
+    when: "A fourth cookie within five minutes",
+    then: "“I’m full! Maybe later.”",
+    status: "live",
+  },
+  {
+    id: "play",
+    group: "Things you give Mote",
+    name: "Playing ball",
+    when: "You toss Mote the ball from the tray",
+    then: "Watches it bounce in, bops it with their head, and may ask to go again",
+    effects: { happy: 0.4, restless: 0.3, alert: 0.5 },
     status: "live",
   },
 
@@ -416,7 +502,7 @@ export const REACTIONS: Reaction[] = [
     id: "drift",
     group: "Time and rest",
     name: "Settling back",
-    when: "Every 30 seconds",
+    when: "Every 2 minutes",
     then: "Happy and Restless each take one step back toward 5",
     status: "live",
   },
@@ -424,7 +510,7 @@ export const REACTIONS: Reaction[] = [
     id: "tiring",
     group: "Time and rest",
     name: "Getting tired",
-    when: "Every 4 minutes awake and not intrigued by anything",
+    when: "Every 16 minutes awake and not intrigued by anything",
     then: "Alertness drops a step, so Mote slowly gets sleepy",
     effects: { alert: -1 },
     status: "live",
@@ -557,6 +643,7 @@ export const REACTION_GROUPS: ReactionGroup[] = [
   "Window",
   "Sound",
   "Interest",
+  "Things you give Mote",
   "Learning",
   "Speech",
   "Accessories",

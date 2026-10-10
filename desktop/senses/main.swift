@@ -470,6 +470,14 @@ func average(_ db: [Float]) -> Float {
 
 if CommandLine.arguments.contains("--selftest") { selftest() }
 let debugging = ProcessInfo.processInfo.environment["MOTE_SENSES_DEBUG"] != nil
+
+/// Apps that stop sending sound as soon as they're paused, and what they play.
+let trustedPlayers: [String: String] = [
+  "com.apple.Music": "music",
+  "com.spotify.client": "music",
+  "com.apple.podcasts": "speech",
+  "com.apple.TV": "video",
+]
 let me = getpid()
 let mote = getppid()
 let watcher = Watcher()
@@ -530,17 +538,30 @@ func tick() {
     "app": NSRunningApplication(processIdentifier: win.pid)?.localizedName ?? NSNull(),
     "title": titles[win.id] ?? NSNull(),
   ]
+  // Players that only send sound while actually playing. Their sound is
+  // often copy-protected, which screen capture hears as silence, so for these
+  // "sending sound" is trusted to mean "playing".
+  let bundle = NSRunningApplication(processIdentifier: win.pid)?.bundleIdentifier ?? ""
+  let trusted = trustedPlayers[bundle]
   if allowed && watcher.windowID == win.id && !watcher.failed {
     let heard = watcher.read()
-    for (k, v) in heard { media[k] = v }
     let level = heard["level"] as? Double ?? -120
+    let audible = level > -55
     let settling = Date().timeIntervalSince(watcher.started) < 3
+    if audible {
+      for (k, v) in heard { media[k] = v }
+    } else {
+      media["level"] = level
+      if let motion = heard["motion"] { media["motion"] = motion }
+    }
     // Open but silent (a paused player) doesn't count as playing.
-    media["playing"] = settling || level > -55
-    media["kind"] = settling ? "unknown" : classify(heard)
+    media["playing"] = settling || audible || trusted != nil
+    let heardKind = audible && !settling ? classify(heard) : "unknown"
+    media["kind"] = heardKind != "unknown" ? heardKind : (trusted ?? "unknown")
+    media["protected"] = !audible && trusted != nil
   } else {
     media["playing"] = true
-    media["kind"] = "unknown"
+    media["kind"] = trusted ?? "unknown"
   }
   emit(["media": media, "permission": allowed])
 }
@@ -555,6 +576,30 @@ Timer.scheduledTimer(withTimeInterval: 1.0 / 15, repeats: true) { _ in
     lastPointer = flipped
     emit(["pointer": [flipped.x, flipped.y]])
   }
+}
+
+// Typing: noticed from *when* keys are pressed, never which ones. macOS keeps a
+// "seconds since the last key press" count for things like idle timers; each
+// time it drops back toward zero, a key was pressed. While you're typing
+// steadily, report where the front window is, so Mote can look over at it.
+var lastKeyGap = Double.infinity
+var keyTimes: [Date] = []
+var lastTypingReport = Date.distantPast
+Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { _ in
+  let gap = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: .keyDown)
+  let now = Date()
+  if gap < lastKeyGap - 0.01 { keyTimes.append(now) }
+  lastKeyGap = gap
+  keyTimes.removeAll { now.timeIntervalSince($0) > 4 }
+  guard keyTimes.count >= 4, now.timeIntervalSince(lastTypingReport) > 0.5,
+    let front = NSWorkspace.shared.frontmostApplication?.processIdentifier,
+    front != me, front != mote,
+    let win = windowsFrontToBack().first(where: {
+      $0.pid == front && $0.layer == 0 && $0.bounds.width >= 120 && $0.bounds.height >= 80
+    })
+  else { return }
+  lastTypingReport = now
+  emit(["typing": [win.bounds.midX, win.bounds.midY]])
 }
 
 Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in tick() }

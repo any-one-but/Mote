@@ -39,7 +39,17 @@ function SettingsWindow() {
             onChange={(followPointer) => set({ followPointer })}
           />
         </Row>
-        <Row label="Naps when left alone" hint="Mote dozes off after half a minute of quiet.">
+        <Row
+          label="Friendly mode"
+          hint="Mote never gets cross or hurt: no grumpiness, sulking or sharp words."
+        >
+          <Toggle
+            label="Friendly mode"
+            checked={settings.friendly}
+            onChange={(friendly) => set({ friendly })}
+          />
+        </Row>
+        <Row label="Naps when left alone" hint="When Mote gets sleepy and is left alone, they nap.">
           <Toggle
             label="Naps when left alone"
             checked={settings.naps}

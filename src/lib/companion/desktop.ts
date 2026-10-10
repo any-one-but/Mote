@@ -87,6 +87,14 @@ export function onMediaElsewhere(cb: (media: Media | null, permission: boolean |
   };
 }
 
+/**
+ * You're typing in another app: where its window is, from the centre of
+ * Mote's window. (Only *that* you're typing is known, never what.)
+ */
+export function onTypingElsewhere(cb: (dx: number, dy: number) => void) {
+  return onAppEvent<{ dx: number; dy: number }>("typing-elsewhere", (p) => cb(p.dx, p.dy));
+}
+
 /** The pointer anywhere on screen, measured from the centre of Mote's window. */
 export function onPointerElsewhere(cb: (dx: number, dy: number, inside: boolean) => void) {
   return onAppEvent<{ dx: number; dy: number; inside: boolean }>("pointer-elsewhere", (p) =>

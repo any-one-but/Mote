@@ -27,7 +27,10 @@ export type SpeechEvent =
   | "accessory-on"
   | "startled"
   | "liked-media"
-  | "disliked-media";
+  | "disliked-media"
+  | "snacked"
+  | "played"
+  | "unmasked";
 
 export type SpeechContext = {
   feel: MindValues;
@@ -59,8 +62,12 @@ export type Line = {
   effects?: Partial<Record<Outcome, Partial<MindValues>>>;
   /** What Mote says back after each outcome (a short flavor bubble). */
   replies?: Partial<Record<Outcome, string[]>>;
+  /** In Friendly mode, gentler replies to use instead. */
+  kindReplies?: Partial<Record<Outcome, string[]>>;
+  /** Never said in Friendly mode. */
+  unkind?: boolean;
   /** Something Mote does about it (e.g. lie down for a nap). */
-  then?: Partial<Record<Outcome, "nap" | "stay-up">>;
+  then?: Partial<Record<Outcome, "nap" | "stay-up" | "play-again" | "unmask">>;
   /** Group name shown in the debug list. */
   group: string;
 };
@@ -155,6 +162,7 @@ export const LINES: Line[] = [
     when: (c) => !c.asleep && !c.event && (has(c, "frustrated") || has(c, "annoyed")),
     weight: 3,
     say: ["Hmph.", "I’m not talking to you. …Okay, a little.", "That was not very nice, you know."],
+    unkind: true,
   },
   {
     id: "watching",
@@ -221,6 +229,7 @@ export const LINES: Line[] = [
     say: ["Whoaaa… was that on purpose?"],
     effects: { yes: { happy: -0.3, restless: 0.3 }, no: { happy: 0.2 } },
     replies: { yes: ["Rude! …My head is still spinning."], no: ["Okay. I forgive you."] },
+    kindReplies: { yes: ["Ha! It was kind of like a ride."], no: ["Whee, anyway!"] },
   },
   {
     id: "woke-rested",
@@ -269,6 +278,7 @@ export const LINES: Line[] = [
     kind: "ask",
     when: (c) => c.event === "disliked-media" && !!c.media?.name,
     say: (c) => [`Oh no. Not *${c.media?.name}* again… Can we skip this one?`],
+    unkind: true,
     effects: { yes: { happy: 0.6 }, no: { happy: -0.5, restless: 0.3 } },
     replies: { yes: ["Thank you!"], no: ["Fine…"] },
   },
@@ -280,6 +290,7 @@ export const LINES: Line[] = [
     say: ["Do I look dashing?"],
     effects: { yes: { happy: 0.6 }, no: { happy: -0.3 } },
     replies: { yes: ["I knew it!"], no: ["Well, I like it."] },
+    kindReplies: { no: ["Fair enough! I still like it."] },
   },
 
   // Questions
@@ -303,6 +314,7 @@ export const LINES: Line[] = [
     say: ["Want to hang out for a bit?", "Are we friends? I think we’re friends."],
     effects: { yes: { happy: 0.6 }, no: { happy: -0.4 }, ignored: { happy: -0.1 } },
     replies: { yes: ["Yay!"], no: ["Oh. Okay. I’ll be right here."] },
+    kindReplies: { no: ["No worries! I’ll be right here."] },
   },
   {
     id: "liking-this",
@@ -343,6 +355,67 @@ export const LINES: Line[] = [
     say: ["Be honest. Does this mustache make me look distinguished?"],
     effects: { yes: { happy: 0.6 }, no: { happy: -0.3 } },
     replies: { yes: ["I knew it."], no: ["You’re just jealous."] },
+    kindReplies: { no: ["Fair enough! I’m keeping it, though."] },
+  },
+
+  // Things from the tray
+  {
+    id: "masked-sleepy",
+    group: "Things you give Mote",
+    kind: "flavor",
+    when: () => false, // said straight away when the sleep set goes on
+    say: ["Ooh, perfect. Night night…", "Earmuffs and a mask? You know me so well."],
+  },
+  {
+    id: "masked-asleep",
+    group: "Things you give Mote",
+    kind: "flavor",
+    when: () => false,
+    say: ["mm… cozy…", "zzz… so quiet…"],
+  },
+  {
+    id: "masked-awake",
+    group: "Things you give Mote",
+    kind: "ask",
+    when: () => false,
+    say: ["Hey! Who turned out the lights? I’m not even sleepy. Do I have to?"],
+    replies: {
+      yes: ["Fiiine. Night night."],
+      no: ["Phew! Taking this off."],
+      ignored: ["I’ll just… take this off, then."],
+    },
+    then: { yes: "nap", no: "unmask", ignored: "unmask" },
+  },
+  {
+    id: "unmasked",
+    group: "Things you give Mote",
+    kind: "flavor",
+    when: (c) => c.event === "unmasked",
+    say: ["Ahh, there you are!", "The light! It’s so bright!"],
+  },
+  {
+    id: "snacked",
+    group: "Things you give Mote",
+    kind: "flavor",
+    when: (c) => c.event === "snacked",
+    say: ["Crunchy! Thank you.", "Mmm. My favourite kind of cookie: this one."],
+  },
+  {
+    id: "full",
+    group: "Things you give Mote",
+    kind: "flavor",
+    when: () => false,
+    say: ["I’m full! Maybe later.", "Couldn’t eat another crumb."],
+  },
+  {
+    id: "played",
+    group: "Things you give Mote",
+    kind: "ask",
+    when: (c) => c.event === "played",
+    say: ["Again! Again?"],
+    effects: { yes: { happy: 0.3 } },
+    replies: { no: ["Aw, okay. That was fun!"] },
+    then: { yes: "play-again" },
   },
 
   // Asking you to do something
@@ -361,6 +434,7 @@ export const LINES: Line[] = [
     },
     effects: { moved: { happy: 0.8, alert: 0.3 }, ignored: { happy: -0.3 } },
     replies: { moved: ["Ahh, much better. Thank you!"], ignored: ["Oh well. It’s fine here too."] },
+    kindReplies: { ignored: ["Actually, it’s pretty nice right here."] },
   },
   {
     id: "pet-me",
@@ -392,9 +466,13 @@ export function chooseLine(
   lastSaid: Map<string, number>,
   now: number,
   cooldown = 10 * 60_000,
+  friendly = false,
 ): Line | null {
   const ok = LINES.filter(
-    (l) => l.when(c) && now - (lastSaid.get(l.id) ?? Number.NEGATIVE_INFINITY) > cooldown,
+    (l) =>
+      l.when(c) &&
+      !(friendly && l.unkind) &&
+      now - (lastSaid.get(l.id) ?? Number.NEGATIVE_INFINITY) > cooldown,
   );
   if (!ok.length) return null;
   const total = ok.reduce((sum, l) => sum + (l.weight ?? 1), 0);

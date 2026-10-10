@@ -17,10 +17,10 @@ type FaceProps = EngineHooks & {
   onEngine: (engine: FaceEngine | null) => void;
 };
 
-export function Face({ onEngine, onMood, onEvent, onSpeech }: FaceProps) {
+export function Face({ onEngine, onMood, onEvent, onSpeech, onSleepSet }: FaceProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const hooks = useRef({ onEngine, onMood, onEvent, onSpeech });
-  hooks.current = { onEngine, onMood, onEvent, onSpeech };
+  const hooks = useRef({ onEngine, onMood, onEvent, onSpeech, onSleepSet });
+  hooks.current = { onEngine, onMood, onEvent, onSpeech, onSleepSet };
 
   useEffect(() => {
     const svg = svgRef.current;
@@ -29,6 +29,7 @@ export function Face({ onEngine, onMood, onEvent, onSpeech }: FaceProps) {
       onMood: (label) => hooks.current.onMood(label),
       onEvent: (text) => hooks.current.onEvent?.(text),
       onSpeech: (bubble) => hooks.current.onSpeech?.(bubble),
+      onSleepSet: (on) => hooks.current.onSleepSet?.(on),
     });
     hooks.current.onEngine(engine);
     return () => {
@@ -106,6 +107,28 @@ export function Face({ onEngine, onMood, onEvent, onSpeech }: FaceProps) {
           </g>
         </g>
 
+        {/* Sleep set: fluffy earmuffs and a sleep mask, from the tray. */}
+        <g data-part="sleepset" style={{ display: "none" }}>
+          <path className="ss-band" d="M30 118 A92 88 0 0 1 210 118" />
+          <g filter="url(#mote-soft)" className="ink">
+            {[-1, 1].map((side) => (
+              <g key={side}>
+                <circle cx={cx + side * 96} cy={138} r={17} />
+                <circle cx={cx + side * 100} cy={124} r={11} />
+                <circle cx={cx + side * 100} cy={153} r={11} />
+                <circle cx={cx + side * 88} cy={132} r={10} />
+                <circle cx={cx + side * 88} cy={146} r={10} />
+              </g>
+            ))}
+          </g>
+          <path className="ss-strap" d="M44 136 L30 134 M196 136 L210 134" />
+          <path
+            className="ink"
+            d="M46 128 Q120 102 194 128 Q200 150 188 164 Q154 175 120 161 Q86 175 52 164 Q40 150 46 128 Z"
+          />
+          <path className="ss-stitch" d="M70 141 Q85 151 100 141 M140 141 Q155 151 170 141" />
+        </g>
+
         {/* Bushy mustache: puffs melted together by the soft filter. */}
         <g
           data-part="mustache"
@@ -128,6 +151,18 @@ export function Face({ onEngine, onMood, onEvent, onSpeech }: FaceProps) {
             </g>
           ))}
         </g>
+      </g>
+
+      {/* A cookie and a ball, from the tray. */}
+      <g data-part="cookie" style={{ display: "none" }}>
+        <circle r={15} className="cookie" />
+        <circle cx={-5} cy={-4} r={2.4} className="cookie-chip" />
+        <circle cx={5} cy={-1} r={2} className="cookie-chip" />
+        <circle cx={-1} cy={6} r={2.2} className="cookie-chip" />
+      </g>
+      <g data-part="ball" style={{ display: "none" }}>
+        <circle r={13} className="ball" />
+        <path d="M-12 -3 Q0 4 12 -3 M-6 -11 Q0 0 -6 11" className="ball-seam" />
       </g>
     </svg>
   );

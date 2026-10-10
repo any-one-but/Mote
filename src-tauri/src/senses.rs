@@ -68,6 +68,12 @@ pub fn start(app: AppHandle) -> bool {
                     "senses",
                     serde_json::json!({ "media": media, "permission": permission }),
                 );
+            } else if let Some(p) = report.get("typing").and_then(Value::as_array) {
+                let (Some(x), Some(y)) = (p.first().and_then(Value::as_f64), p.get(1).and_then(Value::as_f64))
+                else {
+                    continue;
+                };
+                let _ = main.emit("typing-elsewhere", serde_json::json!({ "dx": x - cx, "dy": y - cy }));
             } else if let Some(p) = report.get("pointer").and_then(Value::as_array) {
                 let (Some(x), Some(y)) = (p.first().and_then(Value::as_f64), p.get(1).and_then(Value::as_f64))
                 else {

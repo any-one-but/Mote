@@ -27,9 +27,9 @@ Mote has three feelings, each scored 0 to 10, starting at 5:
 
 | Feeling | 0 means | 10 means | On its own |
 |---|---|---|---|
-| Happy | Frustrated | Happy | settles one step toward 5 every 30 seconds |
-| Restless | Calm | Restless | settles one step toward 5 every 30 seconds |
-| Alert | Sleepy | Alert | drops one step every 4 minutes awake (not while intrigued); recharges asleep |
+| Happy | Frustrated | Happy | settles one step toward 5 every 2 minutes |
+| Restless | Calm | Restless | settles one step toward 5 every 2 minutes |
+| Alert | Sleepy | Alert | drops one step every 16 minutes awake (not while intrigued); recharges asleep |
 
 Things that happen to Mote (pokes, petting, being shaken, sound, and so on)
 nudge these a little. Mote spends most of the time near the middle; only when a
@@ -59,6 +59,13 @@ app as `mote-senses`) keeps an eye on the rest of the screen:
   listens) and **video** (Mote watches, looking away now and then for a break).
 - It reads the **title**, so Mote can mention what's on by name.
 - Moving the **pointer** a lot anywhere on screen catches Mote's eye briefly.
+- While you're **typing** in another app, Mote looks over at that window and
+  counts it as being intrigued. Mote only notices *that* keys are being
+  pressed (from macOS's "time since the last key press"), never which keys.
+- Apple Music, Spotify, Podcasts and TV only make sound while actually
+  playing, so for them that alone counts as playing. Their sound is often
+  copy-protected, which Mote can't hear; then Mote sways along instead of
+  dancing to the beat.
   With several things going on, Mote's attention moves between them.
 - Something starting to play while Mote is asleep jolts them awake.
 
@@ -93,6 +100,24 @@ with the feelings it changes. The Debug window's **Mind** tab shows the feelings
 lets you nudge them, and lists every reaction (built ones and ideas), lighting
 each up as it fires.
 
+### Things to give Mote
+
+Move the pointer into Mote's window and a little tray appears at the bottom:
+
+- **Earmuffs and sleep mask**: Mote can't see or hear anything else while
+  wearing them, so they sleep through music, videos and your pointer. Putting
+  them on a sleepy Mote sends them off to sleep; on a sleeping Mote it doesn't
+  wake them; on a wide-awake Mote they'll ask whether they really have to.
+  A poke wakes Mote and takes them off.
+- **A snack**: a cookie, munched happily (three in five minutes is plenty).
+- **The ball**: Mote watches it bounce in and bops it, and may ask to go again.
+
+### Friendly mode
+
+In Settings, **Friendly mode** means Mote never gets cross or hurt: no
+grumpiness, huffing or sulking, no sharp replies, nothing that makes Mote less
+happy, and lots of pokes just tickle.
+
 ## Try it as a Mac app
 
 Open Terminal in this folder and run:
@@ -107,8 +132,8 @@ Drag the window by its top edge.
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. You can choose
-whether Mote follows your pointer, naps, how lively Mote is, and whether the
-window floats above others.
+whether Mote follows your pointer, Friendly mode, whether Mote naps, how lively
+Mote is, and whether the window floats above others.
 
 Text in the app calls Mote "Mote", or "they/them" when a pronoun is needed.
 

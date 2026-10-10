@@ -14,11 +14,11 @@ export const ATTRS: Array<{
   every: number;
   toward: number;
 }> = [
-  { key: "happy", low: "Frustrated", high: "Happy", every: 30_000, toward: 5 },
-  { key: "restless", low: "Calm", high: "Restless", every: 30_000, toward: 5 },
+  { key: "happy", low: "Frustrated", high: "Happy", every: 120_000, toward: 5 },
+  { key: "restless", low: "Calm", high: "Restless", every: 120_000, toward: 5 },
   // Unlike the others, alertness wears off on its own: left be, Mote slowly
   // gets tired. It doesn't wear off while Mote is intrigued by something.
-  { key: "alert", low: "Sleepy", high: "Alert", every: 240_000, toward: 0 },
+  { key: "alert", low: "Sleepy", high: "Alert", every: 960_000, toward: 0 },
 ];
 
 export const MIND_START: MindValues = { happy: 5, restless: 5, alert: 5 };
@@ -103,7 +103,7 @@ export function loadMind(): MindValues {
       alert: REST_PER_MINUTE.alert * minutes,
       restless: Math.max(-3, REST_PER_MINUTE.restless * minutes),
     });
-    const happySteps = Math.floor(away / 30_000);
+    const happySteps = Math.floor(away / 120_000);
     for (let i = 0; i < happySteps && v.happy !== 5; i++) v.happy = driftStep(v.happy, 5);
     return v;
   } catch {

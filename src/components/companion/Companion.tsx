@@ -6,11 +6,12 @@ import { Face } from "@/components/companion/Face";
 import { SpeechBubble } from "@/components/companion/SpeechBubble";
 import type { Bubble } from "@/components/companion/speech";
 import { GEO } from "@/lib/companion/theme";
-import type { EngineOptions, FaceEngine, MediaKind } from "@/components/companion/engine";
+import type { EngineOptions, FaceEngine, Item, MediaKind } from "@/components/companion/engine";
 import { DEBUG_DEFAULTS, listenBus, send, type DebugState } from "@/lib/companion/bus";
 import {
   onMediaElsewhere,
   onPointerElsewhere,
+  onTypingElsewhere,
   onWindowMoved,
   windowPlacement,
 } from "@/lib/companion/desktop";
@@ -49,6 +50,7 @@ export function Companion() {
     null,
   );
   const [bubble, setBubble] = useState<Bubble | null>(null);
+  const [sleepSet, setSleepSet] = useState(false);
   const [anchor, setAnchor] = useState({ x: 0, y: 0 });
 
   // The bubble's tail points down at Mote, just above the eyes.
@@ -89,10 +91,10 @@ export function Companion() {
     });
   };
 
-  const { followPointer, naps, energy, headphones, mustache, debug } = settings;
+  const { followPointer, naps, energy, headphones, mustache, friendly, debug } = settings;
   useEffect(() => {
-    engineRef.current?.configure({ followPointer, naps, energy, headphones, mustache });
-  }, [followPointer, naps, energy, headphones, mustache]);
+    engineRef.current?.configure({ followPointer, naps, energy, headphones, mustache, friendly });
+  }, [followPointer, naps, energy, headphones, mustache, friendly]);
 
   useEffect(
     () =>
@@ -101,7 +103,9 @@ export function Companion() {
         realMedia.current = media;
         debugState.current.permission = permission;
         if ((was === null) !== (media === null)) {
-          events.current.push(media ? `${media.kind} playing in another window` : "other media stopped");
+          events.current.push(
+            media ? `${media.kind} playing in another window` : "other media stopped",
+          );
         } else if (was && media && was.kind !== media.kind) {
           events.current.push(`media looks like ${media.kind} now`);
         }
@@ -113,9 +117,11 @@ export function Companion() {
 
   useEffect(() => onWindowMoved((dx, dy) => engineRef.current?.windowMoved(dx, dy)), []);
   useEffect(
-    () => onPointerElsewhere((dx, dy, inside) => engineRef.current?.pointerElsewhere(dx, dy, inside)),
+    () =>
+      onPointerElsewhere((dx, dy, inside) => engineRef.current?.pointerElsewhere(dx, dy, inside)),
     [],
   );
+  useEffect(() => onTypingElsewhere((dx, dy) => engineRef.current?.typingAt(dx, dy)), []);
 
   // Debug mode: take orders from the debug window and report back ~10× a second.
   useEffect(() => {
@@ -238,7 +244,7 @@ export function Companion() {
         <Face
           onEngine={(engine) => {
             engineRef.current = engine;
-            engine?.configure({ followPointer, naps, energy, headphones, mustache });
+            engine?.configure({ followPointer, naps, energy, headphones, mustache, friendly });
             applyAudio();
           }}
           onMood={(label) => {
@@ -256,14 +262,69 @@ export function Companion() {
             if (b) measure();
             setBubble(b);
           }}
+          onSleepSet={setSleepSet}
         />
       </button>
+      <Tray sleepSet={sleepSet} onUse={(item) => engineRef.current?.useItem(item)} />
       <SpeechBubble
         bubble={bubble}
         anchor={anchor}
         onAnswer={(yes) => engineRef.current?.answer(yes)}
         onDismiss={() => engineRef.current?.dismissSpeech()}
       />
+    </div>
+  );
+}
+
+/**
+ * Things to give Mote, along the bottom of the window. Tucked away until the
+ * pointer comes into the window.
+ */
+function Tray({ sleepSet, onUse }: { sleepSet: boolean; onUse: (item: Item) => void }) {
+  return (
+    <div className="tray" role="toolbar" aria-label="Things to give Mote">
+      <button
+        type="button"
+        className="tray-item"
+        aria-pressed={sleepSet}
+        aria-label={sleepSet ? "Take off the earmuffs and sleep mask" : "Earmuffs and sleep mask"}
+        title={sleepSet ? "Take off the earmuffs and mask" : "Earmuffs and sleep mask"}
+        onClick={() => onUse("sleepset")}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            className="tray-fill"
+            d="M3 10.5Q12 6 21 10.5Q22.5 14.5 19.5 16.5Q15.5 17.5 12 15.5Q8.5 17.5 4.5 16.5Q1.5 14.5 3 10.5Z"
+          />
+          <path className="tray-cut" d="M6.5 12.2Q8 13.6 9.5 12.2M14.5 12.2Q16 13.6 17.5 12.2" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        className="tray-item"
+        aria-label="Give Mote a snack"
+        title="A snack"
+        onClick={() => onUse("snack")}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle className="tray-cookie" cx="12" cy="12" r="8" />
+          <circle className="tray-chip" cx="9.5" cy="10" r="1.3" />
+          <circle className="tray-chip" cx="14.5" cy="11.5" r="1.1" />
+          <circle className="tray-chip" cx="11" cy="15" r="1.2" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        className="tray-item"
+        aria-label="Play ball with Mote"
+        title="Play ball"
+        onClick={() => onUse("ball")}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle className="tray-ball" cx="12" cy="12" r="8" />
+          <path className="tray-seam" d="M4.5 10.5Q12 15 19.5 10.5M8.5 5Q12 12 8.5 19" />
+        </svg>
+      </button>
     </div>
   );
 }
