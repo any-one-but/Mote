@@ -8,14 +8,15 @@ surprised, dozes off when left alone, and hops happily when poked (clicked right
 on the face — clicks on the empty window around Mote don't count). Four quick
 pokes in a row is too many, and Mote gets annoyed. Only a poke wakes a sleeping Mote.
 
-- **Petting:** press and drag across Mote's face to pet. Mote melts into it and
+- **Petting:** press and keep stroking across Mote's face for a second or so. Mote melts into it and
   purrs (a sleeping Mote purrs a little without waking up).
 - **Dizzy:** shaking the pointer around wildly, or throwing the window around
   the screen, makes Mote dizzy for a moment.
 - **Watching along:** in the Mac app, if another visible window is playing
   sound, Mote won't nod off and keeps glancing toward that window.
 
-Mote can also wear cat-ear headphones and a bushy mustache (both in Settings).
+Mote can also wear cat-ear headphones and a bushy mustache (switched on in the
+Debug window, on its Moods tab).
 Each brings three extra idle moods: the mustache gets twirled, blown on, and
 almost sneezed through; the headphones bring listening for sounds, bopping to
 music, and cat-like ear flicks.
@@ -34,18 +35,15 @@ Drag the window by its top edge.
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. You can choose
-Mote's gender, whether Mote follows your pointer, naps, how lively Mote is,
-the accessories, and whether the window floats above others.
+whether Mote follows your pointer, naps, how lively Mote is, and whether the
+window floats above others.
 
-The gender setting sets Mote's pronouns (he/him, they/them, she/her). Every bit
-of text in the app that talks about Mote follows it. When adding new text, build
-it from `usePronouns()` / `pronounsFor()` in `src/lib/companion/pronouns.ts`
-instead of writing "he", "she" or "they" directly.
+Text in the app calls Mote "Mote", or "they/them" when a pronoun is needed.
 
 At the bottom of Settings, **Debug mode** opens a separate window of testing tools:
 
-- **Moods**: play any mood on demand, blink, poke, turn off automatic moods, loop a
-  mood, try flat line-shaped sleeping eyes
+- **Moods**: play any mood on demand, put the headphones and mustache on or off,
+  blink, poke, turn off automatic moods, loop a mood, try flat sleeping eyes
 - **Pose**: shape Mote's face by hand with sliders, then "Copy values" to share the numbers
 - **Motion**: slow time down, freeze Mote, show outlines of the eye cuts, pretend
   another window is playing sound, live numbers
@@ -79,6 +77,5 @@ Each face there is one expression frozen in place, handy for tweaking how they l
 - `desktop/` — the Mac app's pages: Mote (`index.html`), Settings, Debug, and the gallery
 - `desktop/ui.tsx` and `desktop/ui.css` — the soft buttons, switches and sliders
 - `src/lib/companion/settings.ts` — the list of settings and their defaults
-- `src/lib/companion/pronouns.ts` — Mote's pronouns, from the gender setting
 - `src/components/companion/accessories.ts` — how the headphones and mustache are drawn
 - `src-tauri/` — the Mac app wrapper itself

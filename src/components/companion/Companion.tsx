@@ -20,7 +20,9 @@ export function Companion() {
   const debugState = useRef<DebugState>({ ...DEBUG_DEFAULTS });
   const events = useRef<string[]>([]);
   const realAudio = useRef<Audio>(null);
-  const press = useRef<{ x: number; y: number; moved: number } | null>(null);
+  const press = useRef<{ x: number; y: number; moved: number; stroked: number; at: number } | null>(
+    null,
+  );
 
   // Sound playing in another window, or the debug window's pretend version of it.
   const applyAudio = () => {
@@ -116,17 +118,25 @@ export function Companion() {
       aria-label="Mote"
       onPointerDown={(e) => {
         if (!engineRef.current?.hitTest(e.clientX, e.clientY)) return;
-        press.current = { x: e.clientX, y: e.clientY, moved: 0 };
+        press.current = { x: e.clientX, y: e.clientY, moved: 0, stroked: 0, at: performance.now() };
         e.currentTarget.setPointerCapture(e.pointerId);
       }}
       onPointerMove={(e) => {
         const p = press.current;
         const engine = engineRef.current;
         if (!p || !engine) return;
-        p.moved += Math.hypot(e.clientX - p.x, e.clientY - p.y);
+        const step = Math.hypot(e.clientX - p.x, e.clientY - p.y);
+        p.moved += step;
         p.x = e.clientX;
         p.y = e.clientY;
-        if (p.moved > 6 && engine.hitTest(e.clientX, e.clientY)) engine.pet(e.clientX, e.clientY);
+        if (!engine.hitTest(e.clientX, e.clientY)) return;
+        // It only counts as petting after a proper stroke: well over a second
+        // of moving across the face, covering a good distance.
+        p.stroked += step;
+        const width = e.currentTarget.getBoundingClientRect().width || 300;
+        if (p.stroked > width * 1.6 && performance.now() - p.at > 1100) {
+          engine.pet(e.clientX, e.clientY);
+        }
       }}
       onPointerUp={() => {
         const p = press.current;

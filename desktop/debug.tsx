@@ -17,7 +17,6 @@ import {
   type DebugCommand,
   type DebugState,
 } from "@/lib/companion/bus";
-import { pronounsFor } from "@/lib/companion/pronouns";
 import { DEFAULT_SETTINGS, useSettings, type Settings } from "@/lib/companion/settings";
 import { Button, Page, Row, Section, Segmented, Slider, Toggle } from "./ui";
 
@@ -202,10 +201,19 @@ function DebugWindow() {
 /* Moods */
 
 function MoodsTab({ snap, debug, command, settings, updateSettings }: Ctx) {
-  const p = pronounsFor(settings.gender);
   const accessories = [
-    { key: "mustache", title: "Mustache", wear: "Wear the mustache" },
-    { key: "headphones", title: "Headphones", wear: "Wear the headphones" },
+    {
+      key: "mustache",
+      title: "Mustache",
+      wear: "Bushy mustache",
+      about: "Mote twirls it, blows on it, and sometimes nearly sneezes.",
+    },
+    {
+      key: "headphones",
+      title: "Headphones",
+      wear: "Cat-ear headphones",
+      about: "Mote listens for sounds and bops along to music.",
+    },
   ] as const;
   return (
     <>
@@ -226,7 +234,7 @@ function MoodsTab({ snap, debug, command, settings, updateSettings }: Ctx) {
         <Section key={a.key} title={a.title}>
           <Row
             label={a.wear}
-            hint={settings[a.key] ? undefined : "Off right now. Its moods still play, just unseen."}
+            hint={settings[a.key] ? a.about : `${a.about} Off right now, so its moods play unseen.`}
           >
             <Toggle
               label={a.wear}
@@ -251,7 +259,7 @@ function MoodsTab({ snap, debug, command, settings, updateSettings }: Ctx) {
         </div>
       </Section>
       <Section title="Behaviour">
-        <Row label="Automatic moods" hint={`Let ${p.them} pick moods on ${p.their} own.`}>
+        <Row label="Automatic moods" hint="Let Mote pick moods on their own.">
           <Toggle
             label="Automatic moods"
             checked={debug.autoMoods}
@@ -321,8 +329,7 @@ const GROUPS: Array<{ title: string; keys: Array<keyof Pose> }> = [
 
 const restFace = (): ManualFace => ({ pose: { ...REST }, gazeX: 0, gazeY: 0, blink: 0 });
 
-function PoseTab({ snap, debug, command, face, setFace, settings }: Ctx) {
-  const p = pronounsFor(settings.gender);
+function PoseTab({ snap, debug, command, face, setFace }: Ctx) {
   const [copied, setCopied] = useState(false);
 
   const apply = (next: ManualFace) => {
@@ -354,7 +361,7 @@ function PoseTab({ snap, debug, command, face, setFace, settings }: Ctx) {
   return (
     <>
       <Section>
-        <Row label="Pose by hand" hint={`Freezes Mote and lets the sliders shape ${p.their} face.`}>
+        <Row label="Pose by hand" hint="Freezes Mote and lets the sliders shape their face.">
           <Toggle
             label="Pose by hand"
             checked={debug.manual}

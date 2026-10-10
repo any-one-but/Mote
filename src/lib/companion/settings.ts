@@ -2,11 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Energy } from "@/components/companion/engine";
 import { listenBus, send } from "@/lib/companion/bus";
 
-export type Gender = "man" | "nonbinary" | "woman";
-
 export type Settings = {
-  /** Only stored for now; nothing reads it yet. */
-  gender: Gender;
   followPointer: boolean;
   naps: boolean;
   energy: Energy;
@@ -17,7 +13,6 @@ export type Settings = {
 };
 
 export const DEFAULT_SETTINGS: Settings = {
-  gender: "nonbinary",
   followPointer: true,
   naps: true,
   energy: "normal",
@@ -43,7 +38,6 @@ export function readSettings(): Settings {
   const d = DEFAULT_SETTINGS;
   const bool = (v: unknown, fb: boolean) => (typeof v === "boolean" ? v : fb);
   return {
-    gender: pick(raw.gender, ["man", "nonbinary", "woman"] as const, d.gender),
     followPointer: bool(raw.followPointer, d.followPointer),
     naps: bool(raw.naps, d.naps),
     energy: pick(raw.energy, ["calm", "normal", "lively"] as const, d.energy),

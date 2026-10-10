@@ -54,7 +54,7 @@ fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
     }
     WebviewWindowBuilder::new(app, "settings", WebviewUrl::App("settings.html".into()))
         .title("Settings")
-        .inner_size(420.0, 800.0)
+        .inner_size(420.0, 640.0)
         .min_inner_size(360.0, 420.0)
         .center()
         .title_bar_style(TitleBarStyle::Overlay)
