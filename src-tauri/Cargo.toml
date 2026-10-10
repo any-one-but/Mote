@@ -1,6 +1,6 @@
 [package]
 name = "mote"
-version = "0.2.0-mind.2"
+version = "0.2.0-mind.3"
 description = "Mote, a face in a window"
 edition = "2021"
 
