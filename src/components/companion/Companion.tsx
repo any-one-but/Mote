@@ -21,22 +21,7 @@ type MediaInfo = EngineOptions["media"];
 
 /** The debug window's pretend media: a window off to one side playing something. */
 function pretend(side: "left" | "right", kind: MediaKind): NonNullable<MediaInfo> {
-  const titles: Record<MediaKind, string> = {
-    music: "Pretend Song",
-    speech: "Pretend Podcast",
-    video: "Pretend Show",
-    unknown: "Pretend Sounds",
-  };
-  return {
-    dx: side === "left" ? -700 : 700,
-    dy: 0,
-    kind,
-    bpm: kind === "music" ? 112 : null,
-    beatAgo: kind === "music" ? 0 : null,
-    intensity: 0.7,
-    title: titles[kind],
-    app: "Pretend",
-  };
+  return { dx: side === "left" ? -700 : 700, dy: 0, kind, app: "Pretend" };
 }
 
 export function Companion() {
@@ -98,16 +83,13 @@ export function Companion() {
 
   useEffect(
     () =>
-      onMediaElsewhere((media, permission) => {
+      onMediaElsewhere((media) => {
         const was = realMedia.current;
         realMedia.current = media;
-        debugState.current.permission = permission;
         if ((was === null) !== (media === null)) {
           events.current.push(
             media ? `${media.kind} playing in another window` : "other media stopped",
           );
-        } else if (was && media && was.kind !== media.kind) {
-          events.current.push(`media looks like ${media.kind} now`);
         }
         applyAudio();
       }),
@@ -159,7 +141,6 @@ export function Companion() {
       else if (cmd.do === "resetFeelings") e.resetFeelings();
       else if (cmd.do === "react") e.react(cmd.id);
       else if (cmd.do === "say") e.say(cmd.id);
-      else if (cmd.do === "forget") e.forgetMedia(cmd.key);
       else if (cmd.do === "fakeKind") {
         d.fakeKind = cmd.value;
         applyAudio();

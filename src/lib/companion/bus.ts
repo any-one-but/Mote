@@ -22,7 +22,6 @@ export type DebugCommand =
   | { do: "resetFeelings" }
   | { do: "react"; id: string }
   | { do: "say"; id?: string }
-  | { do: "forget"; key?: string }
   | { do: "manual"; face: ManualFace | null };
 
 /** The debug knobs as Mote's window currently has them. */
@@ -36,8 +35,6 @@ export type DebugState = {
   sleepLine: boolean;
   fakeAudio: "left" | "right" | null;
   fakeKind: MediaKind;
-  /** Whether the Mac app may record the screen (null: not known / not the Mac app). */
-  permission: boolean | null;
 };
 
 export const DEBUG_DEFAULTS: DebugState = {
@@ -50,7 +47,6 @@ export const DEBUG_DEFAULTS: DebugState = {
   sleepLine: false,
   fakeAudio: null,
   fakeKind: "music",
-  permission: null,
 };
 
 export type BusMessage =

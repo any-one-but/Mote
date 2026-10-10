@@ -41,45 +41,21 @@ type SensedMedia = {
   dy: number;
   playing: boolean;
   kind?: MediaKind;
-  bpm?: number;
-  beatAgo?: number;
-  intensity?: number;
-  title?: string | null;
   app?: string | null;
 };
 
 /**
- * What the Mac app can see playing in other windows (null when nothing you
- * can see is actually playing), and whether Mote has the Screen Recording
- * permission it needs to tell what kind of thing it is.
+ * Sound coming from a window you can see (null when there's none): where it
+ * is, and whether it's a music app.
  */
-export function onMediaElsewhere(cb: (media: Media | null, permission: boolean | null) => void) {
-  const fromSenses = onAppEvent<{ media: SensedMedia | null; permission: boolean }>("senses", (p) => {
+export function onMediaElsewhere(cb: (media: Media | null) => void) {
+  const fromSenses = onAppEvent<{ media: SensedMedia | null }>("senses", (p) => {
     const m = p.media;
-    cb(
-      m && m.playing
-        ? {
-            dx: m.dx,
-            dy: m.dy,
-            kind: m.kind ?? "unknown",
-            bpm: m.bpm ?? null,
-            beatAgo: m.beatAgo ?? null,
-            intensity: m.intensity ?? 0.5,
-            title: m.title ?? null,
-            app: m.app ?? null,
-          }
-        : null,
-      p.permission,
-    );
+    cb(m && m.playing ? { dx: m.dx, dy: m.dy, kind: m.kind ?? "other", app: m.app ?? null } : null);
   });
   // The simpler check the app falls back to if the helper can't run.
   const fallback = onAppEvent<{ playing: boolean; dx: number; dy: number }>("audio-elsewhere", (p) =>
-    cb(
-      p.playing
-        ? { dx: p.dx, dy: p.dy, kind: "unknown", bpm: null, beatAgo: null, intensity: 0.5, title: null, app: null }
-        : null,
-      null,
-    ),
+    cb(p.playing ? { dx: p.dx, dy: p.dy, kind: "other", app: null } : null),
   );
   return () => {
     fromSenses();

@@ -27,8 +27,8 @@ Mote has four feelings, each scored 0 to 10:
 
 | Feeling | 0 means | 10 means | On its own |
 |---|---|---|---|
-| Happy | Frustrated | Happy | settles one step toward 5 every 2 minutes |
-| Restless | Calm | Restless | settles one step toward 5 every 2 minutes |
+| Happy | Frustrated | Happy | drops one step every 6 minutes when left alone |
+| Restless | Calm | Restless | rises one step every 6 minutes when left alone |
 | Alert | Sleepy | Alert | drops one step every 16 minutes awake (not while intrigued); recharges asleep |
 | Full | Hungry | Full | drops one step every 6 minutes awake; asleep, a fifth as fast and never below 3.5 |
 
@@ -38,6 +38,13 @@ pang makes them crosser, more so the hungrier they are; they get worried brows
 and tummy rumbles, and ask for food, more often and more desperately, with a
 bubble you answer by giving a snack. Ignoring those makes it worse. Hunger is
 switched off in Friendly mode, where snacks are just a treat.
+
+Left to themselves, Mote slides toward the bad end of every feeling: crosser,
+more restless, more tired and hungrier. That pauses while you're around (using
+Mote's window, or typing nearby), and asleep Mote calms down rather than getting
+crosser. Attention is what lifts Mote back up: pets, snacks, play, company,
+answering their questions. In Friendly mode the slide stops short of anything
+upsetting (Happy stays at 4 or more, Restless at 7 or less, never hungry).
 
 Things that happen to Mote (pokes, petting, being shaken, sound, and so on)
 nudge these a little. Mote spends most of the time near the middle; only when a
@@ -55,43 +62,21 @@ thing Mote does is look out to check in on you now and then (with a small,
 happiness-based chance of something sweet). Only a really sleepy Mote nods off
 while watching, and only an exhausted one actually falls asleep.
 
-### Watching, listening and dancing
+### Watching along
 
-In the Mac app, a small helper (`desktop/senses/main.swift`, built into the
-app as `mote-senses`) keeps an eye on the rest of the screen:
+In the Mac app, a small helper (`desktop/senses/main.swift`, built into the app
+as `mote-senses`) notices a few things on the rest of the screen. It needs no
+special permissions and never captures the screen or sound:
 
-- Only media in a window **you can actually see** counts: covered-up windows
-  don't, and neither do players that are open but paused or silent.
-- It tells **music** (Mote dances to its tempo, harder when it's loud, when
-  Mote is happy, or when it's a favourite), **talk** (Mote tilts their head and
-  listens) and **video** (Mote watches, looking away now and then for a break).
-- It reads the **title**, so Mote can mention what's on by name.
+- **Sound from a window you can see**: Mote watches it and checks in on you now
+  and then. Covered-up windows don't count. If it's a music app (Apple Music or
+  Spotify), Mote sways along.
 - Moving the **pointer** a lot anywhere on screen catches Mote's eye briefly.
 - While you're **typing** in another app, Mote looks over at that window and
-  counts it as being intrigued. Mote only notices *that* keys are being
-  pressed (from macOS's "time since the last key press"), never which keys.
-- Apple Music, Spotify, Podcasts and TV only make sound while actually
-  playing, so for them that alone counts as playing. Their sound is often
-  copy-protected, which Mote can't hear; then Mote sways along instead of
-  dancing to the beat.
-  With several things going on, Mote's attention moves between them.
+  counts it as being intrigued. Mote only notices *that* keys are being pressed
+  (from macOS's "time since the last key press"), never which keys.
+- With several things going on, Mote's attention moves between them.
 - Something starting to play while Mote is asleep jolts them awake.
-
-To hear the sound and tell video from music, the helper needs the **Screen
-Recording** permission (macOS asks the first time). It only looks at the one
-window that's playing, at a tiny 96×54 size, and nothing is ever saved.
-Without the permission Mote can still tell where sound is coming from, just not
-what kind it is, how loud, or what it's called. Because the app isn't signed
-with an Apple developer account, macOS may ask again after each rebuild.
-
-### Learning likes and dislikes
-
-Mote remembers each song or video they've watched or listened to with you.
-Good moments while it plays (pets, pokes, nice answers, "yes, I like this")
-make Mote like it more; bad ones (pestering, shaking, "no") less. Next time it
-comes on, Mote is pleased (and dances harder) or unimpressed (won't dance, may
-ask to skip it). The Debug window's Mind tab lists what Mote remembers, with a
-Forget button.
 
 ### Speech bubbles
 
@@ -188,6 +173,5 @@ Each face there is one expression frozen in place, handy for tweaking how they l
 - `src/components/companion/reactions.ts` — every stimulus → response rule
 - `src/components/companion/speech.ts` — everything Mote can say, and when
 - `src/components/companion/SpeechBubble.tsx` — how the bubbles look
-- `src/components/companion/memory.ts` — Mote's memory of media, and their likes
-- `desktop/senses/main.swift` — the helper that sees and hears other windows
+- `desktop/senses/main.swift` — the helper that notices sound, the pointer and typing
 - `src-tauri/` — the Mac app wrapper itself

@@ -1,6 +1,7 @@
 import { MUSTACHE_PUFFS, headphoneShape, mustacheShape } from "@/components/companion/accessories";
 import {
   ATTRS,
+  FRIENDLY,
   HUNGER,
   feelings,
   lastingMoods,
@@ -13,14 +14,6 @@ import {
   type LastingMood,
   type MindValues,
 } from "@/components/companion/mind";
-import {
-  DISLIKED,
-  LIKED,
-  loadMemories,
-  mediaKey,
-  saveMemories,
-  type MediaMemory,
-} from "@/components/companion/memory";
 import { reactionById } from "@/components/companion/reactions";
 import {
   chooseLine,
@@ -169,7 +162,8 @@ export type EngineOptions = {
 
 export type Accessory = "headphones" | "mustache";
 
-export type MediaKind = "music" | "speech" | "video" | "unknown";
+/** Music (from a music app, known by name) or anything else. */
+export type MediaKind = "music" | "other";
 
 /** Something going on that Mote can turn to look at. */
 export type Focus = "media" | "pointer" | "typing";
@@ -179,13 +173,6 @@ export type Media = {
   dx: number;
   dy: number;
   kind: MediaKind;
-  /** Tempo, for music. */
-  bpm: number | null;
-  /** Seconds since the last beat, as of this report. */
-  beatAgo: number | null;
-  /** How loud and lively it is, 0..1. */
-  intensity: number;
-  title: string | null;
   app: string | null;
 };
 
@@ -203,18 +190,14 @@ export type EngineSnapshot = {
   idleMs: number;
   pose: Pose;
   petting: boolean;
-  /** The media Mote can see and hear, if any. */
+  /** Sound coming from a window Mote can see, if any. */
   media: Media | null;
   /** Everything Mote is intrigued by right now, and which one they're looking at. */
   intrigued: Array<"media" | "you" | "pointer" | "typing">;
   focus: Focus | null;
-  /** How hard Mote is dancing, 0..1. */
+  /** How much Mote is swaying along to music, 0..1. */
   dancing: number;
-  /** Media Mote remembers, and how much they like each. */
-  memories: MediaMemory[];
   sleepSet: boolean;
-  /** What's playing now, as Mote remembers it (if it's playing). */
-  nowPlaying: string | null;
   /** Mote's feelings, 0–10, and the lasting moods they add up to. */
   mind: MindValues;
   moods: LastingMood[];
@@ -262,8 +245,6 @@ export type FaceEngine = {
   pointerElsewhere: (dx: number, dy: number, inside: boolean) => void;
   /** You're typing in another app, whose window is this far from Mote's centre. */
   typingAt: (dx: number, dy: number) => void;
-  /** Forget how Mote feels about one piece of media (or all of it). */
-  forgetMedia: (key?: string) => void;
   /** Use something from the tray: the sleep set goes on or off, a snack, the ball. */
   useItem: (item: Item) => void;
   snapshot: () => EngineSnapshot;
@@ -1358,6 +1339,13 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   let swirlNow = 0;
   let purrNow = 0;
 
+  // Older versions kept a list of watched titles; that's gone, so clear it.
+  try {
+    localStorage.removeItem("mote.memory");
+  } catch {
+    // Nothing to clear.
+  }
+
   // The mind: feelings, their drift timers, and a tally of reactions.
   let feel: MindValues = loadMind();
   const driftAt: MindValues = Object.fromEntries(ATTRS.map((a) => [a.key, a.every])) as MindValues;
@@ -1387,16 +1375,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   // Split attention: which of the things going on Mote is looking at.
   let focus: Focus | null = null;
   let focusUntil = 0;
-  // Dancing: a beat clock kept in step with the music, and how hard Mote is
-  // dancing (eased in and out).
-  let beatOrigin = 0;
-  let beatPeriod = 500;
+  // Swaying along to music (eased in and out).
   let dance = 0;
   let groove = { x: 0, y: 0, rot: 0, sx: 0, sy: 0 };
-  // Memory of media: what's on now, and everything remembered.
-  const memories: Record<string, MediaMemory> = loadMemories();
-  let nowPlaying: string | null = null;
-  let memoriesSavedAt = 0;
   const engage = () => {
     youUntil = clock + 15_000;
   };
@@ -1430,24 +1411,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const effects = kindly(r.effects);
     if (effects) feel = nudge(feel, effects);
     log(`reaction: ${r.name.toLowerCase()}`);
-    if (effects?.happy) associate(effects.happy * 0.6);
   };
-
-  /**
-   * Training: good and bad moments while something plays rub off on it. Mote
-   * remembers, and feels that way about it next time.
-   */
-  const associate = (amount: number) => {
-    if (options.friendly && amount < 0) return;
-    if (!nowPlaying || !memories[nowPlaying] || amount === 0) return;
-    const m = memories[nowPlaying];
-    const before = m.score;
-    m.score = Math.max(-6, Math.min(6, m.score + amount));
-    if (before < LIKED && m.score >= LIKED) log(`now likes “${m.name}”`);
-    if (before > DISLIKED && m.score <= DISLIKED) log(`now dislikes “${m.name}”`);
-  };
-
-  const liking = () => (nowPlaying ? (memories[nowPlaying]?.score ?? 0) : 0);
 
   const announce = (label: string | null) => {
     if (label === announced) return;
@@ -1498,14 +1462,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     mustache: options.mustache,
     placement: options.placement,
     media:
-      interest === "media" && lastMedia
-        ? {
-            name: nowPlaying ? (memories[nowPlaying]?.name ?? null) : null,
-            kind: lastMedia.kind,
-            liking: liking(),
-            dancing: dance > 0.3,
-          }
-        : null,
+      interest === "media" && lastMedia ? { kind: lastMedia.kind, dancing: dance > 0.3 } : null,
   });
 
   const showBubble = (b: Bubble | null) => {
@@ -1557,11 +1514,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (b.reply || !line) return;
     const effects = kindly(line.effects?.[outcome]);
     if (effects) feel = nudge(feel, effects);
-    if (effects?.happy) associate(effects.happy * 0.6);
-    // Asked straight out whether you like what's on: that sticks.
-    if (line.id === "liking-this" && (outcome === "yes" || outcome === "no")) {
-      associate(outcome === "yes" ? 1.2 : -1.2);
-    }
     if (outcome !== "done") react(`answer-${outcome}`);
     const then = line.then?.[outcome];
     if (then === "nap" && mood !== "sleep") {
@@ -1891,12 +1843,14 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       } else if (a.key === "full") {
         hungerTick();
       } else {
-        // Hunger drags Mote's happy baseline down: the hungrier, the lower.
-        const hungry = options.friendly ? 0 : feelings(feel).hungry;
-        const toward = a.key === "happy" ? a.toward - 4 * hungry : a.toward;
+        // Left to themselves, Mote gets crosser and more restless. Not while
+        // asleep (sleep calms them; see "resting"), and not while you're
+        // around: using Mote's window or typing nearby.
+        const around = clock < youUntil || clock < typingUntil;
+        if (mood === "sleep" || around) continue;
         const before = feel[a.key];
-        feel = { ...feel, [a.key]: driftStep(before, toward) };
-        if (before !== feel[a.key]) react("drift");
+        feel = { ...feel, [a.key]: driftStep(before, a.toward) };
+        if (before !== feel[a.key]) react(a.key === "happy" ? "drift-cross" : "drift-restless");
       }
     }
 
@@ -1910,7 +1864,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
 
     if (attention > 0.5 && mood !== "sleep") {
       tally.company += ms;
-      if (tally.company >= 15_000) {
+      if (tally.company >= 60_000) {
         tally.company = 0;
         react("company");
       }
@@ -1929,17 +1883,18 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       if (tally.sound >= 30_000) {
         tally.sound = 0;
         react("sound-ongoing");
-        // Something Mote likes (or can't stand) keeps colouring their mood.
-        if (liking() >= LIKED) react("enjoying-media");
-        else if (liking() <= DISLIKED && !options.friendly) react("enduring-media");
       }
     } else tally.sound = 0;
 
     // Friendly mode keeps Mote out of grumpy territory altogether, and
     // never hungry: snacks are just a treat.
-    if (options.friendly && feel.happy < 4) feel = { ...feel, happy: 4 };
-    if (options.friendly && feel.full < HUNGER.friendlyFloor) {
-      feel = { ...feel, full: HUNGER.friendlyFloor };
+    if (options.friendly) {
+      feel = {
+        ...feel,
+        happy: Math.max(feel.happy, FRIENDLY.happyMin),
+        restless: Math.min(feel.restless, FRIENDLY.restlessMax),
+        full: Math.max(feel.full, FRIENDLY.fullMin),
+      };
     }
     const next = lastingMoods(feel);
     for (const m of next) if (!moodsNow.includes(m)) react(`mood-${m}`);
@@ -1949,10 +1904,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (now - savedAt > 5000) {
       savedAt = now;
       saveMind(feel);
-    }
-    if (now - memoriesSavedAt > 10_000) {
-      memoriesSavedAt = now;
-      saveMemories(memories);
     }
   };
 
@@ -1988,31 +1939,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
     const watchingMedia = media && !you;
 
-    // Remember what's playing, and how Mote felt about it last time.
-    const key = media && lastMedia ? mediaKey(lastMedia.title, lastMedia.app) : null;
-    if ((key?.key ?? null) !== nowPlaying) {
-      nowPlaying = key?.key ?? null;
-      if (key) {
-        const m = (memories[key.key] ??= {
-          key: key.key,
-          name: key.name,
-          app: lastMedia?.app ?? null,
-          score: 0,
-          times: 0,
-          last: 0,
-        });
-        m.times++;
-        m.last = Date.now();
-        if (m.score >= LIKED) {
-          react("media-liked");
-          mention("liked-media", 0.8);
-        } else if (m.score <= DISLIKED && !options.friendly) {
-          react("media-disliked");
-          mention("disliked-media", 0.8);
-        }
-      }
-    }
-
     // Split attention: the newest thing going on gets a look straight away;
     // after that, Mote's eyes move between whatever is still going on.
     const typing = !sleepSet && now < typingUntil;
@@ -2023,17 +1949,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (focus && !candidates.includes(focus)) focus = null;
     const focusWas = focus;
     if (candidates.length && (!focus || now > focusUntil)) {
-      const kind = lastMedia?.kind ?? "unknown";
       const weight = (c: Focus) =>
-        c === "typing"
-          ? 3
-          : c === "pointer"
-            ? 2
-            : kind === "video"
-              ? 3
-              : kind === "music"
-                ? 1.5
-                : 1;
+        c === "typing" ? 3 : c === "pointer" ? 2 : lastMedia?.kind === "music" ? 1.5 : 2.5;
       const total = candidates.reduce((sum, c) => sum + weight(c), 0);
       let r = Math.random() * total;
       focus = candidates.find((c) => (r -= weight(c)) <= 0) ?? candidates[0];
@@ -2090,8 +2007,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         start("doze", now);
       } else if (watchingMedia) {
         // Watching something: all Mote does is check in on you now and then,
-        // or, with a video, look away for a little break.
-        if (lastMedia?.kind === "video" && Math.random() < 0.4) {
+        // or look away for a little break.
+        if (lastMedia?.kind !== "music" && Math.random() < 0.3) {
           react("look-away");
           start("glance", now);
         } else {
@@ -2150,58 +2067,34 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       target.lookMix = 1;
     }
 
-    // Listening to talk (or something Mote can't place): head tilted toward it.
-    const m = watchingMedia ? lastMedia : null;
-    if (
-      m &&
-      (m.kind === "speech" || m.kind === "unknown") &&
-      ["settle", "checkin"].includes(mood)
-    ) {
-      target.rot += 4 * Math.sign(m.dx || 1);
-      target.open -= 0.03;
-    }
-
-    // Dancing to music: how hard depends on how loud and lively it is, how
-    // happy Mote is, and whether they like the song.
-    // (Music keeps Mote dancing even while you're busy with their window.)
+    // Music from a music app: Mote sways along, more when happy, less when
+    // cross, sleepy or hungry. (It keeps going while you use their window.)
     const tune = media ? lastMedia : null;
     let want = 0;
     if (tune && tune.kind === "music" && ["settle", "checkin", "glance"].includes(mood)) {
       const fl = feelings(feel);
-      const taste = liking() >= LIKED ? 1.3 : liking() <= DISLIKED ? 0 : 1;
       want =
-        clamp(0.25 + 0.75 * tune.intensity, 0, 1) *
-        (0.7 + 0.3 * fl.happy) *
+        (0.55 + 0.35 * fl.happy) *
         (1 - 0.8 * fl.frustrated) *
         (1 - 0.5 * fl.sleepy) *
-        (1 - 0.6 * (options.friendly ? 0 : fl.hungry)) *
-        taste;
-      want = clamp(want, 0, 1.2);
+        (1 - 0.6 * (options.friendly ? 0 : fl.hungry));
     }
     dance += (want - dance) * (1 - Math.exp(-dt * 1.5));
     if (dance > 0.02 && !reduced) {
-      // With a beat to follow, Mote bounces on it; without one (music Mote
-      // can't quite hear), they just sway along gently.
-      const synced = !!lastMedia?.bpm;
-      const beats = synced ? (now - beatOrigin) / beatPeriod : now / 680;
+      const beats = now / 680;
       const phase = beats - Math.floor(beats);
-      const hit = Math.exp(-phase * 7) * (synced ? 1 : 0.25); // sharp on the beat, easing off
-      const sway = Math.sin(beats * Math.PI); // one side per beat, back the next
+      const lilt = Math.exp(-phase * 7) * 0.4; // a soft dip each sway
+      const sway = Math.sin(beats * Math.PI); // one side, then the other
       groove = {
         x: sway * 1.8 * dance,
-        y: (hit * 3 - 1) * dance,
+        y: (lilt * 3 - 0.4) * dance,
         rot: sway * 5 * dance,
-        sx: hit * 0.03 * dance,
-        sy: -hit * 0.045 * dance,
+        sx: lilt * 0.03 * dance,
+        sy: -lilt * 0.045 * dance,
       };
-      target.earTiltL += hit * 10 * dance;
-      target.earTiltR += hit * 10 * dance;
-      target.mLift += 0.3 * hit * dance;
-      // Really into it: happy, scrunched-up eyes.
-      if (dance > 0.75) {
-        target.cheek += 0.56;
-        target.cheekCurve += 0.15;
-      }
+      target.earTiltL += lilt * 10 * dance;
+      target.earTiltR += lilt * 10 * dance;
+      target.mLift += 0.3 * lilt * dance;
     } else groove = { x: 0, y: 0, rot: 0, sx: 0, sy: 0 };
 
     // While a bubble is up, Mote looks out at you (or toward where they want
@@ -2256,28 +2149,18 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       }
     } else if (now > wander.next) {
       const m = focus === "media" ? lastMedia : null;
-      const dislikes = liking() <= DISLIKED;
-      // How much of the time Mote keeps their eyes on it: a video almost
-      // always, music and talk less; something disliked, not much at all.
-      const stickiness = !m
-        ? 0
-        : dislikes
-          ? 0.3
-          : m.kind === "video"
-            ? 1
-            : m.kind === "music"
-              ? 0.5
-              : 0.6;
+      // How much of the time Mote keeps their eyes on it: most of the time,
+      // a bit less for music (they're busy swaying).
+      const stickiness = !m ? 0 : m.kind === "music" ? 0.5 : 0.85;
       if (m && Math.random() < stickiness) {
         const at = toward(m.dx, m.dy);
-        const jitter = m.kind === "video" ? 0.05 : 0.15;
         wander = {
-          x: at.x + (Math.random() - 0.5) * jitter,
-          y: at.y + (Math.random() - 0.5) * jitter * 0.6,
-          next: now + (m.kind === "video" ? 2000 : 1800) + Math.random() * 3000,
+          x: at.x + (Math.random() - 0.5) * 0.1,
+          y: at.y + (Math.random() - 0.5) * 0.06,
+          next: now + 2000 + Math.random() * 3000,
         };
       } else if (m) {
-        // Listening rather than watching: eyes drift back toward you.
+        // A glance back toward you.
         wander = {
           x: (Math.random() - 0.5) * 0.4,
           y: (Math.random() - 0.5) * 0.2,
@@ -2660,20 +2543,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       const before = { ...options };
       Object.assign(options, opts);
       if (before.media === null && options.media !== null) react("sound-start");
-      // Keep the beat clock in step with the music without jumping about.
-      const m = options.media;
-      if (m?.bpm && m.beatAgo !== null) {
-        const period = 60_000 / m.bpm;
-        const origin = clock - m.beatAgo * 1000;
-        if (Math.abs(period - beatPeriod) > 25) {
-          beatPeriod = period;
-          beatOrigin = origin;
-        } else {
-          beatPeriod = period;
-          const off = ((((origin - beatOrigin) % period) + period * 1.5) % period) - period / 2;
-          beatOrigin += off * 0.3;
-        }
-      }
       // (Skips the first moments, when saved settings are just being restored.)
       if (clock > 1500) {
         if (!before.headphones && options.headphones) react("wear-headphones");
@@ -2780,11 +2649,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       typingSpot.dy = dy;
     },
     useItem,
-    forgetMedia: (key) => {
-      for (const k of Object.keys(memories)) if (!key || k === key) delete memories[k];
-      saveMemories(memories);
-      log(key ? "forgot one piece of media" : "forgot all media");
-    },
     say: (lineId) => {
       if (bubble) showBubble(null);
       const line = lineId ? lineById.get(lineId) : chooseLine(speechContext(), new Map(), clock);
@@ -2817,9 +2681,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       ],
       focus,
       dancing: dance,
-      memories: Object.values(memories).sort((a, b) => b.last - a.last),
       sleepSet,
-      nowPlaying: nowPlaying ? (memories[nowPlaying]?.name ?? null) : null,
       speech: bubble,
       nextSpeechIn: Math.max(0, nextSpeechAt - clock),
       placement: options.placement,

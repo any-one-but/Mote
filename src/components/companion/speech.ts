@@ -27,8 +27,6 @@ export type SpeechEvent =
   | "media-start"
   | "accessory-on"
   | "startled"
-  | "liked-media"
-  | "disliked-media"
   | "snacked"
   | "played"
   | "unmasked";
@@ -44,8 +42,8 @@ export type SpeechContext = {
   mustache: boolean;
   /** Where Mote's window sits on the screen, 0..1 from the left / top. */
   placement: { x: number; y: number } | null;
-  /** What Mote is watching or listening to, if anything. */
-  media: { name: string | null; kind: MediaKind; liking: number; dancing: boolean } | null;
+  /** Sound coming from a window Mote can see, if any. */
+  media: { kind: MediaKind; dancing: boolean } | null;
 };
 
 export type Line = {
@@ -176,17 +174,9 @@ export const LINES: Line[] = [
     id: "watching",
     group: "While something plays",
     kind: "flavor",
-    when: (c) => c.media?.kind === "video" && !c.event && !c.asleep,
+    when: (c) => c.media?.kind === "other" && !c.event && !c.asleep,
     weight: 2,
-    say: ["What happens next?", "Shh, it’s getting good.", "Ooh, I like this part."],
-  },
-  {
-    id: "listening",
-    group: "While something plays",
-    kind: "flavor",
-    when: (c) => (c.media?.kind === "speech" || c.media?.kind === "unknown") && !c.event && !c.asleep,
-    weight: 2,
-    say: ["Who’s talking? They sound interesting.", "I’m listening too.", "Hm. Good point, whoever that is."],
+    say: ["What happens next?", "Shh, it’s getting good.", "Ooh, I like this part.", "I’m watching too."],
   },
   {
     id: "dancing",
@@ -194,10 +184,7 @@ export const LINES: Line[] = [
     kind: "flavor",
     when: (c) => !!c.media?.dancing && !c.event && !c.asleep,
     weight: 3,
-    say: (c) =>
-      c.media?.name && (c.media?.liking ?? 0) >= 2
-        ? [`*${c.media.name}* always gets me moving.`, "I can’t help it, my whole face is dancing."]
-        : ["This one’s got a good beat!", "I can’t help it, my whole face is dancing."],
+    say: ["This one’s got a good beat!", "I can’t help it, my whole face is swaying."],
   },
   {
     id: "headphones",
@@ -258,37 +245,14 @@ export const LINES: Line[] = [
     group: "After something happens",
     kind: "flavor",
     when: (c) => c.event === "media-start" && !c.asleep,
-    say: (c) =>
-      c.media?.name
-        ? [`Ooh, *${c.media.name}*!`, `Oh! *${c.media.name}*?`]
-        : ["Ooh, something’s on!", "Oh! Are we watching something?"],
+    say: ["Ooh, something’s on!", "Oh! Are we watching something?"],
   },
   {
     id: "startled",
     group: "After something happens",
     kind: "flavor",
     when: (c) => c.event === "startled",
-    say: (c) =>
-      c.media?.name
-        ? [`WHA—! …Oh. It’s just *${c.media.name}*.`, "I’m up! I’m up!"]
-        : ["Who’s there?!", "I’m up! I’m up!"],
-  },
-  {
-    id: "liked-media",
-    group: "After something happens",
-    kind: "flavor",
-    when: (c) => c.event === "liked-media" && !!c.media?.name,
-    say: (c) => [`Oh! I love *${c.media?.name}*!`, `*${c.media?.name}*! This is one of my favourites.`],
-  },
-  {
-    id: "disliked-media",
-    group: "After something happens",
-    kind: "ask",
-    when: (c) => c.event === "disliked-media" && !!c.media?.name,
-    say: (c) => [`Oh no. Not *${c.media?.name}* again… Can we skip this one?`],
-    unkind: true,
-    effects: { yes: { happy: 0.6 }, no: { happy: -0.5, restless: 0.3 } },
-    replies: { yes: ["Thank you!"], no: ["Fine…"] },
+    say: ["Who’s there?!", "I’m up! I’m up!", "WHA—! …Oh. It’s just something playing."],
   },
   {
     id: "accessory-on",
@@ -323,15 +287,6 @@ export const LINES: Line[] = [
     effects: { yes: { happy: 0.6 }, no: { happy: -0.4 }, ignored: { happy: -0.1 } },
     replies: { yes: ["Yay!"], no: ["Oh. Okay. I’ll be right here."] },
     kindReplies: { no: ["No worries! I’ll be right here."] },
-  },
-  {
-    id: "liking-this",
-    group: "Questions",
-    kind: "ask",
-    when: (c) => c.interest === "media" && !c.event && !c.asleep,
-    say: (c) => (c.media?.name ? [`Do you like *${c.media.name}*?`] : ["Do you like this one?"]),
-    effects: { yes: { happy: 0.4 }, no: { happy: -0.1 } },
-    replies: { yes: ["Me too!"], no: ["Yeah… it’s not my favourite either."] },
   },
   {
     id: "nap-ok",

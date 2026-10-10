@@ -17,7 +17,7 @@ import {
   type DebugCommand,
   type DebugState,
 } from "@/lib/companion/bus";
-import { ATTRS, LASTING_MOODS, type Attr } from "@/components/companion/mind";
+import { ATTRS, FRIENDLY, LASTING_MOODS, type Attr } from "@/components/companion/mind";
 import { REACTION_GROUPS, REACTIONS, type Reaction } from "@/components/companion/reactions";
 import { LINES, type BubbleKind } from "@/components/companion/speech";
 import { DEFAULT_SETTINGS, useSettings, type Settings } from "@/lib/companion/settings";
@@ -330,14 +330,8 @@ const TINT: Record<Attr, [string, string]> = {
 
 const seconds = (ms: number) => `${Math.max(0, Math.ceil(ms / 1000))}s`;
 
-const KIND_LABEL: Record<string, string> = {
-  music: "music",
-  speech: "talking",
-  video: "a video",
-  unknown: "something (can’t tell what)",
-};
 
-function MindTab({ snap, command, debug, settings }: Ctx) {
+function MindTab({ snap, command, settings }: Ctx) {
   const [show, setShow] = useState<"all" | "live" | "idea">("all");
   if (!snap) return <p className="empty">Nothing yet. Is Mote’s window open?</p>;
   const asleep = snap.mood === "sleep";
@@ -347,33 +341,53 @@ function MindTab({ snap, command, debug, settings }: Ctx) {
       <Section title="Feelings">
         {ATTRS.map((a) => {
           const v = snap.mind[a.key];
+          // Every meter reads bad on the left, good on the right.
+          const shown = a.flip ? 10 - v : v;
+          const [left, right] = a.flip ? [a.high, a.low] : [a.low, a.high];
+          const [lo, hi] = a.flip ? [TINT[a.key][1], TINT[a.key][0]] : TINT[a.key];
+          const around = snap.intrigued.includes("you") || snap.intrigued.includes("typing");
+          const next = seconds(snap.driftIn[a.key]);
           const note =
             a.key === "full"
               ? settings.friendly
                 ? "No hunger in Friendly mode: snacks are just a treat"
                 : asleep
                   ? "Asleep: barely getting hungrier, and never past peckish"
-                  : `A step hungrier in ${seconds(snap.driftIn.full)}`
+                  : `A step hungrier in ${next}`
               : a.key === "alert"
                 ? asleep
                   ? `Resting: recharges in ${seconds(snap.driftIn.alert)}`
                   : `Wears off a step in ${seconds(snap.driftIn.alert)}`
-                : v === a.toward
-                  ? "At rest"
-                  : `Settles a step toward 5 in ${seconds(snap.driftIn[a.key])}`;
+                : a.key === "happy"
+                  ? settings.friendly && v <= FRIENDLY.happyMin
+                    ? "Friendly mode: never lower than this"
+                    : asleep
+                      ? "Asleep: not getting any crosser"
+                      : around
+                        ? "You’re here, so not getting crosser"
+                        : `A step crosser in ${next}`
+                  : settings.friendly && v >= FRIENDLY.restlessMax
+                    ? "Friendly mode: never more restless than this"
+                    : asleep
+                      ? "Asleep: calming down"
+                      : around
+                        ? "You’re here, so not getting restless"
+                        : `A step more restless in ${next}`;
           return (
             <div key={a.key} className="meter">
               <div className="meter-top">
-                <span>{a.low}</span>
-                <span className="mono meter-value">{v.toFixed(1)}</span>
-                <span>{a.high}</span>
+                <span>{left}</span>
+                <span className="mono meter-value">
+                  {a.flip ? `${a.high.toLowerCase()} ${v.toFixed(1)}` : v.toFixed(1)}
+                </span>
+                <span>{right}</span>
               </div>
               <div
                 className="meter-track"
                 style={{
-                  ["--v" as string]: `${v * 10}%`,
-                  ["--lo" as string]: TINT[a.key][0],
-                  ["--hi" as string]: TINT[a.key][1],
+                  ["--v" as string]: `${shown * 10}%`,
+                  ["--lo" as string]: lo,
+                  ["--hi" as string]: hi,
                 }}
               >
                 <span className="meter-mid" />
@@ -382,11 +396,19 @@ function MindTab({ snap, command, debug, settings }: Ctx) {
               <div className="meter-foot">
                 <span className="meter-note">{note}</span>
                 <span className="meter-buttons">
-                  <Button onClick={() => command({ do: "feeling", attr: a.key, value: v - 1 })}>
-                    −1
+                  <Button
+                    onClick={() =>
+                      command({ do: "feeling", attr: a.key, value: a.flip ? v + 1 : v - 1 })
+                    }
+                  >
+                    ← 1
                   </Button>
-                  <Button onClick={() => command({ do: "feeling", attr: a.key, value: v + 1 })}>
-                    +1
+                  <Button
+                    onClick={() =>
+                      command({ do: "feeling", attr: a.key, value: a.flip ? v - 1 : v + 1 })
+                    }
+                  >
+                    1 →
                   </Button>
                 </span>
               </div>
@@ -394,7 +416,7 @@ function MindTab({ snap, command, debug, settings }: Ctx) {
           );
         })}
         <div className="button-row">
-          <Button onClick={() => command({ do: "resetFeelings" })}>All back to 5</Button>
+          <Button onClick={() => command({ do: "resetFeelings" })}>All back to the start</Button>
         </div>
       </Section>
 
@@ -436,15 +458,12 @@ function MindTab({ snap, command, debug, settings }: Ctx) {
         </Row>
         {snap.media ? (
           <Row
-            label={`Playing: ${KIND_LABEL[snap.media.kind]}`}
-            hint={[
-              snap.nowPlaying ? `“${snap.nowPlaying}”` : null,
-              snap.media.bpm ? `${Math.round(snap.media.bpm)} beats a minute` : null,
-              `loudness ${Math.round(snap.media.intensity * 100)}%`,
-              snap.dancing > 0.05 ? `dancing ${Math.round(snap.dancing * 100)}%` : null,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
+            label={snap.media.kind === "music" ? "Playing: music" : "Playing: something"}
+            hint={
+              snap.dancing > 0.05
+                ? `Swaying along ${Math.round(snap.dancing * 100)}%`
+                : "Sound from a window you can see"
+            }
           >
             <span className="chip is-mood">
               <span className="chip-dot" />
@@ -452,58 +471,8 @@ function MindTab({ snap, command, debug, settings }: Ctx) {
             </span>
           </Row>
         ) : null}
-        {debug.permission === false ? (
-          <p className="empty">
-            Mote doesn’t have the Screen Recording permission, so they can tell where sound is
-            coming from but not whether it’s music, talk or video, or what it’s called. You can
-            allow it in System Settings → Privacy &amp; Security → Screen &amp; System Audio
-            Recording.
-          </p>
-        ) : null}
       </Section>
 
-      <Section title="Remembered media">
-        {snap.memories.length ? (
-          <>
-            {snap.memories.slice(0, 20).map((m) => (
-              <div key={m.key} className="memory">
-                <div className="memory-text">
-                  <span className="row-label">{m.name}</span>
-                  <span className="row-hint">
-                    {m.app ? `${m.app} · ` : ""}
-                    {m.times}× ·{" "}
-                    {m.score >= 2
-                      ? "likes it"
-                      : m.score <= -2
-                        ? "dislikes it"
-                        : "no strong feelings"}
-                  </span>
-                </div>
-                <div
-                  className="memory-bar"
-                  style={{ ["--s" as string]: `${50 + (m.score / 6) * 50}%` }}
-                >
-                  <span />
-                </div>
-                <button
-                  type="button"
-                  className="link"
-                  onClick={() => command({ do: "forget", key: m.key })}
-                >
-                  Forget
-                </button>
-              </div>
-            ))}
-            <div className="button-row">
-              <Button onClick={() => command({ do: "forget" })}>Forget everything</Button>
-            </div>
-          </>
-        ) : (
-          <p className="empty">
-            Nothing yet. Things Mote watches or listens to with you show up here.
-          </p>
-        )}
-      </Section>
 
       <Section title="Lasting moods">
         <div className="chips mood-chips">
@@ -867,17 +836,15 @@ function MotionTab({ snap, debug, command }: Ctx) {
           />
         </Row>
         <Row
-          label="What it is"
-          hint="Music makes Mote dance; talk makes them listen; video, watch."
+          label="From a music app"
+          hint="Music (from Apple Music or Spotify) makes Mote sway along."
           stacked
         >
           <Segmented
-            label="What it is"
+            label="From a music app"
             options={[
-              { value: "music", label: "Music" },
-              { value: "speech", label: "Talk" },
-              { value: "video", label: "Video" },
-              { value: "unknown", label: "Can’t tell" },
+              { value: "music", label: "Music app" },
+              { value: "other", label: "Anything else" },
             ]}
             value={debug.fakeKind}
             onChange={(value) => command({ do: "fakeKind", value })}
@@ -903,8 +870,7 @@ function MotionTab({ snap, debug, command }: Ctx) {
             <Readout k="idle (s)" v={snap.idleMs / 1000} />
             <Readout k="petting" v={snap.petting ? 1 : 0} changed={snap.petting} />
             <Readout k="media playing" v={snap.media ? 1 : 0} changed={!!snap.media} />
-            <Readout k="tempo" v={snap.media?.bpm ?? 0} changed={!!snap.media?.bpm} />
-            <Readout k="dancing" v={snap.dancing} changed={snap.dancing > 0.05} />
+            <Readout k="swaying" v={snap.dancing} changed={snap.dancing > 0.05} />
             <Readout k="on screen x" v={snap.placement?.x ?? -1} />
             <Readout k="on screen y" v={snap.placement?.y ?? -1} />
             {POSE_KEYS.map((k) => (

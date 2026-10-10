@@ -10,12 +10,16 @@ export const ATTRS: Array<{
   /** What 0 and 10 mean. */
   low: string;
   high: string;
+  /** Show it the other way round (so the bad end is always on the left). */
+  flip?: boolean;
   /** Every `every` ms the score takes one step toward `toward`. */
   every: number;
   toward: number;
 }> = [
-  { key: "happy", low: "Frustrated", high: "Happy", every: 120_000, toward: 5 },
-  { key: "restless", low: "Calm", high: "Restless", every: 120_000, toward: 5 },
+  // Left to themselves (nobody around, not asleep), Mote slowly gets crosser
+  // and more restless: a step every 6 minutes. Attention is what lifts them.
+  { key: "happy", low: "Frustrated", high: "Happy", every: 360_000, toward: 0 },
+  { key: "restless", low: "Calm", high: "Restless", every: 360_000, toward: 10, flip: true },
   // Unlike the others, alertness wears off on its own: left be, Mote slowly
   // gets tired. It doesn't wear off while Mote is intrigued by something.
   { key: "alert", low: "Sleepy", high: "Alert", every: 960_000, toward: 0 },
@@ -28,6 +32,12 @@ export const MIND_START: MindValues = { happy: 5, restless: 5, alert: 5, full: 8
 
 /** How hunger behaves: asleep, a fifth as fast, and never below `sleepFloor`. */
 export const HUNGER = { asleepStep: 0.2, sleepFloor: 3.5, friendlyFloor: 5 };
+
+/**
+ * Friendly mode's limits: however long Mote is left alone, feelings stop
+ * short of anything upsetting.
+ */
+export const FRIENDLY = { happyMin: 4, restlessMax: 7, fullMin: 5 };
 
 /** What each minute asleep (or with the app closed) does: more rested, calmer. */
 export const REST_PER_MINUTE = { alert: 1.5, restless: -1 };
@@ -120,8 +130,7 @@ export function loadMind(): MindValues {
     if (v.full > HUNGER.sleepFloor) {
       v.full = Math.max(HUNGER.sleepFloor, v.full - HUNGER.asleepStep * (away / 360_000));
     }
-    const happySteps = Math.floor(away / 120_000);
-    for (let i = 0; i < happySteps && v.happy !== 5; i++) v.happy = driftStep(v.happy, 5);
+    // (Like asleep, time away doesn't make Mote any crosser.)
     return v;
   } catch {
     return { ...MIND_START };
