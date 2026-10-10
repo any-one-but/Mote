@@ -19,6 +19,22 @@ npm run mac
 A Mote window opens. Any change you save to the code shows up in it right away.
 Drag the window by its top edge.
 
+## Settings and debug mode
+
+In the Mac app, press **⌘,** (Command + comma) to open Settings. You can choose
+a gender (saved, but nothing uses it yet), whether Mote follows your pointer,
+whether he naps, how lively he is, and whether his window floats above others.
+
+At the bottom of Settings, **Debug mode** opens a separate window of testing tools:
+
+- **Moods**: play any mood on demand, blink, poke, turn off automatic moods, loop a mood
+- **Pose**: shape his face by hand with sliders, then "Copy values" to share the numbers
+- **Motion**: slow time down, freeze him, show outlines of the eye cuts, live numbers
+- **Log**: everything that happened, in order
+- **Data**: the saved settings, and a reset button
+
+Closing the debug window turns debug mode off.
+
 ## Make a real Mac app you can keep
 
 ```bash
@@ -40,5 +56,7 @@ Each face there is one expression frozen in place, handy for tweaking how they l
 - `src/components/companion/engine.ts` — every expression and how he moves between them
 - `src/components/companion/Face.tsx` — how the face is drawn
 - `src/lib/companion/theme.ts` — sizes and positions of the face and eyes
-- `desktop/` — the page the Mac app shows
+- `desktop/` — the Mac app's pages: Mote (`index.html`), Settings, Debug, and the gallery
+- `desktop/ui.tsx` and `desktop/ui.css` — the soft buttons, switches and sliders
+- `src/lib/companion/settings.ts` — the list of settings and their defaults
 - `src-tauri/` — the Mac app wrapper itself

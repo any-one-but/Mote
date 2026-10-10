@@ -68,3 +68,35 @@
   fill: var(--color-ink);
   opacity: 0.1;
 }
+
+/* Debug guides: where each pill sits and what the brow / cheek cuts remove. */
+.guides {
+  display: none;
+  pointer-events: none;
+}
+
+.face[data-guides] .guides {
+  display: inline;
+}
+
+.guide-pill {
+  fill: none;
+  stroke: #3f8f7a;
+  stroke-width: 0.9;
+  stroke-dasharray: 3 2;
+}
+
+.guide-lid,
+.guide-cheek {
+  fill: none;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+.guide-lid {
+  stroke: #5684d6;
+}
+
+.guide-cheek {
+  stroke: #e27858;
+}

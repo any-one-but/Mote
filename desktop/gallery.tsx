@@ -18,20 +18,22 @@ const ALL: Array<[string, Mood | null, number, number?, number?]> = [
   ["surprise", "surprise", 300, 0.9],
   ["doze", "doze", 3500, 0.9],
   ["sleep", "sleep", 0, 0.9],
+  ["waking", "wake", 0, 0.9],
 ];
 
 const only = new URLSearchParams(location.search).get("only");
+const size = Number(new URLSearchParams(location.search).get("size") ?? 300);
 const SHOTS = only ? ALL.filter(([name]) => only.split(",").includes(name)) : ALL;
 
 function Still({ pose, gx, gy, blink, id }: { pose: Pose; gx: number; gy: number; blink: number; id: string }) {
   const eyes = (["l", "r"] as const).map((side) => ({ side, ...eyeShape(side, pose, gx, gy, blink) }));
   return (
-    <svg viewBox={`0 0 ${GEO.vbW} ${GEO.vbH}`} style={{ width: 300 }}>
+    <svg viewBox={`0 0 ${GEO.vbW} ${GEO.vbH}`} style={{ width: size }}>
       <defs>
         <filter id={`soft-${id}`} x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
-          <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" result="blur" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="3.2" result="blur" />
           <feComponentTransfer in="blur" result="shape">
-            <feFuncA type="linear" slope="12" intercept="-5.6" />
+            <feFuncA type="linear" slope="18" intercept="-7.1" />
           </feComponentTransfer>
           <feFlood floodColor={INK} />
           <feComposite in2="shape" operator="in" />

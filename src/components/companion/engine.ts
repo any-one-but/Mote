@@ -56,9 +56,62 @@ export type Pose = {
 type Keys = Array<[number, Partial<Pose>]>;
 
 export type EngineHooks = {
-  pokeAt: () => number;
+  /** Screen-reader description of what he's doing, or null for nothing notable. */
   onMood: (label: string | null) => void;
+  /** Plain-text happenings (mood changes, pokes, blinks) for the debug log. */
+  onEvent?: (text: string) => void;
 };
+
+export type Energy = "calm" | "normal" | "lively";
+
+export type EngineOptions = {
+  followPointer: boolean;
+  naps: boolean;
+  energy: Energy;
+};
+
+/** A hand-set face for the debug window: springs and moods are bypassed. */
+export type ManualFace = { pose: Pose; gazeX: number; gazeY: number; blink: number };
+
+export type EngineSnapshot = {
+  mood: Mood;
+  moodMs: number;
+  fps: number;
+  gazeX: number;
+  gazeY: number;
+  attention: number;
+  blink: number;
+  idleMs: number;
+  pose: Pose;
+};
+
+export type FaceEngine = {
+  destroy: () => void;
+  configure: (opts: Partial<EngineOptions>) => void;
+  poke: () => void;
+  force: (mood: Mood) => void;
+  blink: (double?: boolean) => void;
+  setTimeScale: (scale: number) => void;
+  setFrozen: (frozen: boolean) => void;
+  setAutoMoods: (on: boolean) => void;
+  setLoop: (on: boolean) => void;
+  setGuides: (on: boolean) => void;
+  setManual: (face: ManualFace | null) => void;
+  snapshot: () => EngineSnapshot;
+};
+
+export const MOOD_LIST: Mood[] = [
+  "settle",
+  "glance",
+  "think",
+  "frustrate",
+  "cute",
+  "delight",
+  "surprise",
+  "doze",
+  "sleep",
+  "wake",
+];
 
 export const REST: Pose = {
   x: 0,
@@ -84,7 +137,7 @@ export const REST: Pose = {
   winkR: 0,
 };
 
-const POSE_KEYS = Object.keys(REST) as Array<keyof Pose>;
+export const POSE_KEYS = Object.keys(REST) as Array<keyof Pose>;
 
 /** Spring stiffness (k) and damping ratio (z) per channel. Lower z = more bounce. */
 const SPRING: Record<keyof Pose, [number, number]> = {
@@ -204,8 +257,6 @@ export function poseFor(mood: Mood, t: number, seed: number): { pose: Pose; shak
       lid: 0.26,
       lidTilt: 0.56,
       lidCurve: 0.08,
-      cheek: 0.13,
-      cheekCurve: 0,
       open: 0.94,
       wide: 1.05,
       lookY: 0.12,
@@ -227,8 +278,8 @@ export function poseFor(mood: Mood, t: number, seed: number): { pose: Pose; shak
     }
   } else if (mood === "cute") {
     const happy: Partial<Pose> = {
-      cheek: 0.5,
-      cheekCurve: 0.22,
+      cheek: 0.54,
+      cheekCurve: 0.15,
       open: 1.1,
       wide: 1.05,
       lookY: -0.12,
@@ -244,7 +295,7 @@ export function poseFor(mood: Mood, t: number, seed: number): { pose: Pose; shak
       [2000, {}],
     ];
   } else if (mood === "delight") {
-    const joy: Partial<Pose> = { cheek: 0.72, cheekCurve: 0.42, open: 1.04, wide: 1.06 };
+    const joy: Partial<Pose> = { cheek: 0.7, cheekCurve: 0.26, open: 1.04, wide: 1.06 };
     keys = [
       [0, { ...joy, sy: 0.91, sx: 1.07, y: 3 }],
       [100, { ...joy, y: -12, sy: 1.06, sx: 0.96 }],
@@ -270,7 +321,7 @@ export function poseFor(mood: Mood, t: number, seed: number): { pose: Pose; shak
     keys = [[0, SLEEP]];
   } else if (mood === "wake") {
     keys = [
-      [0, { open: 0.5, lid: 0.4, lidCurve: 0.2, y: 5, rot: 3 }],
+      [0, { ...SLEEP, lid: 0.5, cheek: 0.06, y: 5, rot: 3 }],
       [160, { open: 1.16, wide: 0.98, y: -7, sy: 1.05, sx: 0.96 }],
       [520, { open: 1.04 }],
       [800, {}],
@@ -280,12 +331,18 @@ export function poseFor(mood: Mood, t: number, seed: number): { pose: Pose; shak
   return { pose: { ...REST, ...keyed(t, keys) }, shakeX, shakeRot };
 }
 
-/** Closed, contented eyes: a soft upward smile of a line. */
+/**
+ * Closed, contented eyes: a soft ‿ of even thickness. The brow sags into the
+ * eye and the cheek cut bows the same way underneath, so both edges run
+ * parallel instead of a curved top over a flat bottom.
+ */
 const SLEEP: Partial<Pose> = {
-  open: 0.55,
-  wide: 1.12,
-  lid: 0.72,
-  lidCurve: 0.45,
+  open: 0.72,
+  wide: 1.1,
+  lid: 0.64,
+  lidCurve: 0.3,
+  cheek: 0.1,
+  cheekCurve: -0.3,
   y: 7,
   rot: 5,
   sy: 0.985,
@@ -311,10 +368,16 @@ function blinkCurve(t: number, slow: boolean) {
   return 1 - back;
 }
 
+const CHEEK_SPAN = 1.8;
+const CHEEK_STEPS = 24;
+
 export type EyeShape = {
   pill: { x: number; y: number; w: number; h: number; r: number };
   lid: string;
   cheek: string;
+  /** Just the cut edges, for the debug guides. */
+  lidEdge: string;
+  cheekEdge: string;
 };
 
 const f = (n: number) => n.toFixed(2);
@@ -350,9 +413,9 @@ export function eyeShape(
   const lidTilt = pose.lidTilt;
   const lidCurve = pose.lidCurve;
   const cheek =
-    lerp(pose.cheek, 0.8, wink) + bias * pose.cheekBias + 0.05 * clamp(-gazeY, 0, 1);
+    lerp(pose.cheek, 0.78, wink) + bias * pose.cheekBias + 0.05 * clamp(-gazeY, 0, 1);
   const cheekTilt = lerp(pose.cheekTilt, 0, wink);
-  const cheekCurve = lerp(pose.cheekCurve, 0.4, wink);
+  const cheekCurve = lerp(pose.cheekCurve, 0.3, wink);
 
   // Cut edges are cubic curves sampled outer → inner at s = 0, ⅓, ⅔, 1.
   const half = w / 2 + 1;
@@ -361,18 +424,35 @@ export function eyeShape(
   const tiltAt = (k: number, i: number) => k * (i / 3 - 0.5);
 
   const lidY = xs.map((_, i) => top + h * (lid + curveAt(lidCurve, i) + tiltAt(lidTilt, i)));
-  const cheekY = xs.map(
-    (_, i) => bottom - h * (cheek + curveAt(cheekCurve, i) + tiltAt(cheekTilt, i)),
-  );
 
   const far = 80;
-  const cut = (ys: number[], cap: number) =>
-    `M${f(xs[0])} ${f(cap)}L${f(xs[0])} ${f(ys[0])}C${f(xs[1])} ${f(ys[1])} ${f(xs[2])} ${f(ys[2])} ${f(xs[3])} ${f(ys[3])}L${f(xs[3])} ${f(cap)}Z`;
+  const lidPath = `M${f(xs[0])} ${f(top - far)}L${f(xs[0])} ${f(lidY[0])}C${f(xs[1])} ${f(lidY[1])} ${f(xs[2])} ${f(lidY[2])} ${f(xs[3])} ${f(lidY[3])}L${f(xs[3])} ${f(top - far)}Z`;
+
+  // The cheek is a wide, shallow swell that reaches well past the eye, so it
+  // meets the pill's sides at a soft angle instead of leaving sharp tips.
+  // `cheekCurve` is how far the swell has dropped by the time it reaches the
+  // eye's edge.
+  const span = (w / 2) * CHEEK_SPAN;
+  const reach = (Math.PI / 2) / CHEEK_SPAN;
+  const norm = 1 - Math.cos(reach);
+  let cheekEdge = "";
+  for (let i = 0; i <= CHEEK_STEPS; i++) {
+    const u = -1 + (2 * i) / CHEEK_STEPS;
+    const d = Math.abs(u) * CHEEK_SPAN;
+    const drop = (1 - Math.cos(d * reach)) / norm;
+    const s = (u * CHEEK_SPAN + 1) / 2;
+    const y = bottom - h * (cheek - cheekCurve * drop + cheekTilt * (s - 0.5));
+    const x = cx + inward * u * span;
+    cheekEdge += `${i === 0 ? "M" : "L"}${f(x)} ${f(y)}`;
+  }
+  const cheekPath = cheekEdge + `L${f(cx + inward * span)} ${f(bottom + far)}L${f(cx - inward * span)} ${f(bottom + far)}Z`;
 
   return {
     pill: { x: cx - w / 2, y: top, w, h, r: Math.min(w, h) / 2 },
-    lid: cut(lidY, top - far),
-    cheek: cut(cheekY, bottom + far),
+    lid: lidPath,
+    cheek: cheekPath,
+    lidEdge: `M${f(xs[0])} ${f(lidY[0])}C${f(xs[1])} ${f(lidY[1])} ${f(xs[2])} ${f(lidY[2])} ${f(xs[3])} ${f(lidY[3])}`,
+    cheekEdge,
   };
 }
 
@@ -380,7 +460,9 @@ function q<T extends Element>(svg: SVGSVGElement, name: string) {
   return svg.querySelector(`[data-part="${name}"]`) as T | null;
 }
 
-export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks) {
+const ENERGY_GAP: Record<Energy, number> = { calm: 1.8, normal: 1, lively: 0.5 };
+
+export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEngine {
   const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
   let reduced = mq.matches;
   const onMq = () => {
@@ -398,30 +480,54 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks) {
     lidR: q<SVGPathElement>(svg, "lid-r"),
     cheekL: q<SVGPathElement>(svg, "cheek-l"),
     cheekR: q<SVGPathElement>(svg, "cheek-r"),
+    guides: q<SVGGElement>(svg, "guides"),
+    gPillL: q<SVGRectElement>(svg, "guide-pill-l"),
+    gPillR: q<SVGRectElement>(svg, "guide-pill-r"),
+    gLidL: q<SVGPathElement>(svg, "guide-lid-l"),
+    gLidR: q<SVGPathElement>(svg, "guide-lid-r"),
+    gCheekL: q<SVGPathElement>(svg, "guide-cheek-l"),
+    gCheekR: q<SVGPathElement>(svg, "guide-cheek-r"),
   };
 
-  const now0 = performance.now();
+  const options: EngineOptions = { followPointer: true, naps: true, energy: "normal" };
+  const debug = {
+    timeScale: 1,
+    frozen: false,
+    autoMoods: true,
+    loop: false,
+    guides: false,
+    manual: null as ManualFace | null,
+  };
+
+  // `clock` is Mote's own time, so the debug window can slow it down or stop it.
+  let clock = 0;
+  let realLast = performance.now();
+  let fps = 60;
   const pointer = { x: 0, y: 0, at: 0, has: false };
   let mood: Mood = "settle";
-  let moodStart = now0;
+  let moodStart = 0;
   let moodSeed = Math.random();
   let lastAct: Mood = "glance";
-  let nextAct = now0 + 2200;
-  let lastPoke = 0;
+  let nextAct = 2200;
+  let pokeQueued = false;
   const pokes: number[] = [];
   let blinks: number[] = [];
   let lastBlink = 0;
-  let nextBlink = now0 + 1400;
-  let wander = { x: 0, y: 0, next: now0 + 1600 };
+  let nextBlink = 1400;
+  let wander = { x: 0, y: 0, next: 1600 };
   let gazeTarget = { x: 0, y: 0 };
   let twitchStart = -1;
-  let nextTwitch = now0 + 5000;
+  let nextTwitch = 5000;
   let announced: string | null = null;
+  let lastAttention = 0;
+  let lastBlinkAmt = 0;
 
   const view: Pose = { ...REST };
   const vel = Object.fromEntries(POSE_KEYS.map((k) => [k, 0])) as Record<keyof Pose, number>;
   const gaze = { x: 0, y: 0, vx: 0, vy: 0 };
   const lag = { x: 0, y: 0, vx: 0, vy: 0 };
+
+  const log = (text: string) => hooks.onEvent?.(text);
 
   const announce = (label: string | null) => {
     if (label === announced) return;
@@ -443,6 +549,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks) {
     if (next !== "settle" && next !== "sleep") lastAct = next;
     svg.dataset.mood = next;
     announce(LABELS[next] ?? null);
+    log(`mood → ${next}`);
     nextBlink = Math.max(nextBlink, now + 900);
     if (next === "glance" && Math.random() < 0.4) blinkAt(now + 20);
     if (next === "wake") blinkAt(now + 620, true);
@@ -450,30 +557,32 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks) {
   };
 
   const pick = (): Mood => {
-    const opts = BAG.filter((m) => m !== lastAct);
+    const bag = options.naps ? BAG : BAG.filter((m) => m !== "doze");
+    const opts = bag.filter((m) => m !== lastAct);
     return opts[Math.floor(Math.random() * opts.length)] ?? "glance";
   };
+
+  const restGap = () => (3500 + Math.random() * 5000) * ENERGY_GAP[options.energy];
 
   const onMove = (e: PointerEvent) => {
     const dist = pointer.has ? Math.hypot(e.clientX - pointer.x, e.clientY - pointer.y) : 0;
     pointer.x = e.clientX;
     pointer.y = e.clientY;
-    pointer.at = performance.now();
+    pointer.at = clock;
     pointer.has = true;
-    if (mood === "sleep" && dist > 2) start("wake", performance.now());
+    if (mood === "sleep" && dist > 2 && !debug.manual) start("wake", clock);
   };
   window.addEventListener("pointermove", onMove, { passive: true });
 
   let raf = 0;
   let running = true;
   let hidden = document.hidden;
-  let last = now0;
 
   const onVis = () => {
     hidden = document.hidden;
     if (!hidden) {
-      last = performance.now();
-      pointer.at = performance.now();
+      realLast = performance.now();
+      pointer.at = clock;
       if (!raf) raf = requestAnimationFrame(loop);
     }
   };
@@ -494,39 +603,39 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks) {
     el.setAttribute("rx", f(p.r));
   };
 
-  const loop = (now: number) => {
-    if (!running) return;
-    if (hidden) {
-      raf = 0;
-      return;
-    }
-    const dt = Math.min(0.05, (now - last) / 1000);
-    last = now;
+  // Pokes: a happy hop, unless you keep pestering him.
+  const handlePoke = (now: number) => {
+    log("poke");
+    pokes.push(now);
+    while (pokes.length && now - pokes[0] > 2200) pokes.shift();
+    if (mood === "sleep" || mood === "doze") start("wake", now);
+    else if (pokes.length >= 4 && mood !== "frustrate") {
+      pokes.length = 0;
+      start("frustrate", now);
+    } else if (mood !== "frustrate") start("delight", now);
+  };
 
-    // Pokes: a happy hop, unless you keep pestering him.
-    const poke = hooks.pokeAt();
-    if (poke !== lastPoke && poke > 0) {
-      lastPoke = poke;
-      pokes.push(now);
-      while (pokes.length && now - pokes[0] > 2200) pokes.shift();
-      if (mood === "sleep" || mood === "doze") start("wake", now);
-      else if (pokes.length >= 4 && mood !== "frustrate") {
-        pokes.length = 0;
-        start("frustrate", now);
-      } else if (mood !== "frustrate") start("delight", now);
+  const step = (dt: number, now: number) => {
+    if (pokeQueued) {
+      pokeQueued = false;
+      handlePoke(now);
     }
 
     // Mood scheduling.
     const idleFor = pointer.has ? now - pointer.at : 0;
-    if (mood === "settle" && pointer.has && idleFor > 30000) start("doze", now);
+    if (debug.autoMoods && options.naps && mood === "settle" && pointer.has && idleFor > 30000) {
+      start("doze", now);
+    }
     if (mood !== "settle" && mood !== "sleep" && now >= moodStart + MOODS[mood].dur) {
-      if (mood === "doze" && pointer.has && idleFor > 8000) start("sleep", now);
+      if (debug.loop) start(mood, now);
+      else if (mood === "doze" && options.naps && pointer.has && idleFor > 8000) start("sleep", now);
       else {
         start("settle", now);
-        nextAct = now + 3500 + Math.random() * 5000;
+        nextAct = now + restGap();
       }
     }
-    if (mood === "settle" && now >= nextAct) start(pick(), now);
+    if (debug.autoMoods && mood === "settle" && now >= nextAct) start(pick(), now);
+    if (!debug.autoMoods && mood === "settle") nextAct = Math.max(nextAct, now + 1000);
 
     const t = now - moodStart;
     const { pose: target, shakeX, shakeRot } = poseFor(mood, t, moodSeed);
@@ -540,7 +649,13 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks) {
       px = clamp((pointer.x - (rect.left + rect.width * 0.5)) / (rect.width * 0.6), -1, 1);
       py = clamp((pointer.y - (rect.top + rect.height * 0.5)) / (rect.height * 0.6), -1, 1);
     }
-    const attention = !pointer.has ? 0 : idleFor < 2000 ? 1 : clamp(1 - (idleFor - 2000) / 1000, 0, 1);
+    const attention =
+      !pointer.has || !options.followPointer
+        ? 0
+        : idleFor < 2000
+          ? 1
+          : clamp(1 - (idleFor - 2000) / 1000, 0, 1);
+    lastAttention = attention;
     if (now > wander.next) {
       const home = Math.random() < 0.45;
       wander = {
@@ -591,6 +706,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks) {
     blinks = blinks.filter((b) => now - b < 900);
     for (const b of blinks) blink = Math.max(blink, blinkCurve(now - b, slow));
     if (mood === "sleep") blink = 0;
+    lastBlinkAmt = blink;
 
     // Body follows the gaze a little.
     target.x += gaze.x * 2.5;
@@ -623,11 +739,16 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks) {
       [lag.y, lag.vy] = spring(lag.y, lag.vy, view.y, 110, 0.45, h);
     }
 
-    // Render.
+    return { blink, shakeX, shakeRot };
+  };
+
+  let shake = { x: 0, rot: 0 };
+
+  const render = (blink: number) => {
     const m = reduced ? 0.2 : 1;
-    const bx = (view.x + shakeX * m) * m;
+    const bx = (view.x + shake.x * m) * m;
     const by = view.y * m;
-    const br = (view.rot + shakeRot * m) * m;
+    const br = (view.rot + shake.rot * m) * m;
     const bsx = 1 + (view.sx - 1) * m;
     const bsy = 1 + (view.sy - 1) * m;
     parts.body?.setAttribute(
@@ -636,7 +757,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks) {
     );
     const ex = clamp((lag.x - view.x) * 0.35, -3, 3) * m;
     const ey = clamp((lag.y - view.y) * 0.35, -4, 4) * m;
-    parts.eyes?.setAttribute("transform", `translate(${f(ex)} ${f(ey)})`);
+    const eyeShift = `translate(${f(ex)} ${f(ey)})`;
+    parts.eyes?.setAttribute("transform", eyeShift);
 
     const lift = clamp(-by, 0, 40);
     if (parts.shadow) {
@@ -654,19 +776,106 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks) {
     parts.cheekL?.setAttribute("d", l.cheek);
     parts.cheekR?.setAttribute("d", r.cheek);
 
+    if (debug.guides) {
+      parts.guides?.setAttribute("transform", eyeShift);
+      setPill(parts.gPillL, l.pill);
+      setPill(parts.gPillR, r.pill);
+      parts.gLidL?.setAttribute("d", l.lidEdge);
+      parts.gLidR?.setAttribute("d", r.lidEdge);
+      parts.gCheekL?.setAttribute("d", l.cheekEdge);
+      parts.gCheekR?.setAttribute("d", r.cheekEdge);
+    }
+  };
+
+  const loop = (real: number) => {
+    if (!running) return;
+    if (hidden) {
+      raf = 0;
+      return;
+    }
+    const realDt = Math.min(0.05, (real - realLast) / 1000);
+    realLast = real;
+    if (realDt > 0) fps = lerp(fps, 1 / realDt, 0.05);
+
+    let blink = 0;
+    if (debug.manual) {
+      const m = debug.manual;
+      Object.assign(view, m.pose);
+      for (const key of POSE_KEYS) vel[key] = 0;
+      gaze.x = m.gazeX;
+      gaze.y = m.gazeY;
+      lag.x = view.x;
+      lag.y = view.y;
+      shake = { x: 0, rot: 0 };
+      blink = m.blink;
+      lastBlinkAmt = blink;
+    } else if (debug.frozen) {
+      blink = lastBlinkAmt;
+    } else {
+      const dt = realDt * debug.timeScale;
+      clock += dt * 1000;
+      const out = step(dt, clock);
+      blink = out.blink;
+      shake = { x: out.shakeX, rot: out.shakeRot };
+    }
+    render(blink);
     raf = requestAnimationFrame(loop);
   };
 
   svg.dataset.mood = "settle";
-  // Lets a mood be triggered by hand from the browser console, for tuning.
-  (svg as SVGSVGElement & { mote?: (m: Mood) => void }).mote = (m) => start(m, performance.now());
   raf = requestAnimationFrame(loop);
 
-  return () => {
-    running = false;
-    if (raf) cancelAnimationFrame(raf);
-    window.removeEventListener("pointermove", onMove);
-    document.removeEventListener("visibilitychange", onVis);
-    mq.removeEventListener("change", onMq);
+  return {
+    destroy: () => {
+      running = false;
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener("pointermove", onMove);
+      document.removeEventListener("visibilitychange", onVis);
+      mq.removeEventListener("change", onMq);
+    },
+    configure: (opts) => {
+      Object.assign(options, opts);
+      if (!options.naps && (mood === "doze" || mood === "sleep")) start("wake", clock);
+    },
+    poke: () => {
+      pokeQueued = true;
+    },
+    force: (next) => start(next, clock),
+    blink: (double = false) => {
+      blinkAt(clock, double);
+      log(double ? "double blink" : "blink");
+    },
+    setTimeScale: (scale) => {
+      debug.timeScale = clamp(scale, 0, 4);
+    },
+    setFrozen: (frozen) => {
+      debug.frozen = frozen;
+    },
+    setAutoMoods: (on) => {
+      debug.autoMoods = on;
+      if (on) nextAct = clock + restGap();
+    },
+    setLoop: (on) => {
+      debug.loop = on;
+    },
+    setGuides: (on) => {
+      debug.guides = on;
+      if (on) svg.dataset.guides = "";
+      else delete svg.dataset.guides;
+    },
+    setManual: (face) => {
+      debug.manual = face;
+    },
+    snapshot: () => ({
+      mood,
+      moodMs: clock - moodStart,
+      fps,
+      gazeX: gaze.x,
+      gazeY: gaze.y,
+      attention: lastAttention,
+      blink: lastBlinkAmt,
+      idleMs: pointer.has ? clock - pointer.at : 0,
+      pose: { ...view },
+    }),
   };
 }

@@ -1,25 +1,35 @@
-import { useEffect, useRef, type RefObject } from "react";
-import { REST, eyeShape, startFaceEngine } from "@/components/companion/engine";
+import { useEffect, useRef } from "react";
+import {
+  REST,
+  eyeShape,
+  startFaceEngine,
+  type EngineHooks,
+  type FaceEngine,
+} from "@/components/companion/engine";
 import { GEO, INK } from "@/lib/companion/theme";
 
-type FaceProps = {
-  pokeAt: RefObject<number>;
-  onMood: (label: string | null) => void;
+type FaceProps = EngineHooks & {
+  onEngine: (engine: FaceEngine | null) => void;
 };
 
-export function Face({ pokeAt, onMood }: FaceProps) {
+export function Face({ onEngine, onMood, onEvent }: FaceProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const onMoodRef = useRef(onMood);
-  onMoodRef.current = onMood;
+  const hooks = useRef({ onEngine, onMood, onEvent });
+  hooks.current = { onEngine, onMood, onEvent };
 
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
-    return startFaceEngine(svg, {
-      pokeAt: () => pokeAt.current,
-      onMood: (label) => onMoodRef.current(label),
+    const engine = startFaceEngine(svg, {
+      onMood: (label) => hooks.current.onMood(label),
+      onEvent: (text) => hooks.current.onEvent?.(text),
     });
-  }, [pokeAt]);
+    hooks.current.onEngine(engine);
+    return () => {
+      hooks.current.onEngine(null);
+      engine.destroy();
+    };
+  }, []);
 
   const { vbW, vbH, cx, cy, faceRx, faceRy } = GEO;
 
@@ -35,13 +45,16 @@ export function Face({ pokeAt, onMood }: FaceProps) {
           height="140%"
           colorInterpolationFilters="sRGB"
         >
-          <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" result="blur" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="3.2" result="blur" />
           <feComponentTransfer in="blur" result="shape">
-            <feFuncA type="linear" slope="12" intercept="-5.6" />
+            <feFuncA type="linear" slope="18" intercept="-7.1" />
           </feComponentTransfer>
           <feFlood floodColor={INK} />
           <feComposite in2="shape" operator="in" />
         </filter>
+        <clipPath id="mote-face-clip">
+          <ellipse cx={cx} cy={cy} rx={faceRx} ry={faceRy} />
+        </clipPath>
         <Eye side="l" />
         <Eye side="r" />
       </defs>
@@ -64,6 +77,17 @@ export function Face({ pokeAt, onMood }: FaceProps) {
           <g mask="url(#mote-eye-r)">
             <rect className="ink" x={GEO.eyeRX - 60} y={GEO.eyeY - 72} width={120} height={144} />
           </g>
+        </g>
+
+        {/* Debug only: outlines of the pills and the brow / cheek cuts. */}
+        <g data-part="guides" className="guides" clipPath="url(#mote-face-clip)">
+          {(["l", "r"] as const).map((side) => (
+            <g key={side}>
+              <path data-part={`guide-lid-${side}`} className="guide-lid" />
+              <path data-part={`guide-cheek-${side}`} className="guide-cheek" />
+              <rect data-part={`guide-pill-${side}`} className="guide-pill" />
+            </g>
+          ))}
         </g>
       </g>
     </svg>
