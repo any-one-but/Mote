@@ -16,6 +16,14 @@ import {
   type LastingMood,
   type MindValues,
 } from "@/components/companion/mind";
+import {
+  DISLIKED,
+  LIKED,
+  loadMemories,
+  mediaKey,
+  saveMemories,
+  type MediaMemory,
+} from "@/components/companion/memory";
 import { reactionById } from "@/components/companion/reactions";
 import {
   chooseLine,
@@ -51,6 +59,8 @@ export type Mood =
   | "hum"
   // Looking out at you while watching something.
   | "checkin"
+  // Jolted awake by sound starting.
+  | "startle"
   // Only with the mustache on.
   | "sniffle"
   | "twirl"
@@ -140,15 +150,32 @@ export type EngineOptions = {
   headphones: boolean;
   mustache: boolean;
   /**
-   * Another visible window is playing sound: where it is relative to Mote's
-   * window, in screen points (null when nothing else is playing).
+   * Media playing in another window you can see (null when there's none):
+   * where it is relative to Mote's window, what kind it is, and so on.
    */
-  audio: { dx: number; dy: number } | null;
+  media: Media | null;
   /** Where Mote's window sits on its screen, 0..1 from the left / top. */
   placement: { x: number; y: number } | null;
 };
 
 export type Accessory = "headphones" | "mustache";
+
+export type MediaKind = "music" | "speech" | "video" | "unknown";
+
+export type Media = {
+  /** Where its window is, from the centre of Mote's window, in screen points. */
+  dx: number;
+  dy: number;
+  kind: MediaKind;
+  /** Tempo, for music. */
+  bpm: number | null;
+  /** Seconds since the last beat, as of this report. */
+  beatAgo: number | null;
+  /** How loud and lively it is, 0..1. */
+  intensity: number;
+  title: string | null;
+  app: string | null;
+};
 
 /** A hand-set face for the debug window: springs and moods are bypassed. */
 export type ManualFace = { pose: Pose; gazeX: number; gazeY: number; blink: number };
@@ -164,9 +191,17 @@ export type EngineSnapshot = {
   idleMs: number;
   pose: Pose;
   petting: boolean;
-  audio: boolean;
-  /** What Mote is intrigued by right now, if anything. */
-  intrigued: "media" | "you" | null;
+  /** The media Mote can see and hear, if any. */
+  media: Media | null;
+  /** Everything Mote is intrigued by right now, and which one they're looking at. */
+  intrigued: Array<"media" | "you" | "pointer">;
+  focus: "media" | "pointer" | null;
+  /** How hard Mote is dancing, 0..1. */
+  dancing: number;
+  /** Media Mote remembers, and how much they like each. */
+  memories: MediaMemory[];
+  /** What's playing now, as Mote remembers it (if it's playing). */
+  nowPlaying: string | null;
   /** Mote's feelings, 0–10, and the lasting moods they add up to. */
   mind: MindValues;
   moods: LastingMood[];
@@ -210,6 +245,10 @@ export type FaceEngine = {
   dismissSpeech: () => void;
   /** Debug: say a particular line now (or anything fitting, with no id). */
   say: (lineId?: string) => void;
+  /** The pointer, out on the rest of the screen: where, from Mote's centre. */
+  pointerElsewhere: (dx: number, dy: number, inside: boolean) => void;
+  /** Forget how Mote feels about one piece of media (or all of it). */
+  forgetMedia: (key?: string) => void;
   snapshot: () => EngineSnapshot;
 };
 
@@ -232,6 +271,7 @@ export const MOOD_LIST: Mood[] = [
   "fidget",
   "hum",
   "checkin",
+  "startle",
 ];
 
 /** The extra idle moods each accessory brings with it. */
@@ -334,6 +374,7 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   fidget: { dur: 2000, tempo: 1.2 },
   hum: { dur: 3000, tempo: 0.9 },
   checkin: { dur: 1500, tempo: 0.9 },
+  startle: { dur: 1600, tempo: 1.2 },
   // Purring lasts as long as the petting does; see `PURR_AFTER`.
   purr: { dur: Number.POSITIVE_INFINITY, tempo: 0.8 },
 };
@@ -372,6 +413,7 @@ const LABELS: Partial<Record<Mood, string>> = {
   fidget: "Mote is fidgeting.",
   hum: "Mote is humming happily.",
   checkin: "Mote checks in on you.",
+  startle: "Mote jolts awake!",
   purr: "Mote is enjoying the pets.",
 };
 
@@ -670,6 +712,21 @@ export function poseFor(
       keys.push([150 + i * 380, { ...glad, rot: s * 4, x: s * 1.5, y: -1.5, sy: 1.02 }]);
     }
     keys.push([2600, {}]);
+  } else if (mood === "startle") {
+    // From fast asleep to wide awake in a blink: eyes huge, a jump, a shiver.
+    keys = [
+      [0, { ...sleepPose, open: 0.3 }],
+      [70, { open: 1.4, wide: 0.85, y: -16, sy: 1.12, sx: 0.9, earPerk: 1.5, mPuff: 0.5, lookY: -0.1, lookMix: 1 }],
+      [450, { open: 1.25, wide: 0.9, y: -5, sy: 1.04, sx: 0.98, earPerk: 1.1 }],
+      [900, { open: 1.12, earPerk: 0.6 }],
+      [1300, {}],
+    ];
+    if (t > 70 && t < 520) {
+      const decay = 1 - (t - 70) / 450;
+      const shiver = Math.sin(((t - 70) / 1000) * Math.PI * 2 * 14);
+      shakeX = shiver * 1.6 * decay;
+      shakeRot = shiver * 1.2 * decay;
+    }
   } else if (mood === "checkin") {
     // Turns from what they're watching to look out at you for a moment.
     keys = [
@@ -941,7 +998,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     energy: "normal",
     headphones: false,
     mustache: false,
-    audio: null,
+    media: null,
     placement: null,
   };
   const debug = {
@@ -1013,9 +1070,28 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   // with the window, and while sound keeps playing elsewhere (with a little
   // grace, since that report comes and goes).
   let youUntil = Number.NEGATIVE_INFINITY;
-  let audioSeenAt = Number.NEGATIVE_INFINITY;
-  let lastAudio: { dx: number; dy: number } | null = null;
+  let mediaSeenAt = Number.NEGATIVE_INFINITY;
+  let lastMedia: Media | null = null;
   let interest: "media" | "you" | null = null;
+
+  // The pointer out on the rest of the screen: whipping it around catches
+  // Mote's eye for a moment.
+  const pointerTrail: Array<{ t: number; d: number }> = [];
+  const pointerOut = { dx: 0, dy: 0, has: false };
+  let pointerUntil = Number.NEGATIVE_INFINITY;
+  // Split attention: which of the things going on Mote is looking at.
+  let focus: "media" | "pointer" | null = null;
+  let focusUntil = 0;
+  // Dancing: a beat clock kept in step with the music, and how hard Mote is
+  // dancing (eased in and out).
+  let beatOrigin = 0;
+  let beatPeriod = 500;
+  let dance = 0;
+  let groove = { x: 0, y: 0, rot: 0, sx: 0, sy: 0 };
+  // Memory of media: what's on now, and everything remembered.
+  const memories: Record<string, MediaMemory> = loadMemories();
+  let nowPlaying: string | null = null;
+  let memoriesSavedAt = 0;
   const engage = () => {
     youUntil = clock + 15_000;
   };
@@ -1041,7 +1117,23 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     tick.at = clock;
     if (r.effects) feel = nudge(feel, r.effects);
     log(`reaction: ${r.name.toLowerCase()}`);
+    if (r.effects?.happy) associate(r.effects.happy * 0.6);
   };
+
+  /**
+   * Training: good and bad moments while something plays rub off on it. Mote
+   * remembers, and feels that way about it next time.
+   */
+  const associate = (amount: number) => {
+    if (!nowPlaying || !memories[nowPlaying] || amount === 0) return;
+    const m = memories[nowPlaying];
+    const before = m.score;
+    m.score = Math.max(-6, Math.min(6, m.score + amount));
+    if (before < LIKED && m.score >= LIKED) log(`now likes “${m.name}”`);
+    if (before > DISLIKED && m.score <= DISLIKED) log(`now dislikes “${m.name}”`);
+  };
+
+  const liking = () => (nowPlaying ? (memories[nowPlaying]?.score ?? 0) : 0);
 
   const announce = (label: string | null) => {
     if (label === announced) return;
@@ -1069,6 +1161,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (next === "wake") blinkAt(now + 620, true);
     if (next === "dizzy") blinkAt(now + 2680, true);
     if (next === "checkin") blinkAt(now + 40);
+    if (next === "startle") blinkAt(now + 900, true);
     if (prev === "dizzy") dizzyReadyAt = now + 4000;
     if (prev === "dizzy" && next !== "dizzy") mention("dizzy-over", 0.5);
     if (prev === "purr" && next !== "purr") mention("petted", 0.35);
@@ -1090,6 +1183,15 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     headphones: options.headphones,
     mustache: options.mustache,
     placement: options.placement,
+    media:
+      interest === "media" && lastMedia
+        ? {
+            name: nowPlaying ? (memories[nowPlaying]?.name ?? null) : null,
+            kind: lastMedia.kind,
+            liking: liking(),
+            dancing: dance > 0.3,
+          }
+        : null,
   });
 
   const showBubble = (b: Bubble | null) => {
@@ -1136,6 +1238,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (b.reply || !line) return;
     const effects = line.effects?.[outcome];
     if (effects) feel = nudge(feel, effects);
+    if (effects?.happy) associate(effects.happy * 0.6);
+    // Asked straight out whether you like what's on: that sticks.
+    if (line.id === "liking-this" && (outcome === "yes" || outcome === "no")) {
+      associate(outcome === "yes" ? 1.2 : -1.2);
+    }
     if (outcome !== "done") react(`answer-${outcome}`);
     const then = line.then?.[outcome];
     if (then === "nap" && mood !== "sleep") {
@@ -1384,11 +1491,14 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       react("left-alone");
     }
 
-    if (options.audio !== null) {
+    if (interest === "media") {
       tally.sound += ms;
       if (tally.sound >= 30_000) {
         tally.sound = 0;
         react("sound-ongoing");
+        // Something Mote likes (or can't stand) keeps colouring their mood.
+        if (liking() >= LIKED) react("enjoying-media");
+        else if (liking() <= DISLIKED) react("enduring-media");
       }
     } else tally.sound = 0;
 
@@ -1401,6 +1511,10 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       savedAt = now;
       saveMind(feel);
     }
+    if (now - memoriesSavedAt > 10_000) {
+      memoriesSavedAt = now;
+      saveMemories(memories);
+    }
   };
 
   const step = (dt: number, now: number) => {
@@ -1412,17 +1526,70 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     // What has Mote's interest: what's playing elsewhere, or you.
     const idleFor = pointer.has ? now - pointer.at : 0;
     const sincePet = now - petAt.t;
-    if (options.audio !== null) {
-      audioSeenAt = now;
-      lastAudio = options.audio;
+    if (options.media !== null) {
+      mediaSeenAt = now;
+      lastMedia = options.media;
     }
-    const media = now - audioSeenAt < 12_000;
+    // (A few seconds' grace, since a report can drop out for a moment.)
+    const media = now - mediaSeenAt < 6000;
     const you = now < youUntil;
+    const pointerOutThere = now < pointerUntil;
     const was = interest;
     interest = media ? "media" : you ? "you" : null;
     if (interest && interest !== was) react(interest === "media" ? "intrigued-media" : "intrigued-you");
-    if (interest === "media" && was !== "media") mention("media-start", 0.3);
+    if (interest === "media" && was !== "media") {
+      // Sound out of nowhere jolts a sleeping Mote awake.
+      if (mood === "sleep") {
+        react("startled-awake");
+        start("startle", now);
+        mention("startled", 0.8);
+      } else mention("media-start", 0.3);
+    }
     const watchingMedia = media && !you;
+
+    // Remember what's playing, and how Mote felt about it last time.
+    const key = media && lastMedia ? mediaKey(lastMedia.title, lastMedia.app) : null;
+    if ((key?.key ?? null) !== nowPlaying) {
+      nowPlaying = key?.key ?? null;
+      if (key) {
+        const m = (memories[key.key] ??= {
+          key: key.key,
+          name: key.name,
+          app: lastMedia?.app ?? null,
+          score: 0,
+          times: 0,
+          last: 0,
+        });
+        m.times++;
+        m.last = Date.now();
+        if (m.score >= LIKED) {
+          react("media-liked");
+          mention("liked-media", 0.8);
+        } else if (m.score <= DISLIKED) {
+          react("media-disliked");
+          mention("disliked-media", 0.8);
+        }
+      }
+    }
+
+    // Split attention: the newest thing going on gets a look straight away;
+    // after that, Mote's eyes move between whatever is still going on.
+    const candidates: Array<"media" | "pointer"> = [];
+    if (media) candidates.push("media");
+    if (pointerOutThere) candidates.push("pointer");
+    if (focus && !candidates.includes(focus)) focus = null;
+    const focusWas = focus;
+    if (candidates.length && (!focus || now > focusUntil)) {
+      const kind = lastMedia?.kind ?? "unknown";
+      const weight = (c: "media" | "pointer") =>
+        c === "pointer" ? 2 : kind === "video" ? 3 : kind === "music" ? 1.5 : 1;
+      const total = candidates.reduce((sum, c) => sum + weight(c), 0);
+      let r = Math.random() * total;
+      focus = candidates.find((c) => (r -= weight(c)) <= 0) ?? candidates[0];
+      focusUntil = now + (focus === "pointer" ? 1200 + Math.random() * 1000 : 2500 + Math.random() * 3500);
+    }
+    // Something new to look at: the eyes go there now, not on the next wander.
+    if (focus !== focusWas) wander.next = now;
 
     // Left completely alone (nothing playing, you away), a Mote that's actually
     // sleepy nods off. Otherwise never.
@@ -1469,9 +1636,15 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         react("nod-off");
         start("doze", now);
       } else if (watchingMedia) {
-        // Watching something: the only thing Mote does is check in on you.
-        react("check-in");
-        start("checkin", now);
+        // Watching something: all Mote does is check in on you now and then,
+        // or, with a video, look away for a little break.
+        if (lastMedia?.kind === "video" && Math.random() < 0.4) {
+          react("look-away");
+          start("glance", now);
+        } else {
+          react("check-in");
+          start("checkin", now);
+        }
         nextAct = now + actGap(true, false);
       } else start(pick(), now);
     }
@@ -1506,6 +1679,50 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
     const tempo = mood === "sleep" ? 0.12 : mood === "settle" ? 1 : MOODS[mood].tempo;
 
+    // Listening to talk (or something Mote can't place): head tilted toward it.
+    const m = watchingMedia ? lastMedia : null;
+    if (m && (m.kind === "speech" || m.kind === "unknown") && ["settle", "checkin"].includes(mood)) {
+      target.rot += 4 * Math.sign(m.dx || 1);
+      target.open -= 0.03;
+    }
+
+    // Dancing to music: how hard depends on how loud and lively it is, how
+    // happy Mote is, and whether they like the song.
+    let want = 0;
+    if (m && m.kind === "music" && m.bpm && ["settle", "checkin", "glance"].includes(mood)) {
+      const fl = feelings(feel);
+      const taste = liking() >= LIKED ? 1.3 : liking() <= DISLIKED ? 0 : 1;
+      want =
+        clamp(0.25 + 0.75 * m.intensity, 0, 1) *
+        (0.7 + 0.3 * fl.happy) *
+        (1 - 0.8 * fl.frustrated) *
+        (1 - 0.5 * fl.sleepy) *
+        taste;
+      want = clamp(want, 0, 1.2);
+    }
+    dance += (want - dance) * (1 - Math.exp(-dt * 1.5));
+    if (dance > 0.02 && !reduced) {
+      const beats = (now - beatOrigin) / beatPeriod;
+      const phase = beats - Math.floor(beats);
+      const hit = Math.exp(-phase * 7); // sharp on the beat, easing off
+      const sway = Math.sin(beats * Math.PI); // one side per beat, back the next
+      groove = {
+        x: sway * 1.8 * dance,
+        y: (hit * 3 - 1) * dance,
+        rot: sway * 5 * dance,
+        sx: hit * 0.03 * dance,
+        sy: -hit * 0.045 * dance,
+      };
+      target.earTiltL += hit * 10 * dance;
+      target.earTiltR += hit * 10 * dance;
+      target.mLift += 0.3 * hit * dance;
+      // Really into it: happy, scrunched-up eyes.
+      if (dance > 0.75) {
+        target.cheek += 0.56;
+        target.cheekCurve += 0.15;
+      }
+    } else groove = { x: 0, y: 0, rot: 0, sx: 0, sy: 0 };
+
     // While a bubble is up, Mote looks out at you (or toward where they want
     // to go) and bobs a little while the words come out.
     if (bubble && mood !== "sleep" && ["settle", "glance", "checkin"].includes(mood)) {
@@ -1538,14 +1755,42 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
           : clamp(1 - (idleFor - 2000) / 1000, 0, 1);
     lastAttention = attention;
     think(dt, now, attention, sincePet);
-    if (now > wander.next) {
-      const audio = interest === "media" ? lastAudio : null;
-      if (audio) {
-        // Watching along: look toward the window that's playing sound.
+    const toward = (dx: number, dy: number) => ({
+      x: clamp(dx / 600, -1, 1),
+      y: clamp(dy / 500, -0.8, 0.8),
+    });
+    if (focus === "pointer") {
+      // Following the pointer out on the screen, live.
+      const at = toward(pointerOut.dx, pointerOut.dy);
+      wander = { ...at, next: now + 200 };
+    } else if (now > wander.next) {
+      const m = focus === "media" ? lastMedia : null;
+      const dislikes = liking() <= DISLIKED;
+      // How much of the time Mote keeps their eyes on it: a video almost
+      // always, music and talk less; something disliked, not much at all.
+      const stickiness = !m
+        ? 0
+        : dislikes
+          ? 0.3
+          : m.kind === "video"
+            ? 1
+            : m.kind === "music"
+              ? 0.5
+              : 0.6;
+      if (m && Math.random() < stickiness) {
+        const at = toward(m.dx, m.dy);
+        const jitter = m.kind === "video" ? 0.05 : 0.15;
         wander = {
-          x: clamp(audio.dx / 600, -1, 1) + (Math.random() - 0.5) * 0.15,
-          y: clamp(audio.dy / 500, -0.8, 0.8) + (Math.random() - 0.5) * 0.1,
-          next: now + 1800 + Math.random() * 3000,
+          x: at.x + (Math.random() - 0.5) * jitter,
+          y: at.y + (Math.random() - 0.5) * jitter * 0.6,
+          next: now + (m.kind === "video" ? 2000 : 1800) + Math.random() * 3000,
+        };
+      } else if (m) {
+        // Listening rather than watching: eyes drift back toward you.
+        wander = {
+          x: (Math.random() - 0.5) * 0.4,
+          y: (Math.random() - 0.5) * 0.2,
+          next: now + 1500 + Math.random() * 2500,
         };
       } else {
         const fl = feelings(feel);
@@ -1688,11 +1933,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const m = reduced ? 0.2 : 1;
     // A purr is a soft, fast rumble that skips the springs.
     const rumble = purrNow * Math.sin((clock / 1000) * Math.PI * 2 * 11) * m;
-    const bx = (view.x + shake.x * m) * m;
-    const by = view.y * m;
-    const br = (view.rot + shake.rot * m) * m;
-    const bsx = 1 + (view.sx - 1) * m - rumble * 0.004;
-    const bsy = 1 + (view.sy - 1) * m + rumble * 0.007;
+    const bx = (view.x + shake.x * m + groove.x) * m;
+    const by = (view.y + groove.y) * m;
+    const br = (view.rot + shake.rot * m + groove.rot) * m;
+    const bsx = 1 + (view.sx - 1 + groove.sx) * m - rumble * 0.004;
+    const bsy = 1 + (view.sy - 1 + groove.sy) * m + rumble * 0.007;
     parts.body?.setAttribute(
       "transform",
       `translate(${f(bx)} ${f(by)}) rotate(${f(br)} ${GEO.cx} ${GEO.pivotY}) translate(${GEO.cx} ${GEO.groundY}) scale(${bsx.toFixed(4)} ${bsy.toFixed(4)}) translate(${-GEO.cx} ${-GEO.groundY})`,
@@ -1883,7 +2128,21 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     configure: (opts) => {
       const before = { ...options };
       Object.assign(options, opts);
-      if (before.audio === null && options.audio !== null) react("sound-start");
+      if (before.media === null && options.media !== null) react("sound-start");
+      // Keep the beat clock in step with the music without jumping about.
+      const m = options.media;
+      if (m?.bpm && m.beatAgo !== null) {
+        const period = 60_000 / m.bpm;
+        const origin = clock - m.beatAgo * 1000;
+        if (Math.abs(period - beatPeriod) > 25) {
+          beatPeriod = period;
+          beatOrigin = origin;
+        } else {
+          beatPeriod = period;
+          const off = ((origin - beatOrigin) % period + period * 1.5) % period - period / 2;
+          beatOrigin += off * 0.3;
+        }
+      }
       // (Skips the first moments, when saved settings are just being restored.)
       if (clock > 1500) {
         if (!before.headphones && options.headphones) react("wear-headphones");
@@ -1957,6 +2216,31 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     dismissSpeech: () => {
       if (bubble?.kind === "flavor") resolve("done", clock);
     },
+    pointerElsewhere: (dx, dy, inside) => {
+      const d = pointerOut.has ? Math.hypot(dx - pointerOut.dx, dy - pointerOut.dy) : 0;
+      pointerOut.dx = dx;
+      pointerOut.dy = dy;
+      pointerOut.has = true;
+      if (inside || d === 0 || mood === "sleep" || !options.followPointer) return;
+      const t = clock;
+      pointerTrail.push({ t, d });
+      while (pointerTrail.length && t - pointerTrail[0].t > 800) pointerTrail.shift();
+      const travelled = pointerTrail.reduce((sum, p) => sum + p.d, 0);
+      // Moving a lot catches Mote's eye for a moment.
+      if (travelled > 700) {
+        if (clock > pointerUntil) {
+          react("pointer-elsewhere");
+          focus = "pointer";
+          focusUntil = clock + 1200 + Math.random() * 1000;
+        }
+        pointerUntil = clock + 2500;
+      }
+    },
+    forgetMedia: (key) => {
+      for (const k of Object.keys(memories)) if (!key || k === key) delete memories[k];
+      saveMemories(memories);
+      log(key ? "forgot one piece of media" : "forgot all media");
+    },
     say: (lineId) => {
       if (bubble) showBubble(null);
       const line = lineId ? lineById.get(lineId) : chooseLine(speechContext(), new Map(), clock);
@@ -1980,8 +2264,16 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       idleMs: pointer.has ? clock - pointer.at : 0,
       pose: { ...view },
       petting: clock - petAt.t < 350,
-      audio: options.audio !== null,
-      intrigued: interest,
+      media: options.media,
+      intrigued: [
+        ...(interest === "media" ? (["media"] as const) : []),
+        ...(clock < youUntil ? (["you"] as const) : []),
+        ...(clock < pointerUntil ? (["pointer"] as const) : []),
+      ],
+      focus,
+      dancing: dance,
+      memories: Object.values(memories).sort((a, b) => b.last - a.last),
+      nowPlaying: nowPlaying ? (memories[nowPlaying]?.name ?? null) : null,
       speech: bubble,
       nextSpeechIn: Math.max(0, nextSpeechAt - clock),
       placement: options.placement,

@@ -10,6 +10,7 @@ export type ReactionGroup =
   | "Window"
   | "Sound"
   | "Interest"
+  | "Learning"
   | "Speech"
   | "Accessories"
   | "Time and rest"
@@ -200,8 +201,65 @@ export const REACTIONS: Reaction[] = [
     id: "intrigued-media",
     group: "Interest",
     name: "Intrigued by what’s playing",
-    when: "Another window is playing sound or video",
-    then: "Watches it; the only thing Mote does is check in on you now and then",
+    when: "A window you can see is actually playing sound or video (covered-up windows and paused players don’t count)",
+    then: "Pays attention to it; the only thing Mote does is check in on you now and then",
+    status: "live",
+  },
+  {
+    id: "startled-awake",
+    group: "Interest",
+    name: "Startled awake",
+    when: "Something starts playing while Mote is asleep",
+    then: "Jolts awake, eyes huge, with a little shiver",
+    effects: { alert: 3, restless: 1, happy: -0.3 },
+    status: "live",
+  },
+  {
+    id: "watching-video",
+    group: "Interest",
+    name: "Watching a video",
+    when: "What’s playing looks like a video (the picture keeps moving)",
+    then: "Keeps their eyes on it, looking away now and then for a break",
+    status: "live",
+  },
+  {
+    id: "look-away",
+    group: "Interest",
+    name: "A little break",
+    when: "Every so often during a video",
+    then: "Looks away for a moment instead of checking in",
+    status: "live",
+  },
+  {
+    id: "dancing",
+    group: "Interest",
+    name: "Dancing",
+    when: "What’s playing is music with a beat",
+    then: "Bobs and sways to its tempo, harder when it’s loud and lively, when Mote is happy, or when it’s a song they like",
+    status: "live",
+  },
+  {
+    id: "listening-in",
+    group: "Interest",
+    name: "Listening",
+    when: "What’s playing is talk, or Mote can’t tell what it is",
+    then: "Tilts their head toward it and listens, glancing over now and then",
+    status: "live",
+  },
+  {
+    id: "pointer-elsewhere",
+    group: "Interest",
+    name: "Pointer out on the screen",
+    when: "You move the pointer a lot anywhere on the screen",
+    then: "Glances at it for a moment",
+    status: "live",
+  },
+  {
+    id: "split-attention",
+    group: "Interest",
+    name: "Split attention",
+    when: "More than one thing is going on (something playing, the pointer moving)",
+    then: "The newest gets a look straight away; then Mote’s eyes move between them",
     status: "live",
   },
   {
@@ -234,6 +292,52 @@ export const REACTIONS: Reaction[] = [
     name: "Falling asleep while watching",
     when: "Mote is intrigued but utterly exhausted (Alert ½ or less)",
     then: "Dozes off for real",
+    status: "live",
+  },
+
+  // Learning
+  {
+    id: "learning-taste",
+    group: "Learning",
+    name: "Learning what Mote likes",
+    when: "Mote is happier or crosser while something plays, or you answer “do you like this?”",
+    then: "Mote remembers that song or video, and likes or dislikes it more",
+    status: "live",
+  },
+  {
+    id: "media-liked",
+    group: "Learning",
+    name: "A favourite comes on",
+    when: "Something Mote likes starts playing",
+    then: "Delighted; dances harder, says so",
+    effects: { happy: 0.5 },
+    status: "live",
+  },
+  {
+    id: "media-disliked",
+    group: "Learning",
+    name: "Not this again",
+    when: "Something Mote dislikes starts playing",
+    then: "Unimpressed: won’t dance, looks away more, may ask to skip it",
+    effects: { happy: -0.5, restless: 0.3 },
+    status: "live",
+  },
+  {
+    id: "enjoying-media",
+    group: "Learning",
+    name: "Enjoying it",
+    when: "Something Mote likes keeps playing (every 30 seconds)",
+    then: "A little happier",
+    effects: { happy: 0.15 },
+    status: "live",
+  },
+  {
+    id: "enduring-media",
+    group: "Learning",
+    name: "Putting up with it",
+    when: "Something Mote dislikes keeps playing (every 30 seconds)",
+    then: "A little crosser",
+    effects: { happy: -0.15, restless: 0.1 },
     status: "live",
   },
 
@@ -453,6 +557,7 @@ export const REACTION_GROUPS: ReactionGroup[] = [
   "Window",
   "Sound",
   "Interest",
+  "Learning",
   "Speech",
   "Accessories",
   "Time and rest",

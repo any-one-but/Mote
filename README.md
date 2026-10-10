@@ -47,6 +47,47 @@ thing Mote does is look out to check in on you now and then (with a small,
 happiness-based chance of something sweet). Only a really sleepy Mote nods off
 while watching, and only an exhausted one actually falls asleep.
 
+### Watching, listening and dancing
+
+In the Mac app, a small helper (`desktop/senses/main.swift`, built into the
+app as `mote-senses`) keeps an eye on the rest of the screen:
+
+- Only media in a window **you can actually see** counts: covered-up windows
+  don't, and neither do players that are open but paused or silent.
+- It tells **music** (Mote dances to its tempo, harder when it's loud, when
+  Mote is happy, or when it's a favourite), **talk** (Mote tilts their head and
+  listens) and **video** (Mote watches, looking away now and then for a break).
+- It reads the **title**, so Mote can mention what's on by name.
+- Moving the **pointer** a lot anywhere on screen catches Mote's eye briefly.
+  With several things going on, Mote's attention moves between them.
+- Something starting to play while Mote is asleep jolts them awake.
+
+To hear the sound and tell video from music, the helper needs the **Screen
+Recording** permission (macOS asks the first time). It only looks at the one
+window that's playing, at a tiny 96×54 size, and nothing is ever saved.
+Without the permission Mote can still tell where sound is coming from, just not
+what kind it is, how loud, or what it's called. Because the app isn't signed
+with an Apple developer account, macOS may ask again after each rebuild.
+
+### Learning likes and dislikes
+
+Mote remembers each song or video they've watched or listened to with you.
+Good moments while it plays (pets, pokes, nice answers, "yes, I like this")
+make Mote like it more; bad ones (pestering, shaking, "no") less. Next time it
+comes on, Mote is pleased (and dances harder) or unimpressed (won't dance, may
+ask to skip it). The Debug window's Mind tab lists what Mote remembers, with a
+Forget button.
+
+### Speech bubbles
+
+Every minute or two, when they feel like it, Mote says something in a bubble:
+a remark, a yes/no question (green and red buttons), a request to be moved
+somewhere on the screen (drag the window there), or a request for a pet. They
+fit Mote's mood and what's going on, and all of them disappear after a while;
+ignoring a question or request counts as an answer too. Every line lives in
+`src/components/companion/speech.ts`; the Debug window's Speech tab lists them
+all and can make Mote say any of them.
+
 Every stimulus → response rule lives in `src/components/companion/reactions.ts`,
 with the feelings it changes. The Debug window's **Mind** tab shows the feelings,
 lets you nudge them, and lists every reaction (built ones and ideas), lighting
@@ -112,4 +153,8 @@ Each face there is one expression frozen in place, handy for tweaking how they l
 - `src/components/companion/accessories.ts` — how the headphones and mustache are drawn
 - `src/components/companion/mind.ts` — Mote's feelings, how they drift, the lasting moods
 - `src/components/companion/reactions.ts` — every stimulus → response rule
+- `src/components/companion/speech.ts` — everything Mote can say, and when
+- `src/components/companion/SpeechBubble.tsx` — how the bubbles look
+- `src/components/companion/memory.ts` — Mote's memory of media, and their likes
+- `desktop/senses/main.swift` — the helper that sees and hears other windows
 - `src-tauri/` — the Mac app wrapper itself

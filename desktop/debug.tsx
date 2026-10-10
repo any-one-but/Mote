@@ -76,6 +76,7 @@ const MOOD_NAMES: Record<Mood, string> = {
   fidget: "Fidget",
   hum: "Hum",
   checkin: "Check in",
+  startle: "Startled awake",
 };
 
 const TAB_KEY = "mote.debug.tab";
@@ -153,6 +154,7 @@ function DebugWindow() {
     if (cmd.do === "guides") local.guides = cmd.value;
     if (cmd.do === "sleepLine") local.sleepLine = cmd.value;
     if (cmd.do === "fakeAudio") local.fakeAudio = cmd.value;
+    if (cmd.do === "fakeKind") local.fakeKind = cmd.value;
     if (cmd.do === "manual") local.manual = cmd.face !== null;
     Object.assign(pending.current, local);
     setDebug((d) => ({ ...d, ...local }));
@@ -309,7 +311,14 @@ const TINT: Record<Attr, [string, string]> = {
 
 const seconds = (ms: number) => `${Math.max(0, Math.ceil(ms / 1000))}s`;
 
-function MindTab({ snap, command }: Ctx) {
+const KIND_LABEL: Record<string, string> = {
+  music: "music",
+  speech: "talking",
+  video: "a video",
+  unknown: "something (can’t tell what)",
+};
+
+function MindTab({ snap, command, debug }: Ctx) {
   const [show, setShow] = useState<"all" | "live" | "idea">("all");
   if (!snap) return <p className="empty">Nothing yet. Is Mote’s window open?</p>;
   const asleep = snap.mood === "sleep";
@@ -363,25 +372,80 @@ function MindTab({ snap, command }: Ctx) {
       <Section title="Interest">
         <Row
           label={
-            snap.intrigued === "media"
-              ? "Intrigued by what’s playing"
-              : snap.intrigued === "you"
-                ? "Intrigued by you"
-                : "Not intrigued by anything"
+            snap.intrigued.length
+              ? `Intrigued by ${snap.intrigued
+                  .map((i) => (i === "media" ? "what’s playing" : i === "you" ? "you" : "your pointer"))
+                  .join(" and ")}`
+              : "Not intrigued by anything"
           }
           hint={
-            snap.intrigued === "media"
-              ? "Watching the window that’s playing sound; only checks in on you now and then."
-              : snap.intrigued === "you"
+            snap.focus
+              ? `Looking at ${snap.focus === "media" ? "what’s playing" : "your pointer"} right now.`
+              : snap.intrigued.includes("you")
                 ? "You’ve been using Mote’s window: fewer random moods, no getting tired."
                 : "Doing their own thing. Alertness slowly wears off."
           }
         >
-          <span className={`chip ${snap.intrigued ? "is-mood" : "is-off"}`}>
+          <span className={`chip ${snap.intrigued.length ? "is-mood" : "is-off"}`}>
             <span className="chip-dot" />
-            {snap.intrigued ? "On" : "Off"}
+            {snap.intrigued.length ? "On" : "Off"}
           </span>
         </Row>
+        {snap.media ? (
+          <Row
+            label={`Playing: ${KIND_LABEL[snap.media.kind]}`}
+            hint={[
+              snap.nowPlaying ? `“${snap.nowPlaying}”` : null,
+              snap.media.bpm ? `${Math.round(snap.media.bpm)} beats a minute` : null,
+              `loudness ${Math.round(snap.media.intensity * 100)}%`,
+              snap.dancing > 0.05 ? `dancing ${Math.round(snap.dancing * 100)}%` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          >
+            <span className="chip is-mood">
+              <span className="chip-dot" />
+              {snap.media.app ?? "Media"}
+            </span>
+          </Row>
+        ) : null}
+        {debug.permission === false ? (
+          <p className="empty">
+            Mote doesn’t have the Screen Recording permission, so they can tell where sound is coming
+            from but not whether it’s music, talk or video, or what it’s called. You can allow it in
+            System Settings → Privacy &amp; Security → Screen &amp; System Audio Recording.
+          </p>
+        ) : null}
+      </Section>
+
+      <Section title="Remembered media">
+        {snap.memories.length ? (
+          <>
+            {snap.memories.slice(0, 20).map((m) => (
+              <div key={m.key} className="memory">
+                <div className="memory-text">
+                  <span className="row-label">{m.name}</span>
+                  <span className="row-hint">
+                    {m.app ? `${m.app} · ` : ""}
+                    {m.times}× ·{" "}
+                    {m.score >= 2 ? "likes it" : m.score <= -2 ? "dislikes it" : "no strong feelings"}
+                  </span>
+                </div>
+                <div className="memory-bar" style={{ ["--s" as string]: `${50 + (m.score / 6) * 50}%` }}>
+                  <span />
+                </div>
+                <button type="button" className="link" onClick={() => command({ do: "forget", key: m.key })}>
+                  Forget
+                </button>
+              </div>
+            ))}
+            <div className="button-row">
+              <Button onClick={() => command({ do: "forget" })}>Forget everything</Button>
+            </div>
+          </>
+        ) : (
+          <p className="empty">Nothing yet. Things Mote watches or listens to with you show up here.</p>
+        )}
       </Section>
 
       <Section title="Lasting moods">
@@ -708,6 +772,19 @@ function MotionTab({ snap, debug, command }: Ctx) {
             onChange={(v) => command({ do: "fakeAudio", value: v === "off" ? null : v })}
           />
         </Row>
+        <Row label="What it is" hint="Music makes Mote dance; talk makes them listen; video, watch." stacked>
+          <Segmented
+            label="What it is"
+            options={[
+              { value: "music", label: "Music" },
+              { value: "speech", label: "Talk" },
+              { value: "video", label: "Video" },
+              { value: "unknown", label: "Can’t tell" },
+            ]}
+            value={debug.fakeKind}
+            onChange={(value) => command({ do: "fakeKind", value })}
+          />
+        </Row>
       </Section>
       <Section title="Overlays">
         <Row label="Show cut guides" hint="Blue line is the brow cut, peach is the cheek cut.">
@@ -723,7 +800,9 @@ function MotionTab({ snap, debug, command }: Ctx) {
             <Readout k="blink" v={snap.blink} />
             <Readout k="idle (s)" v={snap.idleMs / 1000} />
             <Readout k="petting" v={snap.petting ? 1 : 0} changed={snap.petting} />
-            <Readout k="sound elsewhere" v={snap.audio ? 1 : 0} changed={snap.audio} />
+            <Readout k="media playing" v={snap.media ? 1 : 0} changed={!!snap.media} />
+            <Readout k="tempo" v={snap.media?.bpm ?? 0} changed={!!snap.media?.bpm} />
+            <Readout k="dancing" v={snap.dancing} changed={snap.dancing > 0.05} />
             <Readout k="on screen x" v={snap.placement?.x ?? -1} />
             <Readout k="on screen y" v={snap.placement?.y ?? -1} />
             {POSE_KEYS.map((k) => (

@@ -1,5 +1,6 @@
 // Mote for Mac: native windows around the pages in ../desktop.
 mod audio;
+mod senses;
 
 use std::time::Duration;
 
@@ -22,7 +23,7 @@ struct AudioElsewhere {
 
 /// Every second and a half, tell Mote's window whether another visible window
 /// is playing sound, and where it is.
-fn watch_audio(app: AppHandle) {
+pub(crate) fn watch_audio(app: AppHandle) {
     std::thread::spawn(move || loop {
         std::thread::sleep(Duration::from_millis(1500));
         let Some(main) = app.get_webview_window("main") else {
@@ -176,7 +177,10 @@ fn main() {
                     let _ = open_settings_window(app);
                 }
             });
-            watch_audio(handle.clone());
+            // The full senses helper if it's there, otherwise the simple sound check.
+            if !senses::start(handle.clone()) {
+                watch_audio(handle.clone());
+            }
             Ok(())
         })
         .on_window_event(|window, event| {

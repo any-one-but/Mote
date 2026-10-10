@@ -1,5 +1,5 @@
 import { emit, listen } from "@tauri-apps/api/event";
-import type { EngineSnapshot, ManualFace, Mood } from "@/components/companion/engine";
+import type { EngineSnapshot, ManualFace, MediaKind, Mood } from "@/components/companion/engine";
 import type { Attr } from "@/components/companion/mind";
 import type { Settings } from "@/lib/companion/settings";
 import { isDesktopApp } from "@/lib/companion/desktop";
@@ -17,10 +17,12 @@ export type DebugCommand =
   | { do: "guides"; value: boolean }
   | { do: "sleepLine"; value: boolean }
   | { do: "fakeAudio"; value: "left" | "right" | null }
+  | { do: "fakeKind"; value: MediaKind }
   | { do: "feeling"; attr: Attr; value: number }
   | { do: "resetFeelings" }
   | { do: "react"; id: string }
   | { do: "say"; id?: string }
+  | { do: "forget"; key?: string }
   | { do: "manual"; face: ManualFace | null };
 
 /** The debug knobs as Mote's window currently has them. */
@@ -33,6 +35,9 @@ export type DebugState = {
   manual: boolean;
   sleepLine: boolean;
   fakeAudio: "left" | "right" | null;
+  fakeKind: MediaKind;
+  /** Whether the Mac app may record the screen (null: not known / not the Mac app). */
+  permission: boolean | null;
 };
 
 export const DEBUG_DEFAULTS: DebugState = {
@@ -44,6 +49,8 @@ export const DEBUG_DEFAULTS: DebugState = {
   manual: false,
   sleepLine: false,
   fakeAudio: null,
+  fakeKind: "music",
+  permission: null,
 };
 
 export type BusMessage =

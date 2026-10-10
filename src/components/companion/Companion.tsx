@@ -6,18 +6,37 @@ import { Face } from "@/components/companion/Face";
 import { SpeechBubble } from "@/components/companion/SpeechBubble";
 import type { Bubble } from "@/components/companion/speech";
 import { GEO } from "@/lib/companion/theme";
-import type { EngineOptions, FaceEngine } from "@/components/companion/engine";
+import type { EngineOptions, FaceEngine, MediaKind } from "@/components/companion/engine";
 import { DEBUG_DEFAULTS, listenBus, send, type DebugState } from "@/lib/companion/bus";
-import { onAudioElsewhere, onWindowMoved, windowPlacement } from "@/lib/companion/desktop";
+import {
+  onMediaElsewhere,
+  onPointerElsewhere,
+  onWindowMoved,
+  windowPlacement,
+} from "@/lib/companion/desktop";
 import { useSettings } from "@/lib/companion/settings";
 
-type Audio = EngineOptions["audio"];
+type MediaInfo = EngineOptions["media"];
 
-/** Where the debug window's pretend sound comes from, in screen points. */
-const FAKE_AUDIO: Record<"left" | "right", NonNullable<Audio>> = {
-  left: { dx: -700, dy: 0 },
-  right: { dx: 700, dy: 0 },
-};
+/** The debug window's pretend media: a window off to one side playing something. */
+function pretend(side: "left" | "right", kind: MediaKind): NonNullable<MediaInfo> {
+  const titles: Record<MediaKind, string> = {
+    music: "Pretend Song",
+    speech: "Pretend Podcast",
+    video: "Pretend Show",
+    unknown: "Pretend Sounds",
+  };
+  return {
+    dx: side === "left" ? -700 : 700,
+    dy: 0,
+    kind,
+    bpm: kind === "music" ? 112 : null,
+    beatAgo: kind === "music" ? 0 : null,
+    intensity: 0.7,
+    title: titles[kind],
+    app: "Pretend",
+  };
+}
 
 export function Companion() {
   const engineRef = useRef<FaceEngine | null>(null);
@@ -25,7 +44,7 @@ export function Companion() {
   const [settings] = useSettings();
   const debugState = useRef<DebugState>({ ...DEBUG_DEFAULTS });
   const events = useRef<string[]>([]);
-  const realAudio = useRef<Audio>(null);
+  const realMedia = useRef<MediaInfo>(null);
   const press = useRef<{ x: number; y: number; moved: number; stroked: number; at: number } | null>(
     null,
   );
@@ -62,10 +81,12 @@ export function Companion() {
     };
   }, []);
 
-  // Sound playing in another window, or the debug window's pretend version of it.
+  // Media playing in another window, or the debug window's pretend version of it.
   const applyAudio = () => {
-    const fake = debugState.current.fakeAudio;
-    engineRef.current?.configure({ audio: fake ? FAKE_AUDIO[fake] : realAudio.current });
+    const { fakeAudio, fakeKind } = debugState.current;
+    engineRef.current?.configure({
+      media: fakeAudio ? pretend(fakeAudio, fakeKind) : realMedia.current,
+    });
   };
 
   const { followPointer, naps, energy, headphones, mustache, debug } = settings;
@@ -75,11 +96,14 @@ export function Companion() {
 
   useEffect(
     () =>
-      onAudioElsewhere((audio) => {
-        const was = realAudio.current !== null;
-        realAudio.current = audio;
-        if (was !== (audio !== null)) {
-          events.current.push(audio ? "sound playing in another window" : "other sound stopped");
+      onMediaElsewhere((media, permission) => {
+        const was = realMedia.current;
+        realMedia.current = media;
+        debugState.current.permission = permission;
+        if ((was === null) !== (media === null)) {
+          events.current.push(media ? `${media.kind} playing in another window` : "other media stopped");
+        } else if (was && media && was.kind !== media.kind) {
+          events.current.push(`media looks like ${media.kind} now`);
         }
         applyAudio();
       }),
@@ -88,6 +112,10 @@ export function Companion() {
   );
 
   useEffect(() => onWindowMoved((dx, dy) => engineRef.current?.windowMoved(dx, dy)), []);
+  useEffect(
+    () => onPointerElsewhere((dx, dy, inside) => engineRef.current?.pointerElsewhere(dx, dy, inside)),
+    [],
+  );
 
   // Debug mode: take orders from the debug window and report back ~10× a second.
   useEffect(() => {
@@ -125,7 +153,11 @@ export function Companion() {
       else if (cmd.do === "resetFeelings") e.resetFeelings();
       else if (cmd.do === "react") e.react(cmd.id);
       else if (cmd.do === "say") e.say(cmd.id);
-      else if (cmd.do === "fakeAudio") {
+      else if (cmd.do === "forget") e.forgetMedia(cmd.key);
+      else if (cmd.do === "fakeKind") {
+        d.fakeKind = cmd.value;
+        applyAudio();
+      } else if (cmd.do === "fakeAudio") {
         d.fakeAudio = cmd.value;
         applyAudio();
       } else if (cmd.do === "manual") {

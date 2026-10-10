@@ -865,3 +865,52 @@ input:focus-visible {
 .link:hover {
   color: var(--ink);
 }
+
+/* Remembered media */
+
+.memory {
+  display: grid;
+  grid-template-columns: 1fr 120px auto;
+  align-items: center;
+  gap: calc(var(--unit) * 2);
+  padding: calc(var(--unit) * 1.25) 0;
+}
+
+.memory + .memory {
+  border-top: 1px solid var(--line);
+}
+
+.memory-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.memory-text .row-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memory-bar {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(to right, #e7b7a2, var(--sunk) 42% 58%, #b9cfa0);
+}
+
+.memory-bar span {
+  position: absolute;
+  top: 50%;
+  left: var(--s);
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--card);
+}
+
+.memory .link {
+  margin-left: 0;
+}

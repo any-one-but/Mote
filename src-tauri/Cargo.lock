@@ -1796,6 +1796,7 @@ dependencies = [
  "core-graphics",
  "libc",
  "serde",
+ "serde_json",
  "tauri",
  "tauri-build",
 ]
