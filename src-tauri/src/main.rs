@@ -1,4 +1,8 @@
 // Mote for Mac: native windows around the pages in ../desktop.
+mod audio;
+
+use std::time::Duration;
+
 use tauri::{
     menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu},
     window::Color,
@@ -7,6 +11,41 @@ use tauri::{
 };
 
 const PAPER: Color = Color(0xf6, 0xef, 0xe5, 0xff);
+
+#[derive(Clone, serde::Serialize)]
+struct AudioElsewhere {
+    playing: bool,
+    /// Offset from the centre of Mote's window to the playing window, in points.
+    dx: f64,
+    dy: f64,
+}
+
+/// Every second and a half, tell Mote's window whether another visible window
+/// is playing sound, and where it is.
+fn watch_audio(app: AppHandle) {
+    std::thread::spawn(move || loop {
+        std::thread::sleep(Duration::from_millis(1500));
+        let Some(main) = app.get_webview_window("main") else {
+            continue;
+        };
+        let mut report = AudioElsewhere { playing: false, dx: 0.0, dy: 0.0 };
+        if let (Some((cx, cy)), Ok(pos), Ok(size), Ok(scale)) = (
+            audio::playing_window_center(),
+            main.outer_position(),
+            main.outer_size(),
+            main.scale_factor(),
+        ) {
+            let pos = pos.to_logical::<f64>(scale);
+            let size = size.to_logical::<f64>(scale);
+            report = AudioElsewhere {
+                playing: true,
+                dx: cx - (pos.x + size.width / 2.0),
+                dy: cy - (pos.y + size.height / 2.0),
+            };
+        }
+        let _ = main.emit("audio-elsewhere", report);
+    });
+}
 
 fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
     if let Some(window) = app.get_webview_window("settings") {
@@ -137,6 +176,7 @@ fn main() {
                     let _ = open_settings_window(app);
                 }
             });
+            watch_audio(handle.clone());
             Ok(())
         })
         .on_window_event(|window, event| {

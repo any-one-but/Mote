@@ -16,6 +16,8 @@ export type Mood =
   | "doze"
   | "sleep"
   | "wake"
+  | "dizzy"
+  | "purr"
   // Only with the mustache on.
   | "sniffle"
   | "twirl"
@@ -102,6 +104,11 @@ export type EngineOptions = {
   energy: Energy;
   headphones: boolean;
   mustache: boolean;
+  /**
+   * Another visible window is playing sound: where it is relative to Mote's
+   * window, in screen points (null when nothing else is playing).
+   */
+  audio: { dx: number; dy: number } | null;
 };
 
 export type Accessory = "headphones" | "mustache";
@@ -119,6 +126,8 @@ export type EngineSnapshot = {
   blink: number;
   idleMs: number;
   pose: Pose;
+  petting: boolean;
+  audio: boolean;
 };
 
 export type FaceEngine = {
@@ -133,6 +142,13 @@ export type FaceEngine = {
   setLoop: (on: boolean) => void;
   setGuides: (on: boolean) => void;
   setManual: (face: ManualFace | null) => void;
+  setSleepLine: (on: boolean) => void;
+  /** Is this screen point on Mote's body (not just the window around it)? */
+  hitTest: (clientX: number, clientY: number) => boolean;
+  /** A petting stroke at this screen point. */
+  pet: (clientX: number, clientY: number) => void;
+  /** The window moved by this much (CSS px), for inertia and dizziness. */
+  windowMoved: (dx: number, dy: number) => void;
   snapshot: () => EngineSnapshot;
 };
 
@@ -147,6 +163,8 @@ export const MOOD_LIST: Mood[] = [
   "doze",
   "sleep",
   "wake",
+  "dizzy",
+  "purr",
 ];
 
 /** The extra idle moods each accessory brings with it. */
@@ -242,7 +260,13 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   listen: { dur: 3400, tempo: 0.9 },
   groove: { dur: 3500, tempo: 1.1 },
   flick: { dur: 1700, tempo: 1 },
+  dizzy: { dur: 3000, tempo: 1 },
+  // Purring lasts as long as the petting does; see `PURR_AFTER`.
+  purr: { dur: Number.POSITIVE_INFINITY, tempo: 0.8 },
 };
+
+/** How long a purr keeps going after the petting stops (ms). */
+const PURR_AFTER = 1300;
 
 const BAG: Mood[] = [
   "glance",
@@ -268,6 +292,8 @@ const LABELS: Partial<Record<Mood, string>> = {
   flutter: "Mote is blowing on the mustache.",
   listen: "Mote is listening for something.",
   groove: "Mote is bopping along to music.",
+  dizzy: "Mote is dizzy.",
+  purr: "Mote is enjoying the pets.",
 };
 
 function clamp(n: number, a: number, b: number) {
@@ -288,8 +314,28 @@ function keyed(t: number, keys: Keys): Partial<Pose> {
 }
 
 /** Target pose for a mood `t` ms in, plus offsets that skip the springs (shakes). */
-export function poseFor(mood: Mood, t: number, seed: number): { pose: Pose; shakeX: number; shakeRot: number } {
+export type PoseExtras = {
+  /** Debug: sleep with flat, line-shaped eyes instead of the curved ones. */
+  sleepLine?: boolean;
+  /** ms since the last petting stroke (negative while still petting). */
+  sincePet?: number;
+};
+
+/**
+ * Target pose for a mood `t` ms in, plus things that skip the springs: shakes,
+ * the dizzy eye swirl (0..1) and the purr rumble (0..1).
+ */
+export function poseFor(
+  mood: Mood,
+  t: number,
+  seed: number,
+  extras: PoseExtras = {},
+): { pose: Pose; shakeX: number; shakeRot: number; swirl: number; purr: number } {
   const dir = seed > 0.5 ? 1 : -1;
+  const sleepPose = extras.sleepLine ? SLEEP_LINE : SLEEP;
+  let swirl = 0;
+  let purr = 0;
+  let wobble: Partial<Pose> = {};
   const variant = (seed * 7.31) % 1;
   let keys: Keys = [];
   let shakeX = 0;
@@ -358,12 +404,13 @@ export function poseFor(mood: Mood, t: number, seed: number): { pose: Pose; shak
       lookY: -0.12,
       lookMix: 0.5,
     };
-    const wink: Partial<Pose> = dir > 0 ? { winkR: 1 } : { winkL: 1 };
+    // At the peak the cheeks push up into a squishy, bashful smile.
+    const squish: Partial<Pose> = { ...happy, cheek: 0.66, cheekCurve: 0.2, open: 1.06, wide: 1.07 };
     keys = [
       [0, { sy: 0.94, sx: 1.05, y: 2.5, open: 0.92 }],
       [130, { ...happy, y: -9, sy: 1.05, sx: 0.96, rot: dir * 5 }],
       [400, { ...happy, y: 1.5, sy: 0.96, sx: 1.03, rot: dir * 6 }],
-      [540, { ...happy, ...wink, rot: dir * 7 }],
+      [540, { ...squish, rot: dir * 7, sy: 0.98, sx: 1.02 }],
       [1450, { ...happy, rot: dir * 5 }],
       [2000, {}],
     ];
@@ -391,10 +438,10 @@ export function poseFor(mood: Mood, t: number, seed: number): { pose: Pose; shak
       [2900, { lid: 0.6, lidCurve: 0.06, lidTilt: -0.12, y: 7, rot: 5, lookY: 0.5, lookMix: 0.9 }],
     ];
   } else if (mood === "sleep") {
-    keys = [[0, SLEEP]];
+    keys = [[0, sleepPose]];
   } else if (mood === "wake") {
     keys = [
-      [0, { ...SLEEP, lid: 0.5, cheek: 0.06, y: 5, rot: 3 }],
+      [0, extras.sleepLine ? { ...SLEEP_LINE, open: 0.3, y: 5, rot: 3 } : { ...SLEEP, lid: 0.5, cheek: 0.06, y: 5, rot: 3 }],
       [160, { open: 1.16, wide: 0.98, y: -7, sy: 1.05, sx: 0.96 }],
       [520, { open: 1.04 }],
       [800, {}],
@@ -493,9 +540,68 @@ export function poseFor(mood: Mood, t: number, seed: number): { pose: Pose; shak
       [1080, look],
       [1350, {}],
     ];
+  } else if (mood === "dizzy") {
+    // Whoa — eyes swirl, Mote wobbles in little circles, then shakes it off.
+    const woozy: Partial<Pose> = { open: 0.88, wide: 0.95, lookMix: 1, mLift: -0.3 };
+    keys = [
+      [0, { open: 1.15, wide: 0.95, y: -3, sy: 1.04, sx: 0.97 }],
+      [220, woozy],
+      [2300, { open: 1.02 }],
+      [2700, {}],
+    ];
+    const up = Math.min(1, Math.max(0, (t - 150) / 350));
+    const down = Math.min(1, Math.max(0, (2300 - t) / 400));
+    swirl = up * down;
+    const w = t / 1000;
+    wobble = {
+      x: Math.sin(w * 9) * 4 * swirl,
+      rot: Math.sin(w * 9 + 1) * 7 * swirl,
+      y: Math.cos(w * 18) * 1.5 * swirl,
+      openBias: Math.sin(w * 11) * 0.18 * swirl,
+      earTiltL: Math.sin(w * 20) * 12 * swirl,
+      earTiltR: Math.sin(w * 20 + 2) * 12 * swirl,
+      mShift: Math.sin(w * 13) * 0.4 * swirl,
+    };
+    if (t > 2300 && t < 2750) {
+      const decay = 1 - (t - 2300) / 450;
+      const shake = Math.sin(((t - 2300) / 1000) * Math.PI * 2 * 10);
+      shakeX = shake * 3 * decay;
+      shakeRot = shake * 2 * decay;
+    }
+  } else if (mood === "purr") {
+    // Melts into the petting: blissful arcs, sinking and leaning in, a soft rumble.
+    const bliss: Partial<Pose> = {
+      cheek: 0.7,
+      cheekCurve: 0.16,
+      open: 0.98,
+      wide: 1.06,
+      sy: 0.97,
+      sx: 1.03,
+      y: 2.5,
+      earPerk: -0.35,
+      earTiltL: 10,
+      earTiltR: 10,
+      mLift: 0.3,
+      mPuff: 0.15,
+    };
+    const since = extras.sincePet ?? 0;
+    if (since <= 0) {
+      keys = [[0, bliss]];
+      purr = 1;
+    } else {
+      keys = [
+        [0, bliss],
+        [600, { ...bliss, cheek: 0.6, cheekCurve: 0.18, sy: 0.99, sx: 1.01, y: 1 }],
+        [1000, {}],
+      ];
+      purr = Math.max(0, 1 - since / 700);
+      t = since;
+    }
   }
 
-  return { pose: { ...REST, ...keyed(t, keys) }, shakeX, shakeRot };
+  const pose: Pose = { ...REST, ...keyed(t, keys) };
+  for (const k of Object.keys(wobble) as Array<keyof Pose>) pose[k] += wobble[k] ?? 0;
+  return { pose, shakeX, shakeRot, swirl, purr };
 }
 
 /**
@@ -510,6 +616,17 @@ const SLEEP: Partial<Pose> = {
   lidCurve: 0.3,
   cheek: 0.1,
   cheekCurve: -0.3,
+  y: 7,
+  rot: 5,
+  sy: 0.985,
+  lookY: 0.2,
+  lookMix: 1,
+};
+
+/** Debug option: sleeping eyes as plain flat lines, top and bottom parallel. */
+const SLEEP_LINE: Partial<Pose> = {
+  open: 0.12,
+  wide: 1.12,
   y: 7,
   rot: 5,
   sy: 0.985,
@@ -556,6 +673,8 @@ export function eyeShape(
   gazeX: number,
   gazeY: number,
   blink: number,
+  /** Extra per-eye gaze nudge, used by the dizzy swirl. */
+  offset: { x: number; y: number } = { x: 0, y: 0 },
 ): EyeShape {
   const inward = side === "l" ? 1 : -1;
   const sideSign = side === "l" ? -1 : 1;
@@ -570,9 +689,9 @@ export function eyeShape(
   const baseH = GEO.eyeH * Math.max(0.05, open) * (1 - 0.14 * wink);
   const h = Math.max(6.5, baseH * (1 - 0.86 * blink));
   const w = GEO.eyeW * pose.wide * (1 + 0.08 * blink) * (1 - 0.1 * edge + 0.03 * away);
-  const cx = (side === "l" ? GEO.eyeLX : GEO.eyeRX) + gazeX * (15 - 3 * edge);
+  const cx = (side === "l" ? GEO.eyeLX : GEO.eyeRX) + gazeX * (15 - 3 * edge) + offset.x * 15;
   // Eyes travel less when looking down, so they never crowd the mustache.
-  const cy = GEO.eyeY + gazeY * (gazeY > 0 ? 8 : 12) + (baseH - h) * 0.14;
+  const cy = GEO.eyeY + gazeY * (gazeY > 0 ? 8 : 12) + offset.y * 10 + (baseH - h) * 0.14;
   const top = cy - h / 2;
   const bottom = cy + h / 2;
 
@@ -686,6 +805,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     energy: "normal",
     headphones: false,
     mustache: false,
+    audio: null,
   };
   const debug = {
     timeScale: 1,
@@ -694,6 +814,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     loop: false,
     guides: false,
     manual: null as ManualFace | null,
+    sleepLine: false,
   };
 
   // `clock` is Mote's own time, so the debug window can slow it down or stop it.
@@ -730,6 +851,16 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   let earTwitch = { side: 1, until: 0 };
   let nextItch = 6000;
   let itchUntil = 0;
+  // Petting, and too much shaking (of the pointer or the window) making Mote dizzy.
+  const petAt = { t: Number.NEGATIVE_INFINITY, x: 0, y: 0 };
+  const shakes: Record<"pointer" | "window", Array<{ t: number; d: number }>> = {
+    pointer: [],
+    window: [],
+  };
+  let dizzyReadyAt = 0;
+  const lastScreen = { x: window.screenX, y: window.screenY };
+  let swirlNow = 0;
+  let purrNow = 0;
 
   const log = (text: string) => hooks.onEvent?.(text);
 
@@ -757,6 +888,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     nextBlink = Math.max(nextBlink, now + 900);
     if (next === "glance" && Math.random() < 0.4) blinkAt(now + 20);
     if (next === "wake") blinkAt(now + 620, true);
+    if (next === "dizzy") blinkAt(now + 2680, true);
+    if (prev === "dizzy") dizzyReadyAt = now + 4000;
     if (next === "settle" && prev === "doze") blinkAt(now + 60, true);
   };
 
@@ -772,13 +905,34 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
 
   const restGap = () => (3500 + Math.random() * 5000) * ENERGY_GAP[options.energy];
 
+  /**
+   * Adds up how far something has travelled in the last ~0.7s; going much too
+   * far, too fast makes Mote dizzy.
+   */
+  const shaken = (kind: "pointer" | "window", d: number, limit: number) => {
+    const list = shakes[kind];
+    const t = performance.now();
+    list.push({ t, d });
+    while (list.length && t - list[0].t > 700) list.shift();
+    const travelled = list.reduce((sum, s) => sum + s.d, 0);
+    const calm = mood !== "sleep" && mood !== "doze" && mood !== "dizzy" && mood !== "purr";
+    if (travelled > limit && calm && clock > dizzyReadyAt && !debug.manual) {
+      list.length = 0;
+      start("dizzy", clock);
+    }
+  };
+
+  // Only a poke wakes Mote up; moving the pointer around doesn't.
   const onMove = (e: PointerEvent) => {
     const dist = pointer.has ? Math.hypot(e.clientX - pointer.x, e.clientY - pointer.y) : 0;
     pointer.x = e.clientX;
     pointer.y = e.clientY;
     pointer.at = clock;
     pointer.has = true;
-    if (mood === "sleep" && dist > 2 && !debug.manual) start("wake", clock);
+    if (options.followPointer && dist > 0) {
+      const size = svg.getBoundingClientRect().width || 300;
+      shaken("pointer", dist, size * 4.5);
+    }
   };
   window.addEventListener("pointermove", onMove, { passive: true });
 
@@ -831,12 +985,30 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
 
     // Mood scheduling.
     const idleFor = pointer.has ? now - pointer.at : 0;
-    if (debug.autoMoods && options.naps && mood === "settle" && pointer.has && idleFor > 30000) {
+    // Something playing in another window keeps Mote company instead of napping.
+    const listening = options.audio !== null;
+    const sincePet = now - petAt.t;
+    if (
+      debug.autoMoods &&
+      options.naps &&
+      !listening &&
+      mood === "settle" &&
+      pointer.has &&
+      idleFor > 30000
+    ) {
       start("doze", now);
     }
-    if (mood !== "settle" && mood !== "sleep" && now >= moodStart + MOODS[mood].dur) {
-      if (debug.loop) start(mood, now);
-      else if (mood === "doze" && options.naps && pointer.has && idleFor > 8000) start("sleep", now);
+    const over =
+      mood === "settle" || mood === "sleep"
+        ? false
+        : mood === "purr"
+          ? sincePet > PURR_AFTER
+          : now >= moodStart + MOODS[mood].dur;
+    if (over) {
+      if (debug.loop && mood !== "purr") start(mood, now);
+      else if (mood === "doze" && options.naps && !listening && pointer.has && idleFor > 8000) {
+        start("sleep", now);
+      }
       else {
         start("settle", now);
         nextAct = now + restGap();
@@ -846,7 +1018,13 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (!debug.autoMoods && mood === "settle") nextAct = Math.max(nextAct, now + 1000);
 
     const t = now - moodStart;
-    const { pose: target, shakeX, shakeRot } = poseFor(mood, t, moodSeed);
+    const { pose: target, shakeX, shakeRot, swirl, purr } = poseFor(mood, t, moodSeed, {
+      sleepLine: debug.sleepLine,
+      sincePet: sincePet < 350 ? -1 : sincePet - 350,
+    });
+    swirlNow = swirl;
+    // Petting a sleeping Mote gets a sleepy little purr without waking them.
+    purrNow = mood === "sleep" && sincePet < 350 ? 0.6 : purr;
     const tempo = mood === "sleep" ? 0.12 : mood === "settle" ? 1 : MOODS[mood].tempo;
 
     // Pointer & idle gaze.
@@ -865,12 +1043,22 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
           : clamp(1 - (idleFor - 2000) / 1000, 0, 1);
     lastAttention = attention;
     if (now > wander.next) {
-      const home = Math.random() < 0.45;
-      wander = {
-        x: home ? 0 : (Math.random() - 0.5) * 0.9,
-        y: home ? 0 : (Math.random() - 0.5) * 0.5,
-        next: now + 1200 + Math.random() * 2400,
-      };
+      const audio = options.audio;
+      if (audio && Math.random() < 0.7) {
+        // Watching along: look toward the window that's playing sound.
+        wander = {
+          x: clamp(audio.dx / 600, -1, 1) + (Math.random() - 0.5) * 0.15,
+          y: clamp(audio.dy / 500, -0.8, 0.8) + (Math.random() - 0.5) * 0.1,
+          next: now + 1800 + Math.random() * 3000,
+        };
+      } else {
+        const home = Math.random() < 0.45;
+        wander = {
+          x: home ? 0 : (Math.random() - 0.5) * 0.9,
+          y: home ? 0 : (Math.random() - 0.5) * 0.5,
+          next: now + 1200 + Math.random() * 2400,
+        };
+      }
     }
     const freeX = lerp(wander.x, px, attention);
     const freeY = lerp(wander.y, py, attention);
@@ -890,6 +1078,15 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (mood === "settle" && attention > 0.6 && Math.hypot(px, py) < 0.45) {
       target.open += 0.05;
       target.wide += 0.03;
+    }
+
+    // Leaning into the hand that's petting.
+    if (mood === "purr" || (mood === "sleep" && sincePet < 600)) {
+      const lean = clamp((petAt.x - (rect.left + rect.width / 2)) / (rect.width / 2), -1, 1);
+      const fade = mood === "purr" ? 1 : 0.5;
+      target.x += lean * 4 * fade;
+      target.rot += lean * 6 * fade;
+      if (mood === "sleep") target.mLift += 0.3;
     }
 
     coupleAccessories(target);
@@ -924,7 +1121,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
 
     // Natural blinks.
-    const blinkFree = !["sleep", "wake", "delight", "cute", "sniffle", "groove"].includes(mood);
+    const blinkFree = !["sleep", "wake", "delight", "cute", "sniffle", "groove", "dizzy", "purr"].includes(
+      mood,
+    );
     if (blinkFree && now >= nextBlink) {
       blinkAt(now, Math.random() < 0.16);
       nextBlink = now + 2400 + Math.random() * 3600;
@@ -974,11 +1173,13 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
 
   const render = (blink: number) => {
     const m = reduced ? 0.2 : 1;
+    // A purr is a soft, fast rumble that skips the springs.
+    const rumble = purrNow * Math.sin((clock / 1000) * Math.PI * 2 * 11) * m;
     const bx = (view.x + shake.x * m) * m;
     const by = view.y * m;
     const br = (view.rot + shake.rot * m) * m;
-    const bsx = 1 + (view.sx - 1) * m;
-    const bsy = 1 + (view.sy - 1) * m;
+    const bsx = 1 + (view.sx - 1) * m - rumble * 0.004;
+    const bsy = 1 + (view.sy - 1) * m + rumble * 0.007;
     parts.body?.setAttribute(
       "transform",
       `translate(${f(bx)} ${f(by)}) rotate(${f(br)} ${GEO.cx} ${GEO.pivotY}) translate(${GEO.cx} ${GEO.groundY}) scale(${bsx.toFixed(4)} ${bsy.toFixed(4)}) translate(${-GEO.cx} ${-GEO.groundY})`,
@@ -995,8 +1196,17 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       parts.shadow.style.opacity = (0.1 * (1 - lift / 60)).toFixed(3);
     }
 
-    const l = eyeShape("l", view, gaze.x, gaze.y, blink);
-    const r = eyeShape("r", view, gaze.x, gaze.y, blink);
+    // Dizzy eyes orbit in opposite directions.
+    const spin = (clock / 1000) * 14;
+    const orbit = 0.5 * swirlNow;
+    const l = eyeShape("l", view, gaze.x, gaze.y, blink, {
+      x: Math.cos(spin) * orbit,
+      y: Math.sin(spin) * orbit,
+    });
+    const r = eyeShape("r", view, gaze.x, gaze.y, blink, {
+      x: Math.cos(-spin + Math.PI / 2) * orbit,
+      y: Math.sin(-spin + Math.PI / 2) * orbit,
+    });
     setPill(parts.pillL, l.pill);
     setPill(parts.pillR, r.pill);
     parts.lidL?.setAttribute("d", l.lid);
@@ -1045,6 +1255,25 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
   };
 
+  const force = (next: Mood) => {
+    // A forced purr pretends someone pets Mote for a moment.
+    if (next === "purr") petAt.t = clock + 1200;
+    start(next, clock);
+  };
+
+  /** Inertia (Mote lags behind the window), and dizziness if it's thrown about. */
+  const windowMoved = (dx: number, dy: number) => {
+    lastScreen.x += dx;
+    lastScreen.y += dy;
+    const d = Math.hypot(dx, dy);
+    if (d === 0 || d > 2000 || debug.manual) return;
+    const unit = GEO.vbW / (svg.getBoundingClientRect().width || 300);
+    view.x = clamp(view.x - dx * unit * 0.25, -14, 14);
+    view.y = clamp(view.y - dy * unit * 0.2, -14, 14);
+    view.rot = clamp(view.rot - dx * unit * 0.3, -12, 12);
+    shaken("window", d, window.innerWidth * 3.5);
+  };
+
   const loop = (real: number) => {
     if (!running) return;
     if (hidden) {
@@ -1054,6 +1283,14 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const realDt = Math.min(0.05, (real - realLast) / 1000);
     realLast = real;
     if (realDt > 0) fps = lerp(fps, 1 / realDt, 0.05);
+
+    // Notice the window itself being moved around the screen. (The Mac app
+    // reports moves itself, through `windowMoved`.)
+    const sx = "__TAURI_INTERNALS__" in window ? lastScreen.x : window.screenX;
+    const sy = "__TAURI_INTERNALS__" in window ? lastScreen.y : window.screenY;
+    if (sx !== lastScreen.x || sy !== lastScreen.y) {
+      windowMoved(sx - lastScreen.x, sy - lastScreen.y);
+    }
 
     let blink = 0;
     if (debug.manual) {
@@ -1097,7 +1334,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
 
   svg.dataset.mood = "settle";
   // Lets a mood be played from the browser console while tuning: $0.mote("twirl").
-  (svg as SVGSVGElement & { mote?: (m: Mood) => void }).mote = (m) => start(m, clock);
+  (svg as SVGSVGElement & { mote?: (m: Mood) => void }).mote = force;
   raf = requestAnimationFrame(loop);
 
   return {
@@ -1118,7 +1355,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     poke: () => {
       pokeQueued = true;
     },
-    force: (next) => start(next, clock),
+    force,
     blink: (double = false) => {
       blinkAt(clock, double);
       log(double ? "double blink" : "blink");
@@ -1141,6 +1378,27 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       if (on) svg.dataset.guides = "";
       else delete svg.dataset.guides;
     },
+    setSleepLine: (on) => {
+      debug.sleepLine = on;
+    },
+    hitTest: (clientX, clientY) => {
+      const ctm = parts.body?.getScreenCTM();
+      if (!ctm) return false;
+      const pt = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse());
+      const nx = (pt.x - GEO.cx) / GEO.faceRx;
+      const ny = (pt.y - GEO.cy) / GEO.faceRy;
+      return nx * nx + ny * ny <= 1.04;
+    },
+    pet: (clientX, clientY) => {
+      const fresh = clock - petAt.t > 350;
+      petAt.t = clock;
+      petAt.x = clientX;
+      petAt.y = clientY;
+      if (fresh) log("petting");
+      // Petting doesn't wake a sleeping Mote; it just makes them comfy.
+      if (mood !== "purr" && mood !== "sleep" && mood !== "dizzy") start("purr", clock);
+    },
+    windowMoved: (dx, dy) => windowMoved(dx, dy),
     setManual: (face) => {
       debug.manual = face;
     },
@@ -1154,6 +1412,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       blink: lastBlinkAmt,
       idleMs: pointer.has ? clock - pointer.at : 0,
       pose: { ...view },
+      petting: clock - petAt.t < 350,
+      audio: options.audio !== null,
     }),
   };
 }

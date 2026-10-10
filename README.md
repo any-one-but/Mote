@@ -3,9 +3,17 @@
 A little face in a window. Everything Mote feels shows in two pill-shaped eyes,
 shaped by two soft cuts: one from above (the brows) and one from below (the cheeks).
 
-Mote looks at your pointer, blinks, glances around, thinks, gets grumpy, winks,
-gets surprised, dozes off when left alone, and hops happily when clicked.
-Four quick clicks in a row is too many, and Mote gets annoyed.
+Mote looks at your pointer, blinks, glances around, thinks, gets grumpy, gets
+surprised, dozes off when left alone, and hops happily when poked (clicked right
+on the face — clicks on the empty window around Mote don't count). Four quick
+pokes in a row is too many, and Mote gets annoyed. Only a poke wakes a sleeping Mote.
+
+- **Petting:** press and drag across Mote's face to pet. Mote melts into it and
+  purrs (a sleeping Mote purrs a little without waking up).
+- **Dizzy:** shaking the pointer around wildly, or throwing the window around
+  the screen, makes Mote dizzy for a moment.
+- **Watching along:** in the Mac app, if another visible window is playing
+  sound, Mote won't nod off and keeps glancing toward that window.
 
 Mote can also wear cat-ear headphones and a bushy mustache (both in Settings).
 Each brings three extra idle moods: the mustache gets twirled, blown on, and
@@ -36,9 +44,11 @@ instead of writing "he", "she" or "they" directly.
 
 At the bottom of Settings, **Debug mode** opens a separate window of testing tools:
 
-- **Moods**: play any mood on demand, blink, poke, turn off automatic moods, loop a mood
+- **Moods**: play any mood on demand, blink, poke, turn off automatic moods, loop a
+  mood, try flat line-shaped sleeping eyes
 - **Pose**: shape Mote's face by hand with sliders, then "Copy values" to share the numbers
-- **Motion**: slow time down, freeze Mote, show outlines of the eye cuts, live numbers
+- **Motion**: slow time down, freeze Mote, show outlines of the eye cuts, pretend
+  another window is playing sound, live numbers
 - **Log**: everything that happened, in order
 - **Data**: the saved settings, and a reset button
 
@@ -50,7 +60,8 @@ Closing the debug window turns debug mode off.
 npm run mac:build
 ```
 
-This takes a few minutes the first time. When it's done, the app is here:
+This takes a few minutes the first time. If you keep a copy in Applications,
+drag the new one over it afterwards to update it. When it's done, the app is here:
 
 - `src-tauri/target/release/bundle/macos/Mote.app` (drag this into Applications)
 - `src-tauri/target/release/bundle/dmg/` (an installer file you can share)

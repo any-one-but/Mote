@@ -64,6 +64,8 @@ const MOOD_NAMES: Record<Mood, string> = {
   listen: "Listen",
   groove: "Groove",
   flick: "Ear flick",
+  dizzy: "Dizzy",
+  purr: "Purr",
 };
 
 const TAB_KEY = "mote.debug.tab";
@@ -139,6 +141,8 @@ function DebugWindow() {
     if (cmd.do === "autoMoods") local.autoMoods = cmd.value;
     if (cmd.do === "loop") local.loop = cmd.value;
     if (cmd.do === "guides") local.guides = cmd.value;
+    if (cmd.do === "sleepLine") local.sleepLine = cmd.value;
+    if (cmd.do === "fakeAudio") local.fakeAudio = cmd.value;
     if (cmd.do === "manual") local.manual = cmd.face !== null;
     Object.assign(pending.current, local);
     setDebug((d) => ({ ...d, ...local }));
@@ -259,6 +263,13 @@ function MoodsTab({ snap, debug, command, settings, updateSettings }: Ctx) {
             label="Loop the current mood"
             checked={debug.loop}
             onChange={(value) => command({ do: "loop", value })}
+          />
+        </Row>
+        <Row label="Flat sleeping eyes" hint="Sleep with plain straight lines instead of the curved eyes.">
+          <Toggle
+            label="Flat sleeping eyes"
+            checked={debug.sleepLine}
+            onChange={(value) => command({ do: "sleepLine", value })}
           />
         </Row>
       </Section>
@@ -416,6 +427,24 @@ function MotionTab({ snap, debug, command }: Ctx) {
           <Toggle label="Freeze" checked={debug.frozen} onChange={(value) => command({ do: "frozen", value })} />
         </Row>
       </Section>
+      <Section title="Pretend">
+        <Row
+          label="Sound in another window"
+          hint={`Acts as if a window over there is playing sound: Mote stays awake and watches it.`}
+          stacked
+        >
+          <Segmented
+            label="Sound in another window"
+            options={[
+              { value: "off", label: "Off" },
+              { value: "left", label: "On the left" },
+              { value: "right", label: "On the right" },
+            ]}
+            value={debug.fakeAudio ?? "off"}
+            onChange={(v) => command({ do: "fakeAudio", value: v === "off" ? null : v })}
+          />
+        </Row>
+      </Section>
       <Section title="Overlays">
         <Row label="Show cut guides" hint="Blue line is the brow cut, peach is the cheek cut.">
           <Toggle label="Show cut guides" checked={debug.guides} onChange={(value) => command({ do: "guides", value })} />
@@ -429,6 +458,8 @@ function MotionTab({ snap, debug, command }: Ctx) {
             <Readout k="attention" v={snap.attention} />
             <Readout k="blink" v={snap.blink} />
             <Readout k="idle (s)" v={snap.idleMs / 1000} />
+            <Readout k="petting" v={snap.petting ? 1 : 0} changed={snap.petting} />
+            <Readout k="sound elsewhere" v={snap.audio ? 1 : 0} changed={snap.audio} />
             {POSE_KEYS.map((k) => (
               <Readout key={k} k={k} v={snap.pose[k]} changed={Math.abs(snap.pose[k] - REST[k]) > 0.01} />
             ))}

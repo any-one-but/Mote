@@ -35,6 +35,9 @@ const ALL: Shot[] = [
   ["surprise", "surprise", 300, 0.9],
   ["doze", "doze", 3500, 0.9],
   ["sleep", "sleep", 0, 0.9],
+  ["sleep line", "sleep", 0, 0.9],
+  ["cute squish", "cute", 900, 0.9],
+  ["purr", "purr", 0, 0.9],
   ["waking", "wake", 0, 0.9],
   ["dressed up", null, 0, 0.9, 0, true],
   ["sniffle", "sniffle", 900, 0.9, 0, true],
@@ -135,7 +138,9 @@ function Gallery() {
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 16, padding: 24, overflow: "auto", height: "100vh" }}>
       {SHOTS.map(([name, mood, t, seed = 0.9, blink = 0, acc = false], i) => {
-        const pose = mood ? poseFor(mood, t, seed).pose : { ...REST };
+        const pose = mood
+          ? poseFor(mood, t, seed, { sleepLine: name === "sleep line", sincePet: -1 }).pose
+          : { ...REST };
         coupleAccessories(pose);
         const gx = name === "look right" ? 0.9 : pose.lookX * pose.lookMix;
         const gy = pose.lookY * pose.lookMix;

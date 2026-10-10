@@ -14,6 +14,8 @@ export type DebugCommand =
   | { do: "autoMoods"; value: boolean }
   | { do: "loop"; value: boolean }
   | { do: "guides"; value: boolean }
+  | { do: "sleepLine"; value: boolean }
+  | { do: "fakeAudio"; value: "left" | "right" | null }
   | { do: "manual"; face: ManualFace | null };
 
 /** The debug knobs as Mote's window currently has them. */
@@ -24,6 +26,8 @@ export type DebugState = {
   loop: boolean;
   guides: boolean;
   manual: boolean;
+  sleepLine: boolean;
+  fakeAudio: "left" | "right" | null;
 };
 
 export const DEBUG_DEFAULTS: DebugState = {
@@ -33,6 +37,8 @@ export const DEBUG_DEFAULTS: DebugState = {
   loop: false,
   guides: false,
   manual: false,
+  sleepLine: false,
+  fakeAudio: null,
 };
 
 export type BusMessage =
