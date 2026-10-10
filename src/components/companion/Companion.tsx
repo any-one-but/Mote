@@ -6,9 +6,10 @@ import { Face } from "@/components/companion/Face";
 import { SpeechBubble } from "@/components/companion/SpeechBubble";
 import type { Bubble } from "@/components/companion/speech";
 import { GEO } from "@/lib/companion/theme";
-import type { EngineOptions, FaceEngine, Item, MediaKind } from "@/components/companion/engine";
+import type { EngineOptions, FaceEngine } from "@/components/companion/engine";
 import { DEBUG_DEFAULTS, listenBus, send, type DebugState } from "@/lib/companion/bus";
 import {
+  onDropped,
   onMediaElsewhere,
   onPointerElsewhere,
   onTypingElsewhere,
@@ -20,8 +21,8 @@ import { useSettings } from "@/lib/companion/settings";
 type MediaInfo = EngineOptions["media"];
 
 /** The debug window's pretend media: a window off to one side playing something. */
-function pretend(side: "left" | "right", kind: MediaKind): NonNullable<MediaInfo> {
-  return { dx: side === "left" ? -700 : 700, dy: 0, kind, app: "Pretend" };
+function pretend(side: "left" | "right"): NonNullable<MediaInfo> {
+  return { dx: side === "left" ? -700 : 700, dy: 0, app: "Pretend" };
 }
 
 export function Companion() {
@@ -70,16 +71,16 @@ export function Companion() {
 
   // Media playing in another window, or the debug window's pretend version of it.
   const applyAudio = () => {
-    const { fakeAudio, fakeKind } = debugState.current;
+    const { fakeAudio } = debugState.current;
     engineRef.current?.configure({
-      media: fakeAudio ? pretend(fakeAudio, fakeKind) : realMedia.current,
+      media: fakeAudio ? pretend(fakeAudio) : realMedia.current,
     });
   };
 
-  const { followPointer, naps, energy, headphones, mustache, friendly, debug } = settings;
+  const { followPointer, naps, energy, friendly, debug } = settings;
   useEffect(() => {
-    engineRef.current?.configure({ followPointer, naps, energy, headphones, mustache, friendly });
-  }, [followPointer, naps, energy, headphones, mustache, friendly]);
+    engineRef.current?.configure({ followPointer, naps, energy, friendly });
+  }, [followPointer, naps, energy, friendly]);
 
   useEffect(
     () =>
@@ -87,9 +88,7 @@ export function Companion() {
         const was = realMedia.current;
         realMedia.current = media;
         if ((was === null) !== (media === null)) {
-          events.current.push(
-            media ? `${media.kind} playing in another window` : "other media stopped",
-          );
+          events.current.push(media ? "sound playing in another window" : "other sound stopped");
         }
         applyAudio();
       }),
@@ -104,6 +103,16 @@ export function Companion() {
     [],
   );
   useEffect(() => onTypingElsewhere((dx, dy) => engineRef.current?.typingAt(dx, dy)), []);
+  // Files to eat and games to play, dropped on the window. Only the first
+  // thing of a bunch counts: one bite at a time.
+  useEffect(
+    () =>
+      onDropped(
+        (over) => engineRef.current?.dragHover(over),
+        (things) => engineRef.current?.offer(things[0]),
+      ),
+    [],
+  );
 
   // Debug mode: take orders from the debug window and report back ~10× a second.
   useEffect(() => {
@@ -141,10 +150,9 @@ export function Companion() {
       else if (cmd.do === "resetFeelings") e.resetFeelings();
       else if (cmd.do === "react") e.react(cmd.id);
       else if (cmd.do === "say") e.say(cmd.id);
-      else if (cmd.do === "fakeKind") {
-        d.fakeKind = cmd.value;
-        applyAudio();
-      } else if (cmd.do === "fakeAudio") {
+      else if (cmd.do === "offer") e.offer(cmd.thing);
+      else if (cmd.do === "forgetEaten") e.forgetEaten();
+      else if (cmd.do === "fakeAudio") {
         d.fakeAudio = cmd.value;
         applyAudio();
       } else if (cmd.do === "manual") {
@@ -225,7 +233,7 @@ export function Companion() {
         <Face
           onEngine={(engine) => {
             engineRef.current = engine;
-            engine?.configure({ followPointer, naps, energy, headphones, mustache, friendly });
+            engine?.configure({ followPointer, naps, energy, friendly });
             applyAudio();
           }}
           onMood={(label) => {
@@ -246,7 +254,7 @@ export function Companion() {
           onSleepSet={setSleepSet}
         />
       </button>
-      <Tray sleepSet={sleepSet} onUse={(item) => engineRef.current?.useItem(item)} />
+      <Tray sleepSet={sleepSet} onToggle={() => engineRef.current?.toggleSleepSet()} />
       <SpeechBubble
         bubble={bubble}
         anchor={anchor}
@@ -258,10 +266,11 @@ export function Companion() {
 }
 
 /**
- * Things to give Mote, along the bottom of the window. Tucked away until the
- * pointer comes into the window.
+ * The sleep set (earmuffs and mask), along the bottom of the window. Tucked
+ * away until the pointer comes into the window. Food and games aren't here:
+ * you drop files and games onto Mote instead.
  */
-function Tray({ sleepSet, onUse }: { sleepSet: boolean; onUse: (item: Item) => void }) {
+function Tray({ sleepSet, onToggle }: { sleepSet: boolean; onToggle: () => void }) {
   return (
     <div className="tray" role="toolbar" aria-label="Things to give Mote">
       <button
@@ -270,40 +279,12 @@ function Tray({ sleepSet, onUse }: { sleepSet: boolean; onUse: (item: Item) => v
         aria-pressed={sleepSet}
         aria-label={sleepSet ? "Take off the earmuffs and sleep mask" : "Earmuffs and sleep mask"}
         title={sleepSet ? "Take off the earmuffs and mask" : "Earmuffs and sleep mask"}
-        onClick={() => onUse("sleepset")}
+        onClick={onToggle}
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            className="tray-fill"
-            d="M3 10.5Q12 6 21 10.5Q22.5 14.5 19.5 16.5Q15.5 17.5 12 15.5Q8.5 17.5 4.5 16.5Q1.5 14.5 3 10.5Z"
-          />
-          <path className="tray-cut" d="M6.5 12.2Q8 13.6 9.5 12.2M14.5 12.2Q16 13.6 17.5 12.2" />
-        </svg>
-      </button>
-      <button
-        type="button"
-        className="tray-item"
-        aria-label="Give Mote a snack"
-        title="A snack"
-        onClick={() => onUse("snack")}
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle className="tray-cookie" cx="12" cy="12" r="8" />
-          <circle className="tray-chip" cx="9.5" cy="10" r="1.3" />
-          <circle className="tray-chip" cx="14.5" cy="11.5" r="1.1" />
-          <circle className="tray-chip" cx="11" cy="15" r="1.2" />
-        </svg>
-      </button>
-      <button
-        type="button"
-        className="tray-item"
-        aria-label="Play ball with Mote"
-        title="Play ball"
-        onClick={() => onUse("ball")}
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle className="tray-ball" cx="12" cy="12" r="8" />
-          <path className="tray-seam" d="M4.5 10.5Q12 15 19.5 10.5M8.5 5Q12 12 8.5 19" />
+          <rect className="tray-fill" x="5" y="9" width="14" height="6" rx="3" />
+          <circle className="tray-fill" cx="2.8" cy="12.5" r="2" />
+          <circle className="tray-fill" cx="21.2" cy="12.5" r="2" />
         </svg>
       </button>
     </div>

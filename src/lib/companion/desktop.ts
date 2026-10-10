@@ -1,7 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import type { Media, MediaKind } from "@/components/companion/engine";
+import type { Media, Offering } from "@/components/companion/engine";
 
 /** True inside the Mac app, false in a plain browser. */
 export function isDesktopApp() {
@@ -40,22 +41,19 @@ type SensedMedia = {
   dx: number;
   dy: number;
   playing: boolean;
-  kind?: MediaKind;
   app?: string | null;
 };
 
-/**
- * Sound coming from a window you can see (null when there's none): where it
- * is, and whether it's a music app.
- */
+/** Sound coming from a window you can see (null when there's none), and where it is. */
 export function onMediaElsewhere(cb: (media: Media | null) => void) {
   const fromSenses = onAppEvent<{ media: SensedMedia | null }>("senses", (p) => {
     const m = p.media;
-    cb(m && m.playing ? { dx: m.dx, dy: m.dy, kind: m.kind ?? "other", app: m.app ?? null } : null);
+    cb(m && m.playing ? { dx: m.dx, dy: m.dy, app: m.app ?? null } : null);
   });
   // The simpler check the app falls back to if the helper can't run.
-  const fallback = onAppEvent<{ playing: boolean; dx: number; dy: number }>("audio-elsewhere", (p) =>
-    cb(p.playing ? { dx: p.dx, dy: p.dy, kind: "other", app: null } : null),
+  const fallback = onAppEvent<{ playing: boolean; dx: number; dy: number }>(
+    "audio-elsewhere",
+    (p) => cb(p.playing ? { dx: p.dx, dy: p.dy, app: null } : null),
   );
   return () => {
     fromSenses();
@@ -126,6 +124,76 @@ export async function windowPlacement(): Promise<{ x: number; y: number } | null
   } catch {
     return null;
   }
+}
+
+/** File kinds a browser can at least tell are important, by their ending. */
+const IMPORTANT_KINDS =
+  /\.(kext|dylib|so|a|plist|keychain|keychain-db|pem|key|p12|pfx|cer|crt|mobileprovision)$/i;
+
+/**
+ * Things dragged over and dropped on Mote's window. Only each thing's name
+ * and size are found out (and for apps, whether they're a game); nothing is
+ * ever opened, changed or moved.
+ */
+export function onDropped(hover: (over: boolean) => void, drop: (things: Offering[]) => void) {
+  if (isDesktopApp()) {
+    let stop: (() => void) | null = null;
+    let dead = false;
+    void getCurrentWebview()
+      .onDragDropEvent(({ payload }) => {
+        if (payload.type === "enter" || payload.type === "over") hover(true);
+        else if (payload.type === "leave") hover(false);
+        else if (payload.type === "drop") {
+          hover(false);
+          void invoke<Offering[]>("inspect_drop", { paths: payload.paths })
+            .then((things) => things.length && drop(things))
+            .catch(() => {});
+        }
+      })
+      .then((un) => (dead ? un() : (stop = un)))
+      .catch(() => {});
+    return () => {
+      dead = true;
+      stop?.();
+    };
+  }
+
+  // In a browser: a dropped file's name and size, nothing more.
+  const over = (e: DragEvent) => {
+    if (!e.dataTransfer?.types.includes("Files")) return;
+    e.preventDefault();
+    hover(true);
+  };
+  const leave = (e: DragEvent) => {
+    if (!e.relatedTarget) hover(false);
+  };
+  const dropped = (e: DragEvent) => {
+    e.preventDefault();
+    hover(false);
+    const items = Array.from(e.dataTransfer?.items ?? []);
+    const things = Array.from(e.dataTransfer?.files ?? []).map((file, i): Offering => {
+      const entry = items[i]?.webkitGetAsEntry?.();
+      const app = /\.app$/i.test(file.name);
+      return {
+        name: app ? file.name.replace(/\.app$/i, "") : file.name,
+        size: file.size,
+        kind: app ? "app" : entry?.isDirectory ? "folder" : "file",
+        game: app && /^chess\.app$/i.test(file.name) ? "chess" : null,
+        important: file.name.startsWith(".") || IMPORTANT_KINDS.test(file.name),
+      };
+    });
+    if (things.length) drop(things);
+  };
+  window.addEventListener("dragenter", over);
+  window.addEventListener("dragover", over);
+  window.addEventListener("dragleave", leave);
+  window.addEventListener("drop", dropped);
+  return () => {
+    window.removeEventListener("dragenter", over);
+    window.removeEventListener("dragover", over);
+    window.removeEventListener("dragleave", leave);
+    window.removeEventListener("drop", dropped);
+  };
 }
 
 /** Called when someone closes the debug window with its close button. */

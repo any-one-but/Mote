@@ -1,10 +1,5 @@
 import { useEffect, useRef } from "react";
 import {
-  CUP,
-  EAR_PATH,
-  MUSTACHE_PUFFS,
-} from "@/components/companion/accessories";
-import {
   REST,
   eyeShape,
   startFaceEngine,
@@ -78,26 +73,6 @@ export function Face({ onEngine, onMood, onEvent, onSpeech, onSleepSet }: FacePr
       <g data-part="body">
         <ellipse cx={cx} cy={cy} rx={faceRx} ry={faceRy} className="skin" />
 
-        {/* Cat-ear headphones: hidden until switched on in Settings. */}
-        <g data-part="headphones" className="headphones" style={{ display: "none" }}>
-          {(["l", "r"] as const).map((side) => (
-            <g key={side} data-part={`hp-ear-${side}`}>
-              <path d={EAR_PATH} className="hp-ear" />
-            </g>
-          ))}
-          <path data-part="hp-band" className="hp-band" />
-          {(["l", "r"] as const).map((side) => (
-            <rect
-              key={side}
-              data-part={`hp-cup-${side}`}
-              className="hp-cup"
-              width={CUP.w}
-              height={CUP.h}
-              rx={CUP.w / 2}
-            />
-          ))}
-        </g>
-
         <g data-part="eyes" filter="url(#mote-soft)">
           <g mask="url(#mote-eye-l)">
             <rect className="ink" x={GEO.eyeLX - 60} y={GEO.eyeY - 72} width={120} height={144} />
@@ -107,38 +82,12 @@ export function Face({ onEngine, onMood, onEvent, onSpeech, onSleepSet }: FacePr
           </g>
         </g>
 
-        {/* Sleep set: fluffy earmuffs and a sleep mask, from the tray. */}
+        {/* Sleep set, as simple as Mote: a band over the eyes, two round muffs. */}
         <g data-part="sleepset" style={{ display: "none" }}>
-          <path className="ss-band" d="M30 118 A92 88 0 0 1 210 118" />
-          <g filter="url(#mote-soft)" className="ink">
-            {[-1, 1].map((side) => (
-              <g key={side}>
-                <circle cx={cx + side * 96} cy={138} r={17} />
-                <circle cx={cx + side * 100} cy={124} r={11} />
-                <circle cx={cx + side * 100} cy={153} r={11} />
-                <circle cx={cx + side * 88} cy={132} r={10} />
-                <circle cx={cx + side * 88} cy={146} r={10} />
-              </g>
-            ))}
-          </g>
-          <path className="ss-strap" d="M44 136 L30 134 M196 136 L210 134" />
-          <path
-            className="ink"
-            d="M46 128 Q120 102 194 128 Q200 150 188 164 Q154 175 120 161 Q86 175 52 164 Q40 150 46 128 Z"
-          />
-          <path className="ss-stitch" d="M70 141 Q85 151 100 141 M140 141 Q155 151 170 141" />
-        </g>
-
-        {/* Bushy mustache: puffs melted together by the soft filter. */}
-        <g
-          data-part="mustache"
-          className="mustache"
-          filter="url(#mote-soft)"
-          style={{ display: "none" }}
-        >
-          {Array.from({ length: MUSTACHE_PUFFS }, (_, i) => (
-            <circle key={i} data-part={`puff-${i}`} className="ink" r={0} />
-          ))}
+          <path className="ss-band" d="M27 128 A93 89 0 0 1 213 128" />
+          <circle className="ink" cx={cx - 95} cy={GEO.eyeY + 4} r={13} />
+          <circle className="ink" cx={cx + 95} cy={GEO.eyeY + 4} r={13} />
+          <rect className="ink" x={cx - 66} y={GEO.eyeY - 24} width={132} height={46} rx={23} />
         </g>
 
         {/* Debug only: outlines of the pills and the brow / cheek cuts. */}
@@ -153,16 +102,30 @@ export function Face({ onEngine, onMood, onEvent, onSpeech, onSleepSet }: FacePr
         </g>
       </g>
 
-      {/* A cookie and a ball, from the tray. */}
-      <g data-part="cookie" style={{ display: "none" }}>
-        <circle r={15} className="cookie" />
-        <circle cx={-5} cy={-4} r={2.4} className="cookie-chip" />
-        <circle cx={5} cy={-1} r={2} className="cookie-chip" />
-        <circle cx={-1} cy={6} r={2.2} className="cookie-chip" />
+      {/* Things you drop on Mote, drawn as simply as Mote: a file page and the
+          bits flying off it, a chess pawn, a game controller. */}
+      <g data-part="file" style={{ display: "none" }}>
+        <path className="ink" d="M-11 -14 H3 L11 -6 V14 H-11 Z" />
+        <path className="prop-cut" d="M3 -14 V-6 H11" />
+        <path className="prop-line" d="M-6 -1 H6 M-6 5 H6" />
       </g>
-      <g data-part="ball" style={{ display: "none" }}>
-        <circle r={13} className="ball" />
-        <path d="M-12 -3 Q0 4 12 -3 M-6 -11 Q0 0 -6 11" className="ball-seam" />
+      <g data-part="bits">
+        {Array.from({ length: 12 }, (_, i) => (
+          <text key={i} className="bit" textAnchor="middle" style={{ display: "none" }}>
+            1
+          </text>
+        ))}
+      </g>
+      <g data-part="pawn" style={{ display: "none" }}>
+        <rect className="ink" x={-10} y={-5} width={20} height={5} rx={2.5} />
+        <path className="ink" d="M-7 -4 L-3.5 -17 H3.5 L7 -4 Z" />
+        <circle className="ink" cy={-21} r={6} />
+      </g>
+      <g data-part="pad" style={{ display: "none" }}>
+        <rect className="ink" x={-24} y={-10} width={48} height={20} rx={10} />
+        <path className="prop-line" d="M-15 0 H-7 M-11 -4 V4" />
+        <circle className="prop-dot" cx={9} cy={1.5} r={2.4} />
+        <circle className="prop-dot" cx={15} cy={-3} r={2.4} />
       </g>
     </svg>
   );

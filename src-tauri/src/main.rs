@@ -1,5 +1,6 @@
 // Mote for Mac: native windows around the pages in ../desktop.
 mod audio;
+mod offer;
 mod senses;
 
 use std::time::Duration;
@@ -198,7 +199,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             open_settings,
             set_debug_window,
-            set_float_on_top
+            set_float_on_top,
+            offer::inspect_drop
         ])
         .run(tauri::generate_context!())
         .expect("Mote could not start");

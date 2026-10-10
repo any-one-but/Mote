@@ -13,7 +13,6 @@ export type ReactionGroup =
   | "Things you give Mote"
   | "Hunger"
   | "Speech"
-  | "Accessories"
   | "Time and rest"
   | "Lasting moods"
   | "Ideas";
@@ -249,14 +248,6 @@ export const REACTIONS: Reaction[] = [
     status: "live",
   },
   {
-    id: "swaying",
-    group: "Interest",
-    name: "Swaying along",
-    when: "The sound is coming from a music app (Apple Music or Spotify)",
-    then: "Sways gently along, more when happy, less when cross, sleepy or hungry",
-    status: "live",
-  },
-  {
     id: "split-attention",
     group: "Interest",
     name: "Split attention",
@@ -297,7 +288,7 @@ export const REACTIONS: Reaction[] = [
     status: "live",
   },
 
-  // Things from the tray
+  // Things you give Mote
   {
     id: "sleepset-on",
     group: "Things you give Mote",
@@ -331,28 +322,76 @@ export const REACTIONS: Reaction[] = [
     status: "live",
   },
   {
-    id: "snack",
+    id: "eat",
     group: "Things you give Mote",
-    name: "A snack",
-    when: "You give Mote a cookie from the tray",
-    then: "Leans in and munches it happily; it fills Mote up quite a bit",
-    effects: { happy: 0.5, alert: 0.2, full: 2.5 },
+    name: "Eating a file",
+    when: "You drop a file on Mote (only its name and size are read; the file is never touched)",
+    then: "Munches it, bits flying. Bigger files fill Mote up more: a tiny note is a crumb, a long video a feast. Its name goes on the eaten list",
+    effects: { happy: 0.5, alert: 0.2 },
     status: "live",
   },
   {
-    id: "snack-full",
+    id: "offer-full",
     group: "Things you give Mote",
     name: "Too full",
-    when: "A cookie when Mote is already full up (Full 9 or more)",
+    when: "A file when Mote is already full up (Full 9 or more)",
     then: "“I’m full! Maybe later.”",
+    status: "live",
+  },
+  {
+    id: "offer-already-ate",
+    group: "Things you give Mote",
+    name: "Already ate that",
+    when: "A file with the same name as one of the last 12 Mote ate",
+    then: "“I already ate that!”",
+    status: "live",
+  },
+  {
+    id: "offer-important",
+    group: "Things you give Mote",
+    name: "Too important to eat",
+    when: "A system file, a settings or key file, a hidden file, or anything from inside your Library or an app",
+    then: "Won’t eat it: “That looks important.”",
+    status: "live",
+  },
+  {
+    id: "offer-app",
+    group: "Things you give Mote",
+    name: "Not a game",
+    when: "An app that isn’t a game",
+    then: "“That’s an app, not a game. Or a snack.”",
+    status: "live",
+  },
+  {
+    id: "offer-folder",
+    group: "Things you give Mote",
+    name: "A whole folder",
+    when: "A folder",
+    then: "Won’t eat it: files only",
+    status: "live",
+  },
+  {
+    id: "offer-empty",
+    group: "Things you give Mote",
+    name: "An empty file",
+    when: "A file with nothing in it",
+    then: "Nothing to eat",
+    status: "live",
+  },
+  {
+    id: "offer-busy",
+    group: "Things you give Mote",
+    name: "Busy",
+    when: "Something dropped while Mote is eating, playing, or dizzy",
+    then: "“Hang on, I’m busy!”",
     status: "live",
   },
   {
     id: "play",
     group: "Things you give Mote",
-    name: "Playing ball",
-    when: "You toss Mote the ball from the tray",
-    then: "Watches it bounce in, bops it with their head, and may ask to go again; burns off some restlessness",
+    name: "Playing a game",
+    when: "You drop a game on Mote: Chess, any app marked as a game, or one from Steam, GOG, Epic, Battle.net and the like",
+    then: "Chess: thinks hard, then a clever move and a smug look, or a blunder and a laugh. Other games: locks in, mashes buttons, wins or loses. May ask to go again; burns off restlessness",
     effects: { happy: 0.4, restless: -0.6, alert: 0.5 },
     status: "live",
   },
@@ -387,7 +426,7 @@ export const REACTIONS: Reaction[] = [
     id: "fed-hungry",
     group: "Hunger",
     name: "Fed when hungry",
-    when: "A snack when Mote is hungry",
+    when: "A file to eat when Mote is hungry",
     then: "Real relief",
     effects: { happy: 0.8 },
     status: "live",
@@ -397,7 +436,7 @@ export const REACTIONS: Reaction[] = [
     group: "Hunger",
     name: "Hungry",
     when: "Full is 3 or lower",
-    then: "Worried brows, tummy rumbles, asks for snacks every few minutes, dances less",
+    then: "Worried brows, tummy rumbles, asks for a file to eat (again after 4 minutes if ignored)",
     status: "live",
   },
   {
@@ -405,18 +444,17 @@ export const REACTIONS: Reaction[] = [
     group: "Hunger",
     name: "Starving",
     when: "Full is 1.5 or lower",
-    then: "Begs for food every minute or two, sulks, and gets frustrated fast",
+    then: "Begs for files (again every minute and a half if ignored), sulks, and gets frustrated fast",
     status: "live",
   },
-
 
   // Speech
   {
     id: "speak",
     group: "Speech",
     name: "Speaking up",
-    when: "Every minute or two when Mote feels like it, or right after something happens",
-    then: "Says something that fits the moment in a speech bubble",
+    when: "Right after something happens (a pet, waking up, a meal, a game…), or when Mote needs something. Never just on a timer",
+    then: "Says something that fits in a speech bubble",
     status: "live",
   },
   {
@@ -459,23 +497,44 @@ export const REACTIONS: Reaction[] = [
     then: "Usually a little let down; the bubble goes away",
     status: "live",
   },
-
-  // Accessories
   {
-    id: "wear-headphones",
-    group: "Accessories",
-    name: "Headphones on",
-    when: "The cat-ear headphones go on",
-    then: "Pleased; listens, bops and flicks an ear now and then",
-    effects: { happy: 0.5 },
+    id: "answer-fed",
+    group: "Speech",
+    name: "Fed as asked",
+    when: "Mote asks for food and you drop a file on them",
+    then: "Grateful",
     status: "live",
   },
   {
-    id: "wear-mustache",
-    group: "Accessories",
-    name: "Mustache on",
-    when: "The bushy mustache goes on",
-    then: "Pleased; twirls it, blows on it, nearly sneezes",
+    id: "answer-masked",
+    group: "Speech",
+    name: "Mask as asked",
+    when: "Mote asks for the sleep mask and you put it on",
+    then: "Thanks you and drifts off",
+    status: "live",
+  },
+  {
+    id: "answer-played",
+    group: "Speech",
+    name: "Played as asked",
+    when: "Mote asks to play and you drop a game on them",
+    then: "Thrilled",
+    status: "live",
+  },
+  {
+    id: "needs",
+    group: "Speech",
+    name: "Asking for what they need",
+    when: "Mote notices a need and it lasts 8–25 seconds: hungry, sleepy (Alert 2 or less, or 4 late at night), feeling down (Happy 3 or less) or bored (Restless 7½ or more)",
+    then: "Asks for a file, the sleep mask, a pet, or a game or a new spot. If ignored, asks again only after a while (longer for smaller needs)",
+    status: "live",
+  },
+  {
+    id: "welcome-back",
+    group: "Speech",
+    name: "Welcome back",
+    when: "You do something after 10 minutes or more away (move the pointer, type, touch Mote)",
+    then: "Often says hello",
     effects: { happy: 0.5 },
     status: "live",
   },
@@ -625,15 +684,6 @@ export const REACTIONS: Reaction[] = [
     effects: { restless: -0.5 },
     status: "idea",
   },
-  {
-    id: "idea-welcome-back",
-    group: "Ideas",
-    name: "Welcome back",
-    when: "You come back after hours away",
-    then: "Excited to see you",
-    effects: { happy: 1, alert: 1 },
-    status: "idea",
-  },
 ];
 
 export const REACTION_GROUPS: ReactionGroup[] = [
@@ -645,7 +695,6 @@ export const REACTION_GROUPS: ReactionGroup[] = [
   "Things you give Mote",
   "Hunger",
   "Speech",
-  "Accessories",
   "Time and rest",
   "Lasting moods",
   "Ideas",

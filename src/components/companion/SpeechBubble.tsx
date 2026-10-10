@@ -81,12 +81,22 @@ export function SpeechBubble({ bubble, anchor, onAnswer, onDismiss }: Props) {
 
       {shown.kind === "ask" && done ? (
         <div className="speech-answers">
-          <button type="button" className="speech-yes" aria-label="Yes" onClick={() => onAnswer(true)}>
+          <button
+            type="button"
+            className="speech-yes"
+            aria-label="Yes"
+            onClick={() => onAnswer(true)}
+          >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M6 12.5l4 4 8-9" />
             </svg>
           </button>
-          <button type="button" className="speech-no" aria-label="No" onClick={() => onAnswer(false)}>
+          <button
+            type="button"
+            className="speech-no"
+            aria-label="No"
+            onClick={() => onAnswer(false)}
+          >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M7 7l10 10M17 7L7 17" />
             </svg>
@@ -113,10 +123,30 @@ export function SpeechBubble({ bubble, anchor, onAnswer, onDismiss }: Props) {
       {shown.kind === "feed" && done ? (
         <span className="speech-hint">
           <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="7" />
-            <path d="M9.5 10h.01M14 11.5h.01M11 14.5h.01" />
+            <path d="M7 4h7l4 4v12H7z" />
+            <path d="M14 4v4h4" />
           </svg>
-          a snack from the tray
+          drop a file on me
+        </span>
+      ) : null}
+
+      {shown.kind === "game" && done ? (
+        <span className="speech-hint">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="8" width="18" height="9" rx="4.5" />
+            <path d="M7 12.5h3M8.5 11v3M15.5 12h.01M17.5 13.5h.01" />
+          </svg>
+          drag a game onto me
+        </span>
+      ) : null}
+
+      {shown.kind === "mask" && done ? (
+        <span className="speech-hint">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="5" y="9.5" width="14" height="5" rx="2.5" />
+            <path d="M2.5 12h.01M21.5 12h.01" />
+          </svg>
+          the mask, in my tray
         </span>
       ) : null}
 

@@ -1,13 +1,14 @@
 import { StrictMode, useEffect, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import {
-  ACCESSORY_MOODS,
   MOOD_LIST,
   POSE_KEYS,
   REST,
+  EATEN_MAX,
   type EngineSnapshot,
   type ManualFace,
   type Mood,
+  type Offering,
   type Pose,
 } from "@/components/companion/engine";
 import {
@@ -62,12 +63,6 @@ const MOOD_NAMES: Record<Mood, string> = {
   doze: "Doze",
   sleep: "Sleep",
   wake: "Wake up",
-  sniffle: "Sniffle",
-  twirl: "Twirl",
-  flutter: "Flutter",
-  listen: "Listen",
-  groove: "Groove",
-  flick: "Ear flick",
   dizzy: "Dizzy",
   purr: "Purr",
   huff: "Huff",
@@ -77,10 +72,32 @@ const MOOD_NAMES: Record<Mood, string> = {
   hum: "Hum",
   checkin: "Check in",
   startle: "Startled awake",
-  snack: "Snack",
-  play: "Play ball",
+  munch: "Munch a file",
+  chess: "Chess",
+  gaming: "Gaming",
   rumble: "Tummy rumble",
 };
+
+/** Pretend things to drop on Mote from the debug window. */
+const PRETEND_DROPS: Array<[string, Offering]> = [
+  ["Tiny file", { name: "note.txt", size: 600, kind: "file", game: null, important: false }],
+  ["Photo", { name: "beach.jpg", size: 3_200_000, kind: "file", game: null, important: false }],
+  [
+    "Huge video",
+    { name: "movie.mov", size: 2_400_000_000, kind: "file", game: null, important: false },
+  ],
+  ["Chess", { name: "Chess", size: 0, kind: "app", game: "chess", important: true }],
+  ["A game", { name: "Hades", size: 0, kind: "app", game: "game", important: false }],
+  ["An app", { name: "Notes", size: 0, kind: "app", game: null, important: true }],
+  ["System file", { name: "hosts", size: 213, kind: "file", game: null, important: true }],
+  ["Folder", { name: "Documents", size: 0, kind: "folder", game: null, important: false }],
+];
+
+/** Files get a fresh name each time, so Mote hasn't eaten them yet. */
+const fresh = (thing: Offering): Offering =>
+  thing.kind === "file" && !thing.important
+    ? { ...thing, name: thing.name.replace(".", `-${Math.floor(Math.random() * 900 + 100)}.`) }
+    : thing;
 
 const TAB_KEY = "mote.debug.tab";
 
@@ -160,7 +177,6 @@ function DebugWindow() {
     if (cmd.do === "guides") local.guides = cmd.value;
     if (cmd.do === "sleepLine") local.sleepLine = cmd.value;
     if (cmd.do === "fakeAudio") local.fakeAudio = cmd.value;
-    if (cmd.do === "fakeKind") local.fakeKind = cmd.value;
     if (cmd.do === "manual") local.manual = cmd.face !== null;
     Object.assign(pending.current, local);
     setDebug((d) => ({ ...d, ...local }));
@@ -219,21 +235,7 @@ function DebugWindow() {
 
 /* Moods */
 
-function MoodsTab({ snap, debug, command, settings, updateSettings }: Ctx) {
-  const accessories = [
-    {
-      key: "mustache",
-      title: "Mustache",
-      wear: "Bushy mustache",
-      about: "Mote twirls it, blows on it, and sometimes nearly sneezes.",
-    },
-    {
-      key: "headphones",
-      title: "Headphones",
-      wear: "Cat-ear headphones",
-      about: "Mote listens for sounds and bops along to music.",
-    },
-  ] as const;
+function MoodsTab({ snap, debug, command }: Ctx) {
   return (
     <>
       <Section title="Play a mood">
@@ -249,31 +251,6 @@ function MoodsTab({ snap, debug, command, settings, updateSettings }: Ctx) {
           ))}
         </div>
       </Section>
-      {accessories.map((a) => (
-        <Section key={a.key} title={a.title}>
-          <Row
-            label={a.wear}
-            hint={settings[a.key] ? a.about : `${a.about} Off right now, so its moods play unseen.`}
-          >
-            <Toggle
-              label={a.wear}
-              checked={settings[a.key]}
-              onChange={(on) => updateSettings({ [a.key]: on })}
-            />
-          </Row>
-          <div className="mood-grid">
-            {ACCESSORY_MOODS[a.key].map((m) => (
-              <Button
-                key={m}
-                active={snap?.mood === m}
-                onClick={() => command({ do: "force", mood: m })}
-              >
-                {MOOD_NAMES[m]}
-              </Button>
-            ))}
-          </div>
-        </Section>
-      ))}
       <Section title="Quick actions">
         <div className="button-row">
           <Button onClick={() => command({ do: "blink", double: false })}>Blink</Button>
@@ -329,7 +306,6 @@ const TINT: Record<Attr, [string, string]> = {
 };
 
 const seconds = (ms: number) => `${Math.max(0, Math.ceil(ms / 1000))}s`;
-
 
 function MindTab({ snap, command, settings }: Ctx) {
   const [show, setShow] = useState<"all" | "live" | "idea">("all");
@@ -457,14 +433,7 @@ function MindTab({ snap, command, settings }: Ctx) {
           </span>
         </Row>
         {snap.media ? (
-          <Row
-            label={snap.media.kind === "music" ? "Playing: music" : "Playing: something"}
-            hint={
-              snap.dancing > 0.05
-                ? `Swaying along ${Math.round(snap.dancing * 100)}%`
-                : "Sound from a window you can see"
-            }
-          >
+          <Row label="Something’s playing" hint="Sound from a window you can see">
             <span className="chip is-mood">
               <span className="chip-dot" />
               {snap.media.app ?? "Media"}
@@ -472,7 +441,6 @@ function MindTab({ snap, command, settings }: Ctx) {
           </Row>
         ) : null}
       </Section>
-
 
       <Section title="Lasting moods">
         <div className="chips mood-chips">
@@ -578,6 +546,8 @@ const KIND_NAME: Record<BubbleKind, string> = {
   move: "Move me",
   pet: "Pet me",
   feed: "Feed me",
+  mask: "Sleep mask",
+  game: "Play with me",
 };
 
 function SpeechTab({ snap, command }: Ctx) {
@@ -591,10 +561,12 @@ function SpeechTab({ snap, command }: Ctx) {
           hint={
             snap.speech
               ? `${KIND_NAME[snap.speech.kind]}${snap.speech.reply ? " (a reply)" : ""}`
-              : `Might say something in about ${seconds(snap.nextSpeechIn)}`
+              : snap.need
+                ? `About to ask (${snap.need.line}) in ${seconds(snap.need.in)}`
+                : "Mote only speaks when something happens, or when they need something."
           }
         >
-          <Button onClick={() => command({ do: "say" })}>Say something</Button>
+          {null}
         </Row>
       </Section>
       {groups.map((g) => (
@@ -663,16 +635,6 @@ const RANGES: Partial<Record<keyof Pose, [number, number]>> = {
   cheekBias: [-0.5, 0.5],
   winkL: [0, 1],
   winkR: [0, 1],
-  earPerk: [-1, 1.5],
-  earTiltL: [-30, 30],
-  earTiltR: [-30, 30],
-  cupPulse: [0, 1],
-  mLift: [-1, 1],
-  mCurl: [0, 1],
-  mPuff: [-0.5, 1],
-  mRuffle: [0, 1],
-  mFlutter: [0, 1],
-  mShift: [-1, 1],
 };
 
 const GROUPS: Array<{ title: string; keys: Array<keyof Pose> }> = [
@@ -680,8 +642,6 @@ const GROUPS: Array<{ title: string; keys: Array<keyof Pose> }> = [
   { title: "Brow cut", keys: ["lid", "lidTilt", "lidCurve", "lidBias"] },
   { title: "Cheek cut", keys: ["cheek", "cheekTilt", "cheekCurve", "cheekBias"] },
   { title: "Body", keys: ["x", "y", "rot", "sx", "sy"] },
-  { title: "Headphones", keys: ["earPerk", "earTiltL", "earTiltR", "cupPulse"] },
-  { title: "Mustache", keys: ["mLift", "mCurl", "mPuff", "mRuffle", "mFlutter", "mShift"] },
 ];
 
 const restFace = (): ManualFace => ({ pose: { ...REST }, gazeX: 0, gazeY: 0, blink: 0 });
@@ -836,19 +796,26 @@ function MotionTab({ snap, debug, command }: Ctx) {
           />
         </Row>
         <Row
-          label="From a music app"
-          hint="Music (from Apple Music or Spotify) makes Mote sway along."
+          label="Drop something on Mote"
+          hint="As if you dragged it onto the window. Nothing real is used."
           stacked
         >
-          <Segmented
-            label="From a music app"
-            options={[
-              { value: "music", label: "Music app" },
-              { value: "other", label: "Anything else" },
-            ]}
-            value={debug.fakeKind}
-            onChange={(value) => command({ do: "fakeKind", value })}
-          />
+          <div className="button-row">
+            {PRETEND_DROPS.map(([label, thing]) => (
+              <Button key={label} onClick={() => command({ do: "offer", thing: fresh(thing) })}>
+                {label}
+              </Button>
+            ))}
+          </div>
+        </Row>
+      </Section>
+      <Section title="Eaten lately">
+        <Row
+          label={snap?.eaten.length ? snap.eaten.join(", ") : "Nothing yet"}
+          hint={`Mote won’t eat these again. Only the last ${EATEN_MAX} are remembered.`}
+          stacked
+        >
+          <Button onClick={() => command({ do: "forgetEaten" })}>Forget them</Button>
         </Row>
       </Section>
       <Section title="Overlays">
@@ -870,7 +837,6 @@ function MotionTab({ snap, debug, command }: Ctx) {
             <Readout k="idle (s)" v={snap.idleMs / 1000} />
             <Readout k="petting" v={snap.petting ? 1 : 0} changed={snap.petting} />
             <Readout k="media playing" v={snap.media ? 1 : 0} changed={!!snap.media} />
-            <Readout k="swaying" v={snap.dancing} changed={snap.dancing > 0.05} />
             <Readout k="on screen x" v={snap.placement?.x ?? -1} />
             <Readout k="on screen y" v={snap.placement?.y ?? -1} />
             {POSE_KEYS.map((k) => (

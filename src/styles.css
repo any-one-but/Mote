@@ -101,27 +101,6 @@
   stroke: #e27858;
 }
 
-/* Accessories */
-
-.hp-ear,
-.hp-cup {
-  fill: var(--color-ink);
-  stroke: var(--color-ink);
-  stroke-width: 7;
-  stroke-linejoin: round;
-}
-
-.hp-cup {
-  stroke-width: 0;
-}
-
-.hp-band {
-  fill: none;
-  stroke: var(--color-ink);
-  stroke-width: 9;
-  stroke-linecap: round;
-}
-
 /* Speech bubbles */
 
 .stage {
@@ -374,48 +353,33 @@
   }
 }
 
-/* Things from the tray */
+/* The sleep set, from the tray */
 
 .ss-band {
-  fill: none;
-  stroke: var(--color-ink);
-  stroke-width: 7;
-  stroke-linecap: round;
-}
-
-.ss-strap {
   fill: none;
   stroke: var(--color-ink);
   stroke-width: 4;
   stroke-linecap: round;
 }
 
-.ss-stitch {
+/* Things you drop on Mote */
+
+.prop-cut,
+.prop-line {
   fill: none;
   stroke: var(--color-face);
-  stroke-width: 3.5;
+  stroke-width: 2.4;
   stroke-linecap: round;
-  opacity: 0.85;
+  stroke-linejoin: round;
 }
 
-.cookie {
-  fill: #d9a878;
+.prop-dot {
+  fill: var(--color-face);
 }
 
-.cookie-chip {
-  fill: #7a4f33;
-}
-
-.ball {
-  fill: #e3997a;
-}
-
-.ball-seam {
-  fill: none;
-  stroke: #fff4ea;
-  stroke-width: 2;
-  stroke-linecap: round;
-  opacity: 0.8;
+.bit {
+  fill: var(--color-ink);
+  font: 700 11px ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
 }
 
 /* The tray of things to give Mote */
@@ -491,33 +455,3 @@
   fill: var(--color-ink);
 }
 
-.tray-cut,
-.tray-seam {
-  fill: none;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-}
-
-.tray-cut {
-  stroke: #f6f0e7;
-}
-
-.tray-item[aria-pressed="true"] .tray-cut {
-  stroke: #e3997a;
-}
-
-.tray-cookie {
-  fill: #d9a878;
-}
-
-.tray-chip {
-  fill: #7a4f33;
-}
-
-.tray-ball {
-  fill: #e3997a;
-}
-
-.tray-seam {
-  stroke: #fff4ea;
-}

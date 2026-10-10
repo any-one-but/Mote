@@ -1790,11 +1790,12 @@ dependencies = [
 
 [[package]]
 name = "mote"
-version = "0.2.0-mind.6"
+version = "0.2.0-mind.7"
 dependencies = [
  "core-foundation",
  "core-graphics",
  "libc",
+ "plist",
  "serde",
  "serde_json",
  "tauri",

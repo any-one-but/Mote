@@ -1,12 +1,4 @@
 import { useId, type ReactNode } from "react";
-import {
-  CUP,
-  EAR_PATH,
-  headphoneShape,
-  mustacheShape,
-} from "@/components/companion/accessories";
-import { REST } from "@/components/companion/engine";
-import { GEO, INK } from "@/lib/companion/theme";
 import "@fontsource/outfit/400.css";
 import "@fontsource/outfit/500.css";
 import "@fontsource/outfit/600.css";
@@ -177,67 +169,17 @@ export function Button({
   );
 }
 
-const HP = headphoneShape(REST, 1, 0);
-const PUFFS = mustacheShape(REST, 1, 0, 0);
-// Maps Mote's full-size drawing onto the mini face.
-const MINI = `translate(32 30) scale(${27 / GEO.faceRx}) translate(${-GEO.cx} ${-GEO.cy})`;
-
-/**
- * A tiny Mote that blinks now and then, hops whenever `hop` changes, and wears
- * whatever accessories are switched on.
- */
-export function MiniMote({
-  hop,
-  headphones = false,
-  mustache = false,
-}: {
-  hop: number;
-  headphones?: boolean;
-  mustache?: boolean;
-}) {
+/** A tiny Mote that blinks now and then and hops whenever `hop` changes. */
+export function MiniMote({ hop }: { hop: number }) {
   return (
     <svg key={hop} className="mini-mote" viewBox="0 0 64 60" aria-hidden="true">
-      <defs>
-        <filter id="mini-soft" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur in="SourceAlpha" stdDeviation="3.2" result="blur" />
-          <feComponentTransfer in="blur" result="shape">
-            <feFuncA type="linear" slope="18" intercept="-7.1" />
-          </feComponentTransfer>
-          <feFlood floodColor={INK} />
-          <feComposite in2="shape" operator="in" />
-        </filter>
-      </defs>
       <ellipse cx="32" cy="57" rx="17" ry="2.4" className="mini-shadow" />
       <g className="mini-body">
         <ellipse cx="32" cy="30" rx="27" ry="25" className="mini-skin" />
-        {headphones ? (
-          <g className="mini-pop">
-            <g transform={MINI}>
-              {[HP.earL, HP.earR].map((tf, i) => (
-                <path key={i} transform={tf} d={EAR_PATH} className="mini-ear" />
-              ))}
-              <path d={HP.band} className="mini-band" />
-              {[HP.cupL, HP.cupR].map((tf, i) => (
-                <rect key={i} transform={tf} className="mini-ink" width={CUP.w} height={CUP.h} rx={CUP.w / 2} />
-              ))}
-            </g>
-          </g>
-        ) : null}
         <g className="mini-eyes">
           <rect x="20.5" y="23" width="9" height="14" rx="4.5" />
           <rect x="34.5" y="23" width="9" height="14" rx="4.5" />
         </g>
-        {mustache ? (
-          <g className="mini-pop">
-            <g transform={MINI}>
-              <g filter="url(#mini-soft)" className="mini-ink">
-                {PUFFS.map((p, i) => (
-                  <circle key={i} cx={p.cx} cy={p.cy} r={p.r} />
-                ))}
-              </g>
-            </g>
-          </g>
-        ) : null}
       </g>
     </svg>
   );

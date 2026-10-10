@@ -146,9 +146,6 @@ func visibleShare(of target: Win, among windows: [Win], ignoring ignored: Set<pi
 
 let debugging = ProcessInfo.processInfo.environment["MOTE_SENSES_DEBUG"] != nil
 
-/// Music apps, known by name: Mote sways along when one of these is playing.
-let musicApps: Set<String> = ["com.apple.Music", "com.spotify.client"]
-
 let me = getpid()
 let mote = getppid()
 
@@ -183,7 +180,6 @@ func tick() {
       "visible": share,
       "playing": true,
       "app": (app?.localizedName as Any?) ?? NSNull(),
-      "kind": musicApps.contains(app?.bundleIdentifier ?? "") ? "music" : "other",
     ]
   ])
 }

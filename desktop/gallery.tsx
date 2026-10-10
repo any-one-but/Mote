@@ -1,13 +1,6 @@
 import { createRoot } from "react-dom/client";
 import {
-  CUP,
-  EAR_PATH,
-  headphoneShape,
-  mustacheShape,
-} from "@/components/companion/accessories";
-import {
   REST,
-  coupleAccessories,
   eyeShape,
   poseFor,
   type Mood,
@@ -39,19 +32,6 @@ const ALL: Shot[] = [
   ["cute squish", "cute", 900, 0.9],
   ["purr", "purr", 0, 0.9],
   ["waking", "wake", 0, 0.9],
-  ["dressed up", null, 0, 0.9, 0, true],
-  ["sniffle", "sniffle", 900, 0.9, 0, true],
-  ["achoo", "sniffle", 1450, 0.9, 0, true],
-  ["twirl", "twirl", 700, 0.9, 0, true],
-  ["flutter", "flutter", 800, 0.9, 0, true],
-  ["listen", "listen", 900, 0.9, 0, true],
-  ["listen up", "listen", 2700, 0.9, 0, true],
-  ["groove", "groove", 300, 0.9, 0, true],
-  ["ear flick", "flick", 40, 0.9, 0, true],
-  ["grumpy dressed", "frustrate", 600, 0.9, 0, true],
-  ["sleep dressed", "sleep", 0, 0.9, 0, true],
-  ["delight dressed", "delight", 700, 0.9, 0, true],
-  ["surprise dressed", "surprise", 300, 0.9, 0, true],
 ];
 
 const params = new URLSearchParams(location.search);
@@ -78,8 +58,6 @@ function Still({
   acc: boolean;
 }) {
   const eyes = (["l", "r"] as const).map((side) => ({ side, ...eyeShape(side, pose, gx, gy, blink) }));
-  const hp = headphoneShape(pose, 1, 0);
-  const puffs = mustacheShape(pose, 1, t, 0);
   return (
     <svg viewBox={`0 0 ${GEO.vbW} ${GEO.vbH}`} style={{ width: size, overflow: "visible" }}>
       <defs>
@@ -104,31 +82,11 @@ function Still({
         transform={`translate(${pose.x} ${pose.y}) rotate(${pose.rot} ${GEO.cx} ${GEO.pivotY}) translate(${GEO.cx} ${GEO.groundY}) scale(${pose.sx} ${pose.sy}) translate(${-GEO.cx} ${-GEO.groundY})`}
       >
         <ellipse className="skin" cx={GEO.cx} cy={GEO.cy} rx={GEO.faceRx} ry={GEO.faceRy} />
-        {acc ? (
-          <g>
-            {[hp.earL, hp.earR].map((tf, i) => (
-              <g key={i} transform={tf}>
-                <path d={EAR_PATH} className="hp-ear" />
-              </g>
-            ))}
-            <path d={hp.band} className="hp-band" />
-            {[hp.cupL, hp.cupR].map((tf, i) => (
-              <rect key={i} transform={tf} className="hp-cup" width={CUP.w} height={CUP.h} rx={CUP.w / 2} />
-            ))}
-          </g>
-        ) : null}
         <g filter={`url(#soft-${id})`}>
           {eyes.map((e) => (
             <rect key={e.side} className="ink" mask={`url(#m-${id}-${e.side})`} x={0} y={0} width={GEO.vbW} height={GEO.vbH} />
           ))}
         </g>
-        {acc ? (
-          <g filter={`url(#soft-${id})`}>
-            {puffs.map((p, i) => (
-              <circle key={i} className="ink" cx={p.cx} cy={p.cy} r={p.r} />
-            ))}
-          </g>
-        ) : null}
       </g>
     </svg>
   );
@@ -141,7 +99,6 @@ function Gallery() {
         const pose = mood
           ? poseFor(mood, t, seed, { sleepLine: name === "sleep line", sincePet: -1 }).pose
           : { ...REST };
-        coupleAccessories(pose);
         const gx = name === "look right" ? 0.9 : pose.lookX * pose.lookMix;
         const gy = pose.lookY * pose.lookMix;
         return (

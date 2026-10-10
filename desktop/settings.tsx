@@ -24,7 +24,7 @@ function SettingsWindow() {
   return (
     <Page>
       <header className="header">
-        <MiniMote hop={hop} headphones={settings.headphones} mustache={settings.mustache} />
+        <MiniMote hop={hop} />
         <div>
           <h1>Settings</h1>
           <p>Little ways to make Mote yours.</p>

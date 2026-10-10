@@ -15,12 +15,6 @@ pokes in a row is too many, and Mote gets annoyed. Only a poke wakes a sleeping 
 - **Watching along:** in the Mac app, if another visible window is playing
   sound, Mote won't nod off and keeps glancing toward that window.
 
-Mote can also wear cat-ear headphones and a bushy mustache (switched on in the
-Debug window, on its Moods tab).
-Each brings three extra idle moods: the mustache gets twirled, blown on, and
-almost sneezed through; the headphones bring listening for sounds, bopping to
-music, and cat-like ear flicks.
-
 ## Mote's mind (the `mind` branch)
 
 Mote has four feelings, each scored 0 to 10:
@@ -32,17 +26,18 @@ Mote has four feelings, each scored 0 to 10:
 | Alert | Sleepy | Alert | drops one step every 16 minutes awake (not while intrigued); recharges asleep |
 | Full | Hungry | Full | drops one step every 6 minutes awake; asleep, a fifth as fast and never below 3.5 |
 
-**Hunger:** a cookie from the tray fills Mote up a good way (a full Mote turns
-it down). Once Mote gets hungry, their happy resting point sinks and each hunger
-pang makes them crosser, more so the hungrier they are; they get worried brows
-and tummy rumbles, and ask for food, more often and more desperately, with a
-bubble you answer by giving a snack. Ignoring those makes it worse. Hunger is
-switched off in Friendly mode, where snacks are just a treat.
+**Hunger:** Mote eats files you drop on them (see "Things to give Mote"); a
+full Mote turns them down. Once Mote gets hungry, their happy resting point
+sinks and each hunger pang makes them crosser, more so the hungrier they are;
+they get worried brows and tummy rumbles, and ask for food, more often and more
+desperately, with a bubble you answer by dropping a file on them. Ignoring those
+makes it worse. Hunger is switched off in Friendly mode, where food is just a
+treat.
 
 Left to themselves, Mote slides toward the bad end of every feeling: crosser,
 more restless, more tired and hungrier. That pauses while you're around (using
 Mote's window, or typing nearby), and asleep Mote calms down rather than getting
-crosser. Attention is what lifts Mote back up: pets, snacks, play, company,
+crosser. Attention is what lifts Mote back up: pets, food, games, company,
 answering their questions. In Friendly mode the slide stops short of anything
 upsetting (Happy stays at 4 or more, Restless at 7 or less, never hungry).
 
@@ -69,8 +64,8 @@ as `mote-senses`) notices a few things on the rest of the screen. It needs no
 special permissions and never captures the screen or sound:
 
 - **Sound from a window you can see**: Mote watches it and checks in on you now
-  and then. Covered-up windows don't count. If it's a music app (Apple Music or
-  Spotify), Mote sways along.
+  and then. Covered-up windows don't count. Mote only knows *that* something
+  is playing and where, never what it is.
 - Moving the **pointer** a lot anywhere on screen catches Mote's eye briefly.
 - While you're **typing** in another app, Mote looks over at that window and
   counts it as being intrigued. Mote only notices *that* keys are being pressed
@@ -80,10 +75,20 @@ special permissions and never captures the screen or sound:
 
 ### Speech bubbles
 
-Every minute or two, when they feel like it, Mote says something in a bubble:
-a remark, a yes/no question (green and red buttons), a request to be moved
-somewhere on the screen (drag the window there), or a request for a pet. They
-fit Mote's mood and what's going on, and all of them disappear after a while;
+Mote doesn't chatter on a timer. They only speak up:
+
+- **when something happens** they'd naturally react to: after being petted,
+  waking up, getting dizzy, eating, finishing a game, something starting to
+  play, or you coming back after 10 minutes or more away; and in reply to
+  whatever you drop on them
+- **when they need something**: food when hungry, the sleep mask when sleepy,
+  a pet when feeling down, or a game or a new spot on the screen when bored.
+  Mote notices a need for a little while (8–25 seconds) before asking, and
+  if you ignore it, only asks again after a good while
+
+A bubble can be a remark, a yes/no question (green and red buttons), or a
+request you answer by doing it: drag the window somewhere, pet Mote, drop a
+file, put the mask on, or drop a game. All of them disappear after a while;
 ignoring a question or request counts as an answer too. Every line lives in
 `src/components/companion/speech.ts`; the Debug window's Speech tab lists them
 all and can make Mote say any of them.
@@ -95,15 +100,26 @@ each up as it fires.
 
 ### Things to give Mote
 
-Move the pointer into Mote's window and a little tray appears at the bottom:
-
-- **Earmuffs and sleep mask**: Mote can't see or hear anything else while
-  wearing them, so they sleep through music, videos and your pointer. Putting
+- **Food: drag a file onto Mote's window.** Mote munches it, bits flying. The
+  file itself is never opened, changed, moved or deleted: all Mote finds out is
+  its name and size. Bigger files are more filling (a small note is a crumb, a
+  long video a feast). Mote remembers the names of the last 12 things eaten and
+  won't eat those again. Mote won't eat anything important either: system
+  files, settings and key files, hidden files, anything from your Library
+  folder or from inside an app. Folders and empty files are turned down too.
+- **Games: drag a game app onto Mote's window** to play it together. Apple's
+  **Chess** gets its own animations (a long think, then a clever move, a smug
+  look and checkmate, or a blunder, a worried look and a laugh). Any other game
+  (an app marked as a game, or one from Steam, GOG, Epic, Battle.net and the
+  like) gets gamer moves: locking in, button mashing, a clutch moment, then a
+  victory hop or a deflated head shake. For apps, Mote only reads the app's
+  name, ID and category to tell whether it's a game.
+- **Earmuffs and sleep mask**, from the little tray that appears at the bottom
+  when the pointer is in Mote's window: Mote can't see or hear anything else
+  while wearing them, so they sleep through videos and your pointer. Putting
   them on a sleepy Mote sends them off to sleep; on a sleeping Mote it doesn't
-  wake them; on a wide-awake Mote they'll ask whether they really have to.
-  A poke wakes Mote and takes them off.
-- **A snack**: a cookie, munched happily (three in five minutes is plenty).
-- **The ball**: Mote watches it bounce in and bops it, and may ask to go again.
+  wake them; on a wide-awake Mote they'll ask whether they really have to. A
+  poke wakes Mote and takes them off.
 
 ### Friendly mode
 
@@ -133,11 +149,11 @@ Text in the app calls Mote "Mote", or "they/them" when a pronoun is needed.
 At the bottom of Settings, **Debug mode** opens a separate window of testing tools:
 
 - **Mind**: Mote's feelings and lasting moods, and every reaction Mote has
-- **Moods**: play any mood on demand, put the headphones and mustache on or off,
-  blink, poke, turn off automatic moods, loop a mood, try flat sleeping eyes
+- **Moods**: play any mood on demand, blink, poke, turn off automatic moods, loop a mood, try flat sleeping eyes
 - **Pose**: shape Mote's face by hand with sliders, then "Copy values" to share the numbers
 - **Motion**: slow time down, freeze Mote, show outlines of the eye cuts, pretend
-  another window is playing sound, live numbers
+  another window is playing sound, pretend to drop files and games on Mote, see
+  (and forget) what Mote has eaten, live numbers
 - **Log**: everything that happened, in order
 - **Data**: the saved settings, and a reset button
 
@@ -168,10 +184,10 @@ Each face there is one expression frozen in place, handy for tweaking how they l
 - `desktop/` — the Mac app's pages: Mote (`index.html`), Settings, Debug, and the gallery
 - `desktop/ui.tsx` and `desktop/ui.css` — the soft buttons, switches and sliders
 - `src/lib/companion/settings.ts` — the list of settings and their defaults
-- `src/components/companion/accessories.ts` — how the headphones and mustache are drawn
 - `src/components/companion/mind.ts` — Mote's feelings, how they drift, the lasting moods
 - `src/components/companion/reactions.ts` — every stimulus → response rule
 - `src/components/companion/speech.ts` — everything Mote can say, and when
 - `src/components/companion/SpeechBubble.tsx` — how the bubbles look
 - `desktop/senses/main.swift` — the helper that notices sound, the pointer and typing
+- `src-tauri/src/offer.rs` — looks at what's dropped on Mote (name, size, and for apps whether it's a game; never the contents)
 - `src-tauri/` — the Mac app wrapper itself
