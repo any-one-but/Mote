@@ -1,10 +1,27 @@
 import { createRoot } from "react-dom/client";
-import { REST, eyeShape, poseFor, type Mood, type Pose } from "@/components/companion/engine";
+import {
+  CUP,
+  EAR_PATH,
+  headphoneShape,
+  mustacheShape,
+} from "@/components/companion/accessories";
+import {
+  REST,
+  coupleAccessories,
+  eyeShape,
+  poseFor,
+  type Mood,
+  type Pose,
+} from "@/components/companion/engine";
 import { GEO, INK } from "@/lib/companion/theme";
 import "../src/styles.css";
 
 // A tuning sheet: every expression frozen side by side. Open /gallery.html.
-const ALL: Array<[string, Mood | null, number, number?, number?]> = [
+// ?only=a,b picks shots by name, ?size=600 makes them bigger, ?acc=1 puts the
+// accessories on every face.
+type Shot = [name: string, mood: Mood | null, t: number, seed?: number, blink?: number, acc?: boolean];
+
+const ALL: Shot[] = [
   ["rest", null, 0],
   ["blink ½", null, 0, 0, 0.5],
   ["blink", null, 0, 0, 1],
@@ -19,16 +36,49 @@ const ALL: Array<[string, Mood | null, number, number?, number?]> = [
   ["doze", "doze", 3500, 0.9],
   ["sleep", "sleep", 0, 0.9],
   ["waking", "wake", 0, 0.9],
+  ["dressed up", null, 0, 0.9, 0, true],
+  ["sniffle", "sniffle", 900, 0.9, 0, true],
+  ["achoo", "sniffle", 1450, 0.9, 0, true],
+  ["twirl", "twirl", 700, 0.9, 0, true],
+  ["flutter", "flutter", 800, 0.9, 0, true],
+  ["listen", "listen", 900, 0.9, 0, true],
+  ["listen up", "listen", 2700, 0.9, 0, true],
+  ["groove", "groove", 300, 0.9, 0, true],
+  ["ear flick", "flick", 40, 0.9, 0, true],
+  ["grumpy dressed", "frustrate", 600, 0.9, 0, true],
+  ["sleep dressed", "sleep", 0, 0.9, 0, true],
+  ["delight dressed", "delight", 700, 0.9, 0, true],
+  ["surprise dressed", "surprise", 300, 0.9, 0, true],
 ];
 
-const only = new URLSearchParams(location.search).get("only");
-const size = Number(new URLSearchParams(location.search).get("size") ?? 300);
+const params = new URLSearchParams(location.search);
+const only = params.get("only");
+const size = Number(params.get("size") ?? 300);
+const allAcc = params.get("acc") === "1";
 const SHOTS = only ? ALL.filter(([name]) => only.split(",").includes(name)) : ALL;
 
-function Still({ pose, gx, gy, blink, id }: { pose: Pose; gx: number; gy: number; blink: number; id: string }) {
+function Still({
+  pose,
+  gx,
+  gy,
+  blink,
+  id,
+  t,
+  acc,
+}: {
+  pose: Pose;
+  gx: number;
+  gy: number;
+  blink: number;
+  id: string;
+  t: number;
+  acc: boolean;
+}) {
   const eyes = (["l", "r"] as const).map((side) => ({ side, ...eyeShape(side, pose, gx, gy, blink) }));
+  const hp = headphoneShape(pose, 1, 0);
+  const puffs = mustacheShape(pose, 1, t, 0);
   return (
-    <svg viewBox={`0 0 ${GEO.vbW} ${GEO.vbH}`} style={{ width: size }}>
+    <svg viewBox={`0 0 ${GEO.vbW} ${GEO.vbH}`} style={{ width: size, overflow: "visible" }}>
       <defs>
         <filter id={`soft-${id}`} x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
           <feGaussianBlur in="SourceAlpha" stdDeviation="3.2" result="blur" />
@@ -47,13 +97,35 @@ function Still({ pose, gx, gy, blink, id }: { pose: Pose; gx: number; gy: number
         ))}
       </defs>
       <ellipse className="shadow" cx={GEO.cx} cy={GEO.shadowY} rx={GEO.shadowRx} ry={GEO.shadowRy} />
-      <g transform={`translate(0 ${pose.y}) rotate(${pose.rot} ${GEO.cx} ${GEO.pivotY})`}>
+      <g
+        transform={`translate(${pose.x} ${pose.y}) rotate(${pose.rot} ${GEO.cx} ${GEO.pivotY}) translate(${GEO.cx} ${GEO.groundY}) scale(${pose.sx} ${pose.sy}) translate(${-GEO.cx} ${-GEO.groundY})`}
+      >
         <ellipse className="skin" cx={GEO.cx} cy={GEO.cy} rx={GEO.faceRx} ry={GEO.faceRy} />
+        {acc ? (
+          <g>
+            {[hp.earL, hp.earR].map((tf, i) => (
+              <g key={i} transform={tf}>
+                <path d={EAR_PATH} className="hp-ear" />
+              </g>
+            ))}
+            <path d={hp.band} className="hp-band" />
+            {[hp.cupL, hp.cupR].map((tf, i) => (
+              <rect key={i} transform={tf} className="hp-cup" width={CUP.w} height={CUP.h} rx={CUP.w / 2} />
+            ))}
+          </g>
+        ) : null}
         <g filter={`url(#soft-${id})`}>
           {eyes.map((e) => (
             <rect key={e.side} className="ink" mask={`url(#m-${id}-${e.side})`} x={0} y={0} width={GEO.vbW} height={GEO.vbH} />
           ))}
         </g>
+        {acc ? (
+          <g filter={`url(#soft-${id})`}>
+            {puffs.map((p, i) => (
+              <circle key={i} className="ink" cx={p.cx} cy={p.cy} r={p.r} />
+            ))}
+          </g>
+        ) : null}
       </g>
     </svg>
   );
@@ -62,13 +134,14 @@ function Still({ pose, gx, gy, blink, id }: { pose: Pose; gx: number; gy: number
 function Gallery() {
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 16, padding: 24, overflow: "auto", height: "100vh" }}>
-      {SHOTS.map(([name, mood, t, seed = 0.9, blink = 0], i) => {
-        const pose = mood ? poseFor(mood, t, seed).pose : REST;
+      {SHOTS.map(([name, mood, t, seed = 0.9, blink = 0, acc = false], i) => {
+        const pose = mood ? poseFor(mood, t, seed).pose : { ...REST };
+        coupleAccessories(pose);
         const gx = name === "look right" ? 0.9 : pose.lookX * pose.lookMix;
         const gy = pose.lookY * pose.lookMix;
         return (
           <figure key={name} style={{ margin: 0, textAlign: "center", fontSize: 13 }}>
-            <Still pose={pose} gx={gx} gy={gy} blink={blink} id={String(i)} />
+            <Still pose={pose} gx={gx} gy={gy} blink={blink} id={String(i)} t={t} acc={acc || allAcc} />
             <figcaption>{name}</figcaption>
           </figure>
         );

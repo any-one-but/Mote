@@ -1,5 +1,10 @@
 import { useEffect, useRef } from "react";
 import {
+  CUP,
+  EAR_PATH,
+  MUSTACHE_PUFFS,
+} from "@/components/companion/accessories";
+import {
   REST,
   eyeShape,
   startFaceEngine,
@@ -70,6 +75,27 @@ export function Face({ onEngine, onMood, onEvent }: FaceProps) {
 
       <g data-part="body">
         <ellipse cx={cx} cy={cy} rx={faceRx} ry={faceRy} className="skin" />
+
+        {/* Cat-ear headphones: hidden until switched on in Settings. */}
+        <g data-part="headphones" className="headphones" style={{ display: "none" }}>
+          {(["l", "r"] as const).map((side) => (
+            <g key={side} data-part={`hp-ear-${side}`}>
+              <path d={EAR_PATH} className="hp-ear" />
+            </g>
+          ))}
+          <path data-part="hp-band" className="hp-band" />
+          {(["l", "r"] as const).map((side) => (
+            <rect
+              key={side}
+              data-part={`hp-cup-${side}`}
+              className="hp-cup"
+              width={CUP.w}
+              height={CUP.h}
+              rx={CUP.w / 2}
+            />
+          ))}
+        </g>
+
         <g data-part="eyes" filter="url(#mote-soft)">
           <g mask="url(#mote-eye-l)">
             <rect className="ink" x={GEO.eyeLX - 60} y={GEO.eyeY - 72} width={120} height={144} />
@@ -77,6 +103,18 @@ export function Face({ onEngine, onMood, onEvent }: FaceProps) {
           <g mask="url(#mote-eye-r)">
             <rect className="ink" x={GEO.eyeRX - 60} y={GEO.eyeY - 72} width={120} height={144} />
           </g>
+        </g>
+
+        {/* Bushy mustache: puffs melted together by the soft filter. */}
+        <g
+          data-part="mustache"
+          className="mustache"
+          filter="url(#mote-soft)"
+          style={{ display: "none" }}
+        >
+          {Array.from({ length: MUSTACHE_PUFFS }, (_, i) => (
+            <circle key={i} data-part={`puff-${i}`} className="ink" r={0} />
+          ))}
         </g>
 
         {/* Debug only: outlines of the pills and the brow / cheek cuts. */}

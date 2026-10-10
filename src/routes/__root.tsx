@@ -14,7 +14,7 @@ export const Route = createRootRoute({
       { name: "theme-color", content: "#E4DDD2" },
       {
         name: "description",
-        content: "A face in a window. Everything he feels is cut into his eyes.",
+        content: "A face in a window. Everything Mote feels shows in two little eyes.",
       },
     ],
     links: [

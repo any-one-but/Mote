@@ -2,6 +2,7 @@ import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { Energy } from "@/components/companion/engine";
 import { isDesktopApp, showDebugWindow } from "@/lib/companion/desktop";
+import { pronounsFor } from "@/lib/companion/pronouns";
 import { useSettings, type Gender, type Settings } from "@/lib/companion/settings";
 import { MiniMote, Page, Row, Section, Segmented, Toggle } from "./ui";
 
@@ -20,6 +21,7 @@ const ENERGY: Array<{ value: Energy; label: string }> = [
 function SettingsWindow() {
   const [settings, update] = useSettings();
   const [hop, setHop] = useState(0);
+  const p = pronounsFor(settings.gender);
 
   // Every change makes the little Mote in the corner do a happy hop.
   const set = (patch: Partial<Settings>) => {
@@ -30,7 +32,7 @@ function SettingsWindow() {
   return (
     <Page>
       <header className="header">
-        <MiniMote hop={hop} />
+        <MiniMote hop={hop} headphones={settings.headphones} mustache={settings.mustache} />
         <div>
           <h1>Settings</h1>
           <p>Little ways to make Mote yours.</p>
@@ -38,7 +40,7 @@ function SettingsWindow() {
       </header>
 
       <Section title="You">
-        <Row label="Gender" stacked>
+        <Row label="Gender" hint={`Mote goes by ${p.they}/${p.them}.`} stacked>
           <Segmented
             label="Gender"
             options={GENDERS}
@@ -49,21 +51,28 @@ function SettingsWindow() {
       </Section>
 
       <Section title="Mote">
-        <Row label="Follows your pointer" hint="His eyes track wherever your pointer goes.">
+        <Row label="Follows your pointer" hint={`${p.Their} eyes track wherever your pointer goes.`}>
           <Toggle
             label="Follows your pointer"
             checked={settings.followPointer}
             onChange={(followPointer) => set({ followPointer })}
           />
         </Row>
-        <Row label="Naps when left alone" hint="Dozes off after half a minute of quiet.">
+        <Row
+          label="Naps when left alone"
+          hint={`${p.They} ${p.s("dozes", "doze")} off after half a minute of quiet.`}
+        >
           <Toggle
             label="Naps when left alone"
             checked={settings.naps}
             onChange={(naps) => set({ naps })}
           />
         </Row>
-        <Row label="Energy" hint="How often he does something on his own." stacked>
+        <Row
+          label="Energy"
+          hint={`How often ${p.they} ${p.s("does", "do")} something on ${p.their} own.`}
+          stacked
+        >
           <Segmented
             label="Energy"
             options={ENERGY}
@@ -73,9 +82,32 @@ function SettingsWindow() {
         </Row>
       </Section>
 
+      <Section title="Accessories">
+        <Row
+          label="Cat-ear headphones"
+          hint={`${p.They} ${p.s("listens", "listen")} for sounds and ${p.s("bops", "bop")} along to music.`}
+        >
+          <Toggle
+            label="Cat-ear headphones"
+            checked={settings.headphones}
+            onChange={(headphones) => set({ headphones })}
+          />
+        </Row>
+        <Row
+          label="Bushy mustache"
+          hint={`${p.They} ${p.s("twirls", "twirl")} it, ${p.s("blows", "blow")} on it, and sometimes nearly ${p.s("sneezes", "sneeze")}.`}
+        >
+          <Toggle
+            label="Bushy mustache"
+            checked={settings.mustache}
+            onChange={(mustache) => set({ mustache })}
+          />
+        </Row>
+      </Section>
+
       {isDesktopApp() ? (
         <Section title="Window">
-          <Row label="Float above other windows" hint="Keeps Mote in sight while you work.">
+          <Row label="Float above other windows" hint={`Keeps ${p.them} in sight while you work.`}>
             <Toggle
               label="Float above other windows"
               checked={settings.floatOnTop}

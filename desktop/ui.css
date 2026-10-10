@@ -387,6 +387,41 @@ input:focus-visible {
   fill: var(--skin);
 }
 
+.mini-ink {
+  fill: var(--ink);
+}
+
+.mini-ear {
+  fill: var(--ink);
+  stroke: var(--ink);
+  stroke-width: 7;
+  stroke-linejoin: round;
+}
+
+.mini-band {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+
+.mini-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mini-pop 520ms var(--spring);
+}
+
+@keyframes mini-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 .mini-shadow {
   fill: var(--ink);
   opacity: 0.08;

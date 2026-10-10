@@ -1,3 +1,8 @@
+import {
+  MUSTACHE_PUFFS,
+  headphoneShape,
+  mustacheShape,
+} from "@/components/companion/accessories";
 import { GEO } from "@/lib/companion/theme";
 
 export type Mood =
@@ -10,10 +15,18 @@ export type Mood =
   | "surprise"
   | "doze"
   | "sleep"
-  | "wake";
+  | "wake"
+  // Only with the mustache on.
+  | "sniffle"
+  | "twirl"
+  | "flutter"
+  // Only with the headphones on.
+  | "listen"
+  | "groove"
+  | "flick";
 
 /**
- * Everything Mote can do with his face. The eyes are pills; expression comes
+ * Everything Mote can do with their face. The eyes are pills; expression comes
  * from two curved cuts per eye: the brow (from above) and the cheek (from below).
  */
 export type Pose = {
@@ -23,7 +36,7 @@ export type Pose = {
   rot: number;
   sx: number;
   sy: number;
-  /** Where the mood wants him to look, and how much it overrides the pointer. */
+  /** Where the mood wants Mote to look, and how much it overrides the pointer. */
   lookX: number;
   lookY: number;
   lookMix: number;
@@ -51,12 +64,31 @@ export type Pose = {
   /** 0..1 happy wink per eye. */
   winkL: number;
   winkR: number;
+  /** Headphone cat ears: + taller and perkier, − flatter. */
+  earPerk: number;
+  /** Extra ear lean in degrees, + outward. */
+  earTiltL: number;
+  earTiltR: number;
+  /** 0..1 ear cups swelling on a beat. */
+  cupPulse: number;
+  /** Mustache: + ends rise (smile), − droop. */
+  mLift: number;
+  /** 0..1 tips hooked upward. */
+  mCurl: number;
+  /** + fluffier. */
+  mPuff: number;
+  /** 0..1 how hard it ruffles. */
+  mRuffle: number;
+  /** 0..1 fluttering, as if blown on. */
+  mFlutter: number;
+  /** −1..1 a sideways nose-wiggle. */
+  mShift: number;
 };
 
 type Keys = Array<[number, Partial<Pose>]>;
 
 export type EngineHooks = {
-  /** Screen-reader description of what he's doing, or null for nothing notable. */
+  /** Screen-reader description of what Mote is doing, or null for nothing notable. */
   onMood: (label: string | null) => void;
   /** Plain-text happenings (mood changes, pokes, blinks) for the debug log. */
   onEvent?: (text: string) => void;
@@ -68,7 +100,11 @@ export type EngineOptions = {
   followPointer: boolean;
   naps: boolean;
   energy: Energy;
+  headphones: boolean;
+  mustache: boolean;
 };
+
+export type Accessory = "headphones" | "mustache";
 
 /** A hand-set face for the debug window: springs and moods are bypassed. */
 export type ManualFace = { pose: Pose; gazeX: number; gazeY: number; blink: number };
@@ -113,6 +149,12 @@ export const MOOD_LIST: Mood[] = [
   "wake",
 ];
 
+/** The extra idle moods each accessory brings with it. */
+export const ACCESSORY_MOODS: Record<Accessory, Mood[]> = {
+  mustache: ["sniffle", "twirl", "flutter"],
+  headphones: ["listen", "groove", "flick"],
+};
+
 export const REST: Pose = {
   x: 0,
   y: 0,
@@ -135,6 +177,16 @@ export const REST: Pose = {
   cheekBias: 0,
   winkL: 0,
   winkR: 0,
+  earPerk: 0,
+  earTiltL: 0,
+  earTiltR: 0,
+  cupPulse: 0,
+  mLift: 0,
+  mCurl: 0,
+  mPuff: 0,
+  mRuffle: 0,
+  mFlutter: 0,
+  mShift: 0,
 };
 
 export const POSE_KEYS = Object.keys(REST) as Array<keyof Pose>;
@@ -162,6 +214,16 @@ const SPRING: Record<keyof Pose, [number, number]> = {
   cheekBias: [260, 0.75],
   winkL: [520, 0.7],
   winkR: [520, 0.7],
+  earPerk: [260, 0.5],
+  earTiltL: [520, 0.32],
+  earTiltR: [520, 0.32],
+  cupPulse: [600, 0.45],
+  mLift: [260, 0.55],
+  mCurl: [220, 0.55],
+  mPuff: [300, 0.5],
+  mRuffle: [200, 0.8],
+  mFlutter: [200, 0.8],
+  mShift: [420, 0.4],
 };
 
 /** Mood length (ms) and how fast springs move while it plays (1 = normal). */
@@ -174,6 +236,12 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   surprise: { dur: 1800, tempo: 1.1 },
   doze: { dur: 4200, tempo: 0.18 },
   wake: { dur: 1100, tempo: 1 },
+  sniffle: { dur: 2600, tempo: 1 },
+  twirl: { dur: 2700, tempo: 1 },
+  flutter: { dur: 2400, tempo: 1 },
+  listen: { dur: 3400, tempo: 0.9 },
+  groove: { dur: 3500, tempo: 1.1 },
+  flick: { dur: 1700, tempo: 1 },
 };
 
 const BAG: Mood[] = [
@@ -195,6 +263,11 @@ const LABELS: Partial<Record<Mood, string>> = {
   frustrate: "Mote is grumpy.",
   cute: "Mote is feeling cute.",
   surprise: "Mote is surprised.",
+  sniffle: "Mote is about to sneeze.",
+  twirl: "Mote is showing off the mustache.",
+  flutter: "Mote is blowing on the mustache.",
+  listen: "Mote is listening for something.",
+  groove: "Mote is bopping along to music.",
 };
 
 function clamp(n: number, a: number, b: number) {
@@ -326,6 +399,100 @@ export function poseFor(mood: Mood, t: number, seed: number): { pose: Pose; shak
       [520, { open: 1.04 }],
       [800, {}],
     ];
+  } else if (mood === "sniffle") {
+    // A tickle builds under the mustache, the eyes squeeze up cutely… achoo.
+    const cute: Partial<Pose> = { cheek: 0.42, cheekCurve: 0.14, open: 1.04, lookY: 0.15, lookMix: 0.4 };
+    keys = [
+      [0, { ...cute, mRuffle: 0.5, mShift: 0.35 }],
+      [260, { ...cute, mRuffle: 0.7, mShift: -0.35 }],
+      [520, { ...cute, cheek: 0.5, mRuffle: 0.85, mShift: 0.45 }],
+      [780, { ...cute, cheek: 0.56, cheekCurve: 0.16, mRuffle: 1, mShift: -0.45, mPuff: 0.2, sy: 1.03, sx: 0.985, y: -2 }],
+      [1080, { cheek: 0.66, cheekCurve: 0.24, mRuffle: 1, mShift: 0.2, mPuff: 0.35, sy: 1.05, sx: 0.97, y: -4, rot: -dir * 3 }],
+      [1340, { cheek: 0.8, cheekCurve: 0.3, open: 0.92, mPuff: 0.55, mLift: 0.5, mRuffle: 0.3, sy: 0.9, sx: 1.08, y: 5, rot: dir * 4 }],
+      [1650, { cheek: 0.54, cheekCurve: 0.15, open: 1.06, mRuffle: 0.35, mLift: 0.2, y: -1 }],
+      [2250, {}],
+    ];
+    if (t > 1340 && t < 1720) {
+      const decay = 1 - (t - 1340) / 380;
+      const wobble = Math.sin(((t - 1340) / 1000) * Math.PI * 2 * 11);
+      shakeX = wobble * 2.4 * decay;
+      shakeRot = wobble * 1.2 * decay;
+    }
+  } else if (mood === "twirl") {
+    // Proud and a little smug, curling the tips up and giving them a waggle.
+    const smug: Partial<Pose> = {
+      lid: 0.42,
+      lidCurve: 0,
+      lidTilt: 0.1,
+      mLift: 0.15,
+      lookX: dir * 0.45,
+      lookY: -0.2,
+      lookMix: 0.7,
+      rot: dir * 5,
+    };
+    keys = [
+      [0, { ...smug, mCurl: 0.35, mLift: 0.05, rot: dir * 3 }],
+      [450, { ...smug, mCurl: 1, sy: 1.04, sx: 0.98, y: -2, rot: dir * 6 }],
+      [850, { ...smug, mCurl: 0.65, mShift: 0.3 }],
+      [1100, { ...smug, mCurl: 1, mShift: -0.3 }],
+      [1350, { ...smug, mCurl: 0.7, mShift: 0.3 }],
+      [1600, { ...smug, mCurl: 1, mPuff: 0.15 }],
+      [2250, {}],
+    ];
+  } else if (mood === "flutter") {
+    // Looks down, puffs, and blows the mustache into a flutter. Delighted.
+    keys = [
+      [0, { lookY: 0.85, lookMix: 1, open: 1.06, sy: 1.04, sx: 0.98, y: -1.5, mPuff: 0.15 }],
+      [380, { lookY: 0.9, lookMix: 1, open: 1.1, mFlutter: 1, mPuff: 0.25, sy: 0.97, sx: 1.03, y: 1 }],
+      [1250, { lookY: 0.7, lookMix: 1, mFlutter: 0.35 }],
+      [1500, { cheek: 0.72, cheekCurve: 0.26, mLift: 0.35, y: -6, sy: 1.04, sx: 0.97 }],
+      [1700, { cheek: 0.72, cheekCurve: 0.26, mLift: 0.3, y: 0, sy: 0.97, sx: 1.03 }],
+      [2050, {}],
+    ];
+  } else if (mood === "listen") {
+    // Hears something: looks one way, then the other, ears growing to catch it.
+    const ds = -dir;
+    const toward = (side: number, deg: number): Partial<Pose> =>
+      side < 0 ? { earTiltL: deg, earTiltR: -4 } : { earTiltR: deg, earTiltL: -4 };
+    const curious: Partial<Pose> = { open: 1.08, earPerk: 0.8, lookMix: 1, lookY: -0.1 };
+    keys = [
+      [0, { ...curious, lookX: ds * 0.95, rot: ds * 6, x: ds * 2, openBias: ds * 0.06, ...toward(ds, 10) }],
+      [700, { ...curious, earPerk: 1.1, lookX: ds, rot: ds * 7, x: ds * 2, openBias: ds * 0.06, ...toward(ds, 15) }],
+      [1250, { ...curious, earPerk: 0.9, lookX: -ds * 0.95, rot: -ds * 6, x: -ds * 2, openBias: -ds * 0.06, ...toward(-ds, 12) }],
+      [1950, { ...curious, earPerk: 1.15, lookX: -ds, rot: -ds * 7, x: -ds * 2, openBias: -ds * 0.06, ...toward(-ds, 16) }],
+      [2450, { open: 1.14, wide: 0.96, earPerk: 1.25, lookX: 0, lookY: -0.45, lookMix: 1, y: -3, sy: 1.03, sx: 0.98 }],
+      [3000, { earPerk: 0.3 }],
+      [3200, {}],
+    ];
+  } else if (mood === "groove") {
+    // Eyes closed happily, bopping to a beat; ears and cups bounce along.
+    const vibe: Partial<Pose> = { cheek: 0.74, cheekCurve: 0.28, earPerk: 0.3 };
+    keys = [[0, vibe]];
+    for (let i = 0; i < 7; i++) {
+      const at = 180 + i * 420;
+      const s = i % 2 ? 1 : -1;
+      keys.push([
+        at,
+        { ...vibe, y: 3, sy: 0.96, sx: 1.03, rot: s * 4, cupPulse: 1, earTiltL: s > 0 ? 10 : -4, earTiltR: s > 0 ? -4 : 10 },
+      ]);
+      keys.push([at + 170, { ...vibe, y: -1, sy: 1.02, sx: 0.99, rot: s * 3 }]);
+    }
+    keys.push([3200, {}]);
+  } else if (mood === "flick") {
+    // One ear twitches like a cat's; Mote glances up at it, and it twitches again.
+    const ear: keyof Pose = dir < 0 ? "earTiltL" : "earTiltR";
+    const look: Partial<Pose> = { lookX: dir * 0.55, lookY: -0.85, lookMix: 1, open: 1.07, rot: dir * 3 };
+    keys = [
+      [0, { [ear]: -16, earPerk: 0.2 }],
+      [90, { [ear]: 8, earPerk: 0.2 }],
+      [190, { [ear]: -12 }],
+      [290, {}],
+      [420, look],
+      [900, { ...look, [ear]: -14 }],
+      [990, { ...look, [ear]: 6 }],
+      [1080, look],
+      [1350, {}],
+    ];
   }
 
   return { pose: { ...REST, ...keyed(t, keys) }, shakeX, shakeRot };
@@ -404,12 +571,13 @@ export function eyeShape(
   const h = Math.max(6.5, baseH * (1 - 0.86 * blink));
   const w = GEO.eyeW * pose.wide * (1 + 0.08 * blink) * (1 - 0.1 * edge + 0.03 * away);
   const cx = (side === "l" ? GEO.eyeLX : GEO.eyeRX) + gazeX * (15 - 3 * edge);
-  const cy = GEO.eyeY + gazeY * 12 + (baseH - h) * 0.14;
+  // Eyes travel less when looking down, so they never crowd the mustache.
+  const cy = GEO.eyeY + gazeY * (gazeY > 0 ? 8 : 12) + (baseH - h) * 0.14;
   const top = cy - h / 2;
   const bottom = cy + h / 2;
 
   const lid =
-    lerp(pose.lid, 0, wink) + bias * pose.lidBias + 0.14 * clamp(gazeY, 0, 1);
+    lerp(pose.lid, 0, wink) + bias * pose.lidBias;
   const lidTilt = pose.lidTilt;
   const lidCurve = pose.lidCurve;
   const cheek =
@@ -456,6 +624,21 @@ export function eyeShape(
   };
 }
 
+/**
+ * Accessories react to whatever the face is doing: ears perk with wide eyes and
+ * droop with heavy lids or a frown, the mustache lifts with a smile.
+ */
+export function coupleAccessories(target: Pose) {
+  target.earPerk +=
+    0.9 * (target.open - 1) -
+    0.55 * Math.max(0, target.lid) +
+    0.25 * Math.max(0, target.cheek - 0.3);
+  target.earTiltL += target.lidTilt * 14;
+  target.earTiltR += target.lidTilt * 14;
+  target.mLift += 0.7 * target.cheek - 0.5 * target.lidTilt;
+  target.mPuff += 0.4 * Math.max(0, target.open - 1);
+}
+
 function q<T extends Element>(svg: SVGSVGElement, name: string) {
   return svg.querySelector(`[data-part="${name}"]`) as T | null;
 }
@@ -487,9 +670,23 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     gLidR: q<SVGPathElement>(svg, "guide-lid-r"),
     gCheekL: q<SVGPathElement>(svg, "guide-cheek-l"),
     gCheekR: q<SVGPathElement>(svg, "guide-cheek-r"),
+    hp: q<SVGGElement>(svg, "headphones"),
+    hpBand: q<SVGPathElement>(svg, "hp-band"),
+    hpCupL: q<SVGRectElement>(svg, "hp-cup-l"),
+    hpCupR: q<SVGRectElement>(svg, "hp-cup-r"),
+    hpEarL: q<SVGGElement>(svg, "hp-ear-l"),
+    hpEarR: q<SVGGElement>(svg, "hp-ear-r"),
+    mu: q<SVGGElement>(svg, "mustache"),
+    puffs: Array.from({ length: MUSTACHE_PUFFS }, (_, i) => q<SVGCircleElement>(svg, `puff-${i}`)),
   };
 
-  const options: EngineOptions = { followPointer: true, naps: true, energy: "normal" };
+  const options: EngineOptions = {
+    followPointer: true,
+    naps: true,
+    energy: "normal",
+    headphones: false,
+    mustache: false,
+  };
   const debug = {
     timeScale: 1,
     frozen: false,
@@ -526,6 +723,13 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   const vel = Object.fromEntries(POSE_KEYS.map((k) => [k, 0])) as Record<keyof Pose, number>;
   const gaze = { x: 0, y: 0, vx: 0, vy: 0 };
   const lag = { x: 0, y: 0, vx: 0, vy: 0 };
+  // Accessories pop on and off, and trail a little behind the body.
+  const presence = { hp: { x: 0, v: 0 }, mu: { x: 0, v: 0 } };
+  const accLag = { y: 0, v: 0 };
+  let nextEarTwitch = 4000;
+  let earTwitch = { side: 1, until: 0 };
+  let nextItch = 6000;
+  let itchUntil = 0;
 
   const log = (text: string) => hooks.onEvent?.(text);
 
@@ -557,7 +761,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   };
 
   const pick = (): Mood => {
-    const bag = options.naps ? BAG : BAG.filter((m) => m !== "doze");
+    const bag = [
+      ...(options.naps ? BAG : BAG.filter((m) => m !== "doze")),
+      ...(options.mustache ? ACCESSORY_MOODS.mustache : []),
+      ...(options.headphones ? ACCESSORY_MOODS.headphones : []),
+    ];
     const opts = bag.filter((m) => m !== lastAct);
     return opts[Math.floor(Math.random() * opts.length)] ?? "glance";
   };
@@ -603,7 +811,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     el.setAttribute("rx", f(p.r));
   };
 
-  // Pokes: a happy hop, unless you keep pestering him.
+  // Pokes: a happy hop, unless you keep pestering.
   const handlePoke = (now: number) => {
     log("poke");
     pokes.push(now);
@@ -678,10 +886,30 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
     gazeTarget = { x: nextGX, y: nextGY };
 
-    // Looking straight at you up close makes his eyes a touch bigger.
+    // Looking straight at you up close makes the eyes a touch bigger.
     if (mood === "settle" && attention > 0.6 && Math.hypot(px, py) < 0.45) {
       target.open += 0.05;
       target.wide += 0.03;
+    }
+
+    coupleAccessories(target);
+
+    // Little habits while they're worn: an ear flick, a twitchy mustache.
+    if (options.headphones && mood === "settle" && now > nextEarTwitch) {
+      earTwitch = { side: Math.random() < 0.5 ? -1 : 1, until: now + 130 };
+      nextEarTwitch = now + 3500 + Math.random() * 6000;
+    }
+    if (now < earTwitch.until) {
+      if (earTwitch.side < 0) target.earTiltL -= 12;
+      else target.earTiltR -= 12;
+    }
+    if (options.mustache && mood === "settle" && now > nextItch) {
+      itchUntil = now + 500;
+      nextItch = now + 5000 + Math.random() * 7000;
+    }
+    if (now < itchUntil) {
+      target.mRuffle += 0.45;
+      target.mShift += 0.25 * Math.sin(now / 50);
     }
 
     if (mood === "sleep") {
@@ -696,7 +924,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
 
     // Natural blinks.
-    const blinkFree = mood !== "sleep" && mood !== "wake" && mood !== "delight" && mood !== "cute";
+    const blinkFree = !["sleep", "wake", "delight", "cute", "sniffle", "groove"].includes(mood);
     if (blinkFree && now >= nextBlink) {
       blinkAt(now, Math.random() < 0.16);
       nextBlink = now + 2400 + Math.random() * 3600;
@@ -776,6 +1004,36 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     parts.cheekL?.setAttribute("d", l.cheek);
     parts.cheekR?.setAttribute("d", r.cheek);
 
+    const trail = accLag.y - view.y;
+    const flop = clamp(trail * 1.6, -14, 14) * m;
+    const bounce = clamp(trail * 0.3, -3, 3) * m;
+    if (parts.hp) {
+      const pr = presence.hp.x;
+      parts.hp.style.display = pr < 0.003 ? "none" : "";
+      if (pr >= 0.003) {
+        const hp = headphoneShape(view, pr, flop);
+        parts.hp.setAttribute("transform", hp.group);
+        parts.hp.style.opacity = hp.opacity.toFixed(3);
+        parts.hpBand?.setAttribute("d", hp.band);
+        parts.hpCupL?.setAttribute("transform", hp.cupL);
+        parts.hpCupR?.setAttribute("transform", hp.cupR);
+        parts.hpEarL?.setAttribute("transform", hp.earL);
+        parts.hpEarR?.setAttribute("transform", hp.earR);
+      }
+    }
+    if (parts.mu) {
+      const pr = presence.mu.x;
+      parts.mu.style.display = pr < 0.003 ? "none" : "";
+      if (pr >= 0.003) {
+        mustacheShape(view, pr, clock, bounce).forEach((puff, i) => {
+          const el = parts.puffs[i];
+          el?.setAttribute("cx", f(puff.cx));
+          el?.setAttribute("cy", f(puff.cy));
+          el?.setAttribute("r", f(puff.r));
+        });
+      }
+    }
+
     if (debug.guides) {
       parts.guides?.setAttribute("transform", eyeShift);
       setPill(parts.gPillL, l.pill);
@@ -818,11 +1076,28 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       blink = out.blink;
       shake = { x: out.shakeX, rot: out.shakeRot };
     }
+
+    // Accessory pop-in and trailing run on real time, so they still respond
+    // while the debug window has Mote frozen or hand-posed.
+    const steps = Math.max(1, Math.ceil(realDt / (1 / 240)));
+    const h = realDt / steps;
+    for (let s = 0; s < steps; s++) {
+      for (const [key, on] of [
+        ["hp", options.headphones],
+        ["mu", options.mustache],
+      ] as const) {
+        const pr = presence[key];
+        [pr.x, pr.v] = spring(pr.x, pr.v, on ? 1 : 0, 220, 0.5, h);
+      }
+      [accLag.y, accLag.v] = spring(accLag.y, accLag.v, view.y, 140, 0.35, h);
+    }
     render(blink);
     raf = requestAnimationFrame(loop);
   };
 
   svg.dataset.mood = "settle";
+  // Lets a mood be played from the browser console while tuning: $0.mote("twirl").
+  (svg as SVGSVGElement & { mote?: (m: Mood) => void }).mote = (m) => start(m, clock);
   raf = requestAnimationFrame(loop);
 
   return {
@@ -836,6 +1111,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     configure: (opts) => {
       Object.assign(options, opts);
       if (!options.naps && (mood === "doze" || mood === "sleep")) start("wake", clock);
+      for (const a of ["headphones", "mustache"] as const) {
+        if (!options[a] && ACCESSORY_MOODS[a].includes(mood)) start("settle", clock);
+      }
     },
     poke: () => {
       pokeQueued = true;

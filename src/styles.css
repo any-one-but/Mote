@@ -100,3 +100,24 @@
 .guide-cheek {
   stroke: #e27858;
 }
+
+/* Accessories */
+
+.hp-ear,
+.hp-cup {
+  fill: var(--color-ink);
+  stroke: var(--color-ink);
+  stroke-width: 7;
+  stroke-linejoin: round;
+}
+
+.hp-cup {
+  stroke-width: 0;
+}
+
+.hp-band {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 9;
+  stroke-linecap: round;
+}

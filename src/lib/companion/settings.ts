@@ -11,6 +11,8 @@ export type Settings = {
   naps: boolean;
   energy: Energy;
   floatOnTop: boolean;
+  headphones: boolean;
+  mustache: boolean;
   debug: boolean;
 };
 
@@ -20,6 +22,8 @@ export const DEFAULT_SETTINGS: Settings = {
   naps: true,
   energy: "normal",
   floatOnTop: false,
+  headphones: false,
+  mustache: false,
   debug: false,
 };
 
@@ -44,6 +48,8 @@ export function readSettings(): Settings {
     naps: bool(raw.naps, d.naps),
     energy: pick(raw.energy, ["calm", "normal", "lively"] as const, d.energy),
     floatOnTop: bool(raw.floatOnTop, d.floatOnTop),
+    headphones: bool(raw.headphones, d.headphones),
+    mustache: bool(raw.mustache, d.mustache),
     debug: bool(raw.debug, d.debug),
   };
 }

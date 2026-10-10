@@ -1,6 +1,7 @@
 import { StrictMode, useEffect, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import {
+  ACCESSORY_MOODS,
   MOOD_LIST,
   POSE_KEYS,
   REST,
@@ -16,6 +17,7 @@ import {
   type DebugCommand,
   type DebugState,
 } from "@/lib/companion/bus";
+import { pronounsFor } from "@/lib/companion/pronouns";
 import { DEFAULT_SETTINGS, useSettings, type Settings } from "@/lib/companion/settings";
 import { Button, Page, Row, Section, Segmented, Slider, Toggle } from "./ui";
 
@@ -56,6 +58,12 @@ const MOOD_NAMES: Record<Mood, string> = {
   doze: "Doze",
   sleep: "Sleep",
   wake: "Wake up",
+  sniffle: "Sniffle",
+  twirl: "Twirl",
+  flutter: "Flutter",
+  listen: "Listen",
+  groove: "Groove",
+  flick: "Ear flick",
 };
 
 const TAB_KEY = "mote.debug.tab";
@@ -189,7 +197,12 @@ function DebugWindow() {
 
 /* Moods */
 
-function MoodsTab({ snap, debug, command }: Ctx) {
+function MoodsTab({ snap, debug, command, settings, updateSettings }: Ctx) {
+  const p = pronounsFor(settings.gender);
+  const accessories = [
+    { key: "mustache", title: "Mustache", wear: "Wear the mustache" },
+    { key: "headphones", title: "Headphones", wear: "Wear the headphones" },
+  ] as const;
   return (
     <>
       <Section title="Play a mood">
@@ -205,6 +218,27 @@ function MoodsTab({ snap, debug, command }: Ctx) {
           ))}
         </div>
       </Section>
+      {accessories.map((a) => (
+        <Section key={a.key} title={a.title}>
+          <Row
+            label={a.wear}
+            hint={settings[a.key] ? undefined : "Off right now. Its moods still play, just unseen."}
+          >
+            <Toggle
+              label={a.wear}
+              checked={settings[a.key]}
+              onChange={(on) => updateSettings({ [a.key]: on })}
+            />
+          </Row>
+          <div className="mood-grid">
+            {ACCESSORY_MOODS[a.key].map((m) => (
+              <Button key={m} active={snap?.mood === m} onClick={() => command({ do: "force", mood: m })}>
+                {MOOD_NAMES[m]}
+              </Button>
+            ))}
+          </div>
+        </Section>
+      ))}
       <Section title="Quick actions">
         <div className="button-row">
           <Button onClick={() => command({ do: "blink", double: false })}>Blink</Button>
@@ -213,7 +247,7 @@ function MoodsTab({ snap, debug, command }: Ctx) {
         </div>
       </Section>
       <Section title="Behaviour">
-        <Row label="Automatic moods" hint="Let Mote pick moods on his own.">
+        <Row label="Automatic moods" hint={`Let ${p.them} pick moods on ${p.their} own.`}>
           <Toggle
             label="Automatic moods"
             checked={debug.autoMoods}
@@ -253,6 +287,16 @@ const RANGES: Partial<Record<keyof Pose, [number, number]>> = {
   cheekBias: [-0.5, 0.5],
   winkL: [0, 1],
   winkR: [0, 1],
+  earPerk: [-1, 1.5],
+  earTiltL: [-30, 30],
+  earTiltR: [-30, 30],
+  cupPulse: [0, 1],
+  mLift: [-1, 1],
+  mCurl: [0, 1],
+  mPuff: [-0.5, 1],
+  mRuffle: [0, 1],
+  mFlutter: [0, 1],
+  mShift: [-1, 1],
 };
 
 const GROUPS: Array<{ title: string; keys: Array<keyof Pose> }> = [
@@ -260,11 +304,14 @@ const GROUPS: Array<{ title: string; keys: Array<keyof Pose> }> = [
   { title: "Brow cut", keys: ["lid", "lidTilt", "lidCurve", "lidBias"] },
   { title: "Cheek cut", keys: ["cheek", "cheekTilt", "cheekCurve", "cheekBias"] },
   { title: "Body", keys: ["x", "y", "rot", "sx", "sy"] },
+  { title: "Headphones", keys: ["earPerk", "earTiltL", "earTiltR", "cupPulse"] },
+  { title: "Mustache", keys: ["mLift", "mCurl", "mPuff", "mRuffle", "mFlutter", "mShift"] },
 ];
 
 const restFace = (): ManualFace => ({ pose: { ...REST }, gazeX: 0, gazeY: 0, blink: 0 });
 
-function PoseTab({ snap, debug, command, face, setFace }: Ctx) {
+function PoseTab({ snap, debug, command, face, setFace, settings }: Ctx) {
+  const p = pronounsFor(settings.gender);
   const [copied, setCopied] = useState(false);
 
   const apply = (next: ManualFace) => {
@@ -296,7 +343,7 @@ function PoseTab({ snap, debug, command, face, setFace }: Ctx) {
   return (
     <>
       <Section>
-        <Row label="Pose by hand" hint="Freezes Mote and lets the sliders shape his face.">
+        <Row label="Pose by hand" hint={`Freezes Mote and lets the sliders shape ${p.their} face.`}>
           <Toggle
             label="Pose by hand"
             checked={debug.manual}

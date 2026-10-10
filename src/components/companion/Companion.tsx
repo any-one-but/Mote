@@ -11,10 +11,10 @@ export function Companion() {
   const debugState = useRef<DebugState>({ ...DEBUG_DEFAULTS });
   const events = useRef<string[]>([]);
 
-  const { followPointer, naps, energy, debug } = settings;
+  const { followPointer, naps, energy, headphones, mustache, debug } = settings;
   useEffect(() => {
-    engineRef.current?.configure({ followPointer, naps, energy });
-  }, [followPointer, naps, energy]);
+    engineRef.current?.configure({ followPointer, naps, energy, headphones, mustache });
+  }, [followPointer, naps, energy, headphones, mustache]);
 
   // Debug mode: take orders from the debug window and report back ~10× a second.
   useEffect(() => {
@@ -77,7 +77,7 @@ export function Companion() {
       <Face
         onEngine={(engine) => {
           engineRef.current = engine;
-          engine?.configure({ followPointer, naps, energy });
+          engine?.configure({ followPointer, naps, energy, headphones, mustache });
         }}
         onMood={(label) => {
           const button = buttonRef.current;
