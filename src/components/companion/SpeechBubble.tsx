@@ -110,6 +110,16 @@ export function SpeechBubble({ bubble, anchor, onAnswer, onDismiss }: Props) {
         </span>
       ) : null}
 
+      {shown.kind === "feed" && done ? (
+        <span className="speech-hint">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="7" />
+            <path d="M9.5 10h.01M14 11.5h.01M11 14.5h.01" />
+          </svg>
+          a snack from the tray
+        </span>
+      ) : null}
+
       {timed ? (
         <span className="speech-timer" aria-hidden="true">
           <span key={shown.id} style={{ animationDuration: `${shown.ttl}ms` }} />

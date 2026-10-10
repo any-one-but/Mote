@@ -23,13 +23,21 @@ music, and cat-like ear flicks.
 
 ## Mote's mind (the `mind` branch)
 
-Mote has three feelings, each scored 0 to 10, starting at 5:
+Mote has four feelings, each scored 0 to 10:
 
 | Feeling | 0 means | 10 means | On its own |
 |---|---|---|---|
 | Happy | Frustrated | Happy | settles one step toward 5 every 2 minutes |
 | Restless | Calm | Restless | settles one step toward 5 every 2 minutes |
 | Alert | Sleepy | Alert | drops one step every 16 minutes awake (not while intrigued); recharges asleep |
+| Full | Hungry | Full | drops one step every 6 minutes awake; asleep, a fifth as fast and never below 3.5 |
+
+**Hunger:** a cookie from the tray fills Mote up a good way (a full Mote turns
+it down). Once Mote gets hungry, their happy resting point sinks and each hunger
+pang makes them crosser, more so the hungrier they are; they get worried brows
+and tummy rumbles, and ask for food, more often and more desperately, with a
+bubble you answer by giving a snack. Ignoring those makes it worse. Hunger is
+switched off in Friendly mode, where snacks are just a treat.
 
 Things that happen to Mote (pokes, petting, being shaken, sound, and so on)
 nudge these a little. Mote spends most of the time near the middle; only when a
@@ -116,7 +124,7 @@ Move the pointer into Mote's window and a little tray appears at the bottom:
 
 In Settings, **Friendly mode** means Mote never gets cross or hurt: no
 grumpiness, huffing or sulking, no sharp replies, nothing that makes Mote less
-happy, and lots of pokes just tickle.
+happy, lots of pokes just tickle, and Mote never gets hungry.
 
 ## Try it as a Mac app
 

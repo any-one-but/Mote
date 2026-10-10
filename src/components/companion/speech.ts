@@ -9,12 +9,13 @@ import type { LastingMood, MindValues } from "@/components/companion/mind";
 // - "ask":    a question with a green (yes) and a red (no) button
 // - "move":   asks you to move the window somewhere; moving it is the answer
 // - "pet":    asks for a pet; petting is the answer
+// - "feed":   asks for a snack; giving one from the tray is the answer
 //
 // Every bubble disappears after a while. Questions you don't answer in time
 // count as ignored.
 
-export type BubbleKind = "flavor" | "ask" | "move" | "pet";
-export type Outcome = "yes" | "no" | "moved" | "petted" | "ignored" | "done";
+export type BubbleKind = "flavor" | "ask" | "move" | "pet" | "feed";
+export type Outcome = "yes" | "no" | "moved" | "petted" | "fed" | "ignored" | "done";
 export type Direction = "left" | "right" | "up" | "down";
 
 /** Things that just happened, which Mote might want to comment on. */
@@ -56,6 +57,8 @@ export type Line = {
   say: string[] | ((c: SpeechContext) => string[]);
   /** How likely it is to be picked over other fitting lines. */
   weight?: number;
+  /** How long before it can come up again (default 10 minutes). */
+  cooldown?: number;
   /** Which way Mote wants to be moved (move bubbles). */
   direction?: (c: SpeechContext) => Direction;
   /** How each outcome moves Mote's feelings. */
@@ -74,7 +77,12 @@ export type Line = {
 
 const has = (c: SpeechContext, m: LastingMood) => c.moods.includes(m);
 const neutral = (c: SpeechContext) =>
-  !c.asleep && !c.event && !has(c, "frustrated") && !has(c, "annoyed");
+  !c.asleep &&
+  !c.event &&
+  !has(c, "frustrated") &&
+  !has(c, "annoyed") &&
+  !has(c, "hungry") &&
+  !has(c, "starving");
 
 /** Which way to ask to go: toward the roomier side of the screen. */
 const roomier = (c: SpeechContext): Direction => {
@@ -418,6 +426,50 @@ export const LINES: Line[] = [
     then: { yes: "play-again" },
   },
 
+  // Hungry: asking for food, more and more desperately
+  {
+    id: "peckish",
+    group: "Hungry",
+    kind: "feed",
+    when: (c) => !c.asleep && c.feel.full > 3 && c.feel.full <= 4.5,
+    weight: 2,
+    cooldown: 6 * 60_000,
+    say: ["I’m a little peckish. Snack, maybe?", "Is it snack o’clock? It feels like snack o’clock."],
+    effects: { fed: { happy: 0.5 }, ignored: { happy: -0.2 } },
+    replies: { fed: ["Mmm, thank you!"], ignored: ["…I’ll manage."] },
+  },
+  {
+    id: "hungry",
+    group: "Hungry",
+    kind: "feed",
+    when: (c) => !c.asleep && c.feel.full > 1.5 && c.feel.full <= 3,
+    weight: 5,
+    cooldown: 3 * 60_000,
+    say: [
+      "My tummy’s rumbling… could I please have a snack?",
+      "I’m getting really hungry.",
+      "Just one cookie? Please?",
+    ],
+    effects: { fed: { happy: 1 }, ignored: { happy: -0.5 } },
+    replies: { fed: ["Oh, thank you. I needed that."], ignored: ["Hungry AND ignored. Great."] },
+  },
+  {
+    id: "starving",
+    group: "Hungry",
+    kind: "feed",
+    when: (c) => !c.asleep && c.feel.full <= 1.5,
+    weight: 10,
+    cooldown: 90_000,
+    say: [
+      "PLEASE. FOOD. I’m wasting away!",
+      "I can’t think about anything except cookies.",
+      "Snack. Snack. Snack. SNACK.",
+      "Is this how it ends? Hungry, in a window?",
+    ],
+    effects: { fed: { happy: 1.5, restless: -0.5 }, ignored: { happy: -1 } },
+    replies: { fed: ["Oh, FINALLY. You’re the best."], ignored: ["…How could you."] },
+  },
+
   // Asking you to do something
   {
     id: "move-me",
@@ -472,7 +524,7 @@ export function chooseLine(
     (l) =>
       l.when(c) &&
       !(friendly && l.unkind) &&
-      now - (lastSaid.get(l.id) ?? Number.NEGATIVE_INFINITY) > cooldown,
+      now - (lastSaid.get(l.id) ?? Number.NEGATIVE_INFINITY) > Math.min(cooldown, l.cooldown ?? cooldown),
   );
   if (!ok.length) return null;
   const total = ok.reduce((sum, l) => sum + (l.weight ?? 1), 0);

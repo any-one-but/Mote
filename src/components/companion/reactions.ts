@@ -11,6 +11,7 @@ export type ReactionGroup =
   | "Sound"
   | "Interest"
   | "Things you give Mote"
+  | "Hunger"
   | "Learning"
   | "Speech"
   | "Accessories"
@@ -359,15 +360,15 @@ export const REACTIONS: Reaction[] = [
     group: "Things you give Mote",
     name: "A snack",
     when: "You give Mote a cookie from the tray",
-    then: "Leans in and munches it happily",
-    effects: { happy: 0.5, alert: 0.2 },
+    then: "Leans in and munches it happily; it fills Mote up quite a bit",
+    effects: { happy: 0.5, alert: 0.2, full: 2.5 },
     status: "live",
   },
   {
     id: "snack-full",
     group: "Things you give Mote",
-    name: "Too many snacks",
-    when: "A fourth cookie within five minutes",
+    name: "Too full",
+    when: "A cookie when Mote is already full up (Full 9 or more)",
     then: "“I’m full! Maybe later.”",
     status: "live",
   },
@@ -378,6 +379,58 @@ export const REACTIONS: Reaction[] = [
     when: "You toss Mote the ball from the tray",
     then: "Watches it bounce in, bops it with their head, and may ask to go again",
     effects: { happy: 0.4, restless: 0.3, alert: 0.5 },
+    status: "live",
+  },
+
+  // Hunger
+  {
+    id: "hungering",
+    group: "Hunger",
+    name: "Getting hungrier",
+    when: "Every 6 minutes awake (not in Friendly mode)",
+    then: "Fullness drops a step",
+    effects: { full: -1 },
+    status: "live",
+  },
+  {
+    id: "hungering-asleep",
+    group: "Hunger",
+    name: "Hungrier in their sleep",
+    when: "Every 6 minutes asleep (or with the app closed)",
+    then: "Fullness drops a fifth of a step, and never below peckish, so Mote can’t wake up starving",
+    status: "live",
+  },
+  {
+    id: "hunger-pangs",
+    group: "Hunger",
+    name: "Hunger pangs",
+    when: "Mote gets hungrier while already hungry (Full 4 or less)",
+    then: "Crosser and more restless, more so the hungrier they are; their happy resting point sinks too",
+    status: "live",
+  },
+  {
+    id: "fed-hungry",
+    group: "Hunger",
+    name: "Fed when hungry",
+    when: "A snack when Mote is hungry",
+    then: "Real relief",
+    effects: { happy: 0.8 },
+    status: "live",
+  },
+  {
+    id: "mood-hungry",
+    group: "Hunger",
+    name: "Hungry",
+    when: "Full is 3 or lower",
+    then: "Worried brows, tummy rumbles, asks for snacks every few minutes, dances less",
+    status: "live",
+  },
+  {
+    id: "mood-starving",
+    group: "Hunger",
+    name: "Starving",
+    when: "Full is 1.5 or lower",
+    then: "Begs for food every minute or two, sulks, and gets frustrated fast",
     status: "live",
   },
 
@@ -644,6 +697,7 @@ export const REACTION_GROUPS: ReactionGroup[] = [
   "Sound",
   "Interest",
   "Things you give Mote",
+  "Hunger",
   "Learning",
   "Speech",
   "Accessories",

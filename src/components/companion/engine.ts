@@ -1,6 +1,7 @@
 import { MUSTACHE_PUFFS, headphoneShape, mustacheShape } from "@/components/companion/accessories";
 import {
   ATTRS,
+  HUNGER,
   feelings,
   lastingMoods,
   loadMind,
@@ -60,6 +61,8 @@ export type Mood =
   // Things from the tray.
   | "snack"
   | "play"
+  // A hungry tummy.
+  | "rumble"
   // Only with the mustache on.
   | "sniffle"
   | "twirl"
@@ -288,6 +291,7 @@ export const MOOD_LIST: Mood[] = [
   "startle",
   "snack",
   "play",
+  "rumble",
 ];
 
 /** The extra idle moods each accessory brings with it. */
@@ -393,6 +397,7 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   startle: { dur: 1600, tempo: 1.2 },
   snack: { dur: 2400, tempo: 1.1 },
   play: { dur: 2800, tempo: 1.1 },
+  rumble: { dur: 1800, tempo: 0.9 },
   // Purring lasts as long as the petting does; see `PURR_AFTER`.
   purr: { dur: Number.POSITIVE_INFINITY, tempo: 0.8 },
 };
@@ -434,6 +439,7 @@ const LABELS: Partial<Record<Mood, string>> = {
   startle: "Mote jolts awake!",
   snack: "Mote munches a cookie.",
   play: "Mote bops the ball!",
+  rumble: "Mote’s tummy rumbles.",
   purr: "Mote is enjoying the pets.",
 };
 
@@ -978,6 +984,20 @@ export function poseFor(
       [1650, { cheek: 0.7, cheekCurve: 0.26, y: -4, mLift: 0.4 }],
       [2400, {}],
     ];
+  } else if (mood === "rumble") {
+    // A tummy rumble: a low wobble, a worried look down, a little sigh.
+    const worried: Partial<Pose> = { lidTilt: -0.35, lookY: 0.7, lookMix: 1, mLift: -0.4, earPerk: -0.4 };
+    keys = [
+      [0, { ...worried, sy: 1.02 }],
+      [300, { ...worried, sy: 0.96, sx: 1.03, y: 2 }],
+      [1100, { ...worried, lookY: 0.2, lookX: dir * 0.4, sy: 0.98, y: 1 }],
+      [1500, {}],
+    ];
+    if (t > 300 && t < 1000) {
+      const fade = 1 - (t - 300) / 700;
+      const wobble = Math.sin(((t - 300) / 1000) * Math.PI * 2 * 7);
+      shakeX = wobble * 1.4 * fade;
+    }
   } else if (mood === "checkin") {
     // Turns from what they're watching to look out at you for a moment.
     keys = [
@@ -1393,7 +1413,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   let napGranted = false;
   // Things from the tray.
   let sleepSet = false;
-  const snacks: number[] = [];
+  let fedSince = false;
 
   const log = (text: string) => hooks.onEvent?.(text);
 
@@ -1498,7 +1518,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const fl = feelings(feel);
     const pace = (1 - 0.3 * fl.restless + 0.3 * fl.calm) * (1 + 0.4 * fl.sleepy);
     const watching = interest === "media" ? 1.5 : 1;
-    return (60_000 + Math.random() * 90_000) * pace * watching * ENERGY_GAP[options.energy];
+    // A hungry Mote speaks up far more often (mostly to ask for food).
+    const hungry = options.friendly ? 0 : fl.hungry;
+    return (
+      (60_000 + Math.random() * 90_000) * pace * watching * ENERGY_GAP[options.energy] * (1 - 0.75 * hungry)
+    );
   };
 
   const say = (line: Line, now: number) => {
@@ -1509,6 +1533,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     movedSince.x = 0;
     movedSince.y = 0;
     pettedSince = false;
+    fedSince = false;
     showBubble({
       id: ++bubbleSeq,
       lineId: line.id,
@@ -1583,6 +1608,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       const age = now - bubble.born;
       if (bubble.kind === "move" && moveProgress(bubble) >= 1) resolve("moved", now);
       else if (bubble.kind === "pet" && pettedSince) resolve("petted", now);
+      else if (bubble.kind === "feed" && fedSince) resolve("fed", now);
       else if (age > bubble.ttl) resolve(bubble.kind === "flavor" ? "done" : "ignored", now);
       return;
     }
@@ -1648,16 +1674,18 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (mood === "sleep" || mood === "doze" || sleepSet) return;
     engage();
     if (item === "snack") {
-      while (snacks.length && clock - snacks[0] > 5 * 60_000) snacks.shift();
-      if (snacks.length >= 3) {
+      // Already full up? Then no thanks.
+      if (feel.full >= 9) {
         react("snack-full");
         sayNow("full");
         return;
       }
-      snacks.push(clock);
+      const wasHungry = feel.full <= 3 && !options.friendly;
       react("snack");
+      if (wasHungry) react("fed-hungry");
+      if (bubble?.kind === "feed") fedSince = true;
       start("snack", clock);
-      mention("snacked", 0.6);
+      if (!bubble) mention("snacked", 0.6);
     } else {
       react("play");
       start("play", clock);
@@ -1690,6 +1718,15 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
     if (has("calm")) bag = bag.filter((m) => m !== "surprise");
     if (has("sleepy")) more("yawn", 2);
+    // Too hungry for cute: no wiggles or happy humming on an empty tummy.
+    if (has("hungry") || has("starving")) {
+      bag = bag.filter((m) => m !== "cute" && m !== "hum" && m !== "surprise");
+    }
+    if (has("hungry")) more("rumble", 3);
+    if (has("starving")) {
+      more("rumble", 5);
+      more("sulk", 2);
+    }
     if (has("alert")) {
       more("glance", 1);
       more("surprise", 1);
@@ -1819,6 +1856,29 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
    * (alertness wears off, or recharges while asleep), timed stimuli tick up,
    * and lasting moods are re-read.
    */
+  /**
+   * Getting hungrier. Asleep it's far slower and stops at peckish, so Mote
+   * never wakes up starving. In Friendly mode there's no hunger at all. Awake
+   * and hungry, each pang makes Mote crosser, more so the hungrier they are.
+   */
+  const hungerTick = () => {
+    if (options.friendly) return;
+    const before = feel.full;
+    if (mood === "sleep") {
+      if (before > HUNGER.sleepFloor) {
+        feel = { ...feel, full: Math.max(HUNGER.sleepFloor, before - HUNGER.asleepStep) };
+        react("hungering-asleep");
+      }
+      return;
+    }
+    react("hungering");
+    const hungry = feelings(feel).hungry;
+    if (hungry > 0) {
+      react("hunger-pangs");
+      feel = nudge(feel, { happy: -(0.3 + 1.2 * hungry), restless: 0.3 * hungry });
+    }
+  };
+
   const think = (dt: number, now: number, attention: number, sincePet: number) => {
     const ms = dt * 1000;
     for (const a of ATTRS) {
@@ -1828,9 +1888,14 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       if (a.key === "alert") {
         if (mood === "sleep") react("resting");
         else if (!interest && clock > typingUntil) react("tiring");
+      } else if (a.key === "full") {
+        hungerTick();
       } else {
+        // Hunger drags Mote's happy baseline down: the hungrier, the lower.
+        const hungry = options.friendly ? 0 : feelings(feel).hungry;
+        const toward = a.key === "happy" ? a.toward - 4 * hungry : a.toward;
         const before = feel[a.key];
-        feel = { ...feel, [a.key]: driftStep(before, a.toward) };
+        feel = { ...feel, [a.key]: driftStep(before, toward) };
         if (before !== feel[a.key]) react("drift");
       }
     }
@@ -1870,8 +1935,12 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       }
     } else tally.sound = 0;
 
-    // Friendly mode keeps Mote out of grumpy territory altogether.
+    // Friendly mode keeps Mote out of grumpy territory altogether, and
+    // never hungry: snacks are just a treat.
     if (options.friendly && feel.happy < 4) feel = { ...feel, happy: 4 };
+    if (options.friendly && feel.full < HUNGER.friendlyFloor) {
+      feel = { ...feel, full: HUNGER.friendlyFloor };
+    }
     const next = lastingMoods(feel);
     for (const m of next) if (!moodsNow.includes(m)) react(`mood-${m}`);
     for (const m of moodsNow) if (!next.includes(m)) log(`no longer ${m}`);
@@ -2065,7 +2134,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       target.earPerk += (0.4 * fl.alert - 0.4 * fl.sleepy - 0.3 * fl.frustrated) * tone;
       target.earTiltL += 10 * fl.frustrated * tone;
       target.earTiltR += 10 * fl.frustrated * tone;
-      target.mLift += (0.3 * fl.happy - 0.3 * fl.frustrated) * tone;
+      target.mLift += (0.3 * fl.happy - 0.3 * fl.frustrated - 0.3 * fl.hungry) * tone;
+      // Hungry: a little worried, the outer corners of the brows dropping.
+      if (!options.friendly && fl.hungry > 0.2 && fl.frustrated < 0.3) {
+        target.lidTilt -= 0.3 * fl.hungry * tone;
+      }
     }
     const tempo = mood === "sleep" ? 0.12 : mood === "settle" ? 1 : MOODS[mood].tempo;
 
@@ -2101,6 +2174,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         (0.7 + 0.3 * fl.happy) *
         (1 - 0.8 * fl.frustrated) *
         (1 - 0.5 * fl.sleepy) *
+        (1 - 0.6 * (options.friendly ? 0 : fl.hungry)) *
         taste;
       want = clamp(want, 0, 1.2);
     }

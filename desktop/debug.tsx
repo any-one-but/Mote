@@ -79,6 +79,7 @@ const MOOD_NAMES: Record<Mood, string> = {
   startle: "Startled awake",
   snack: "Snack",
   play: "Play ball",
+  rumble: "Tummy rumble",
 };
 
 const TAB_KEY = "mote.debug.tab";
@@ -110,7 +111,10 @@ function DebugWindow() {
     if (!texts.length) return;
     const at = (Date.now() - opened.current) / 1000;
     setLog((old) =>
-      [...texts.map((text) => ({ id: nextId.current++, at, text })).reverse(), ...old].slice(0, 400),
+      [...texts.map((text) => ({ id: nextId.current++, at, text })).reverse(), ...old].slice(
+        0,
+        400,
+      ),
     );
   };
 
@@ -259,7 +263,11 @@ function MoodsTab({ snap, debug, command, settings, updateSettings }: Ctx) {
           </Row>
           <div className="mood-grid">
             {ACCESSORY_MOODS[a.key].map((m) => (
-              <Button key={m} active={snap?.mood === m} onClick={() => command({ do: "force", mood: m })}>
+              <Button
+                key={m}
+                active={snap?.mood === m}
+                onClick={() => command({ do: "force", mood: m })}
+              >
                 {MOOD_NAMES[m]}
               </Button>
             ))}
@@ -288,7 +296,10 @@ function MoodsTab({ snap, debug, command, settings, updateSettings }: Ctx) {
             onChange={(value) => command({ do: "loop", value })}
           />
         </Row>
-        <Row label="Flat sleeping eyes" hint="Sleep with plain straight lines instead of the curved eyes.">
+        <Row
+          label="Flat sleeping eyes"
+          hint="Sleep with plain straight lines instead of the curved eyes."
+        >
           <Toggle
             label="Flat sleeping eyes"
             checked={debug.sleepLine}
@@ -302,13 +313,19 @@ function MoodsTab({ snap, debug, command, settings, updateSettings }: Ctx) {
 
 /* Mind */
 
-const ATTR_NAME: Record<Attr, string> = { happy: "Happy", restless: "Restless", alert: "Alert" };
+const ATTR_NAME: Record<Attr, string> = {
+  happy: "Happy",
+  restless: "Restless",
+  alert: "Alert",
+  full: "Full",
+};
 
 // Soft colours for each end of a feeling's track.
 const TINT: Record<Attr, [string, string]> = {
   happy: ["#e7b7a2", "#b9cfa0"],
   restless: ["#b9cbd9", "#e9c08f"],
   alert: ["#c9bfdc", "#ead48f"],
+  full: ["#e8b48f", "#c9d6a6"],
 };
 
 const seconds = (ms: number) => `${Math.max(0, Math.ceil(ms / 1000))}s`;
@@ -320,7 +337,7 @@ const KIND_LABEL: Record<string, string> = {
   unknown: "something (can’t tell what)",
 };
 
-function MindTab({ snap, command, debug }: Ctx) {
+function MindTab({ snap, command, debug, settings }: Ctx) {
   const [show, setShow] = useState<"all" | "live" | "idea">("all");
   if (!snap) return <p className="empty">Nothing yet. Is Mote’s window open?</p>;
   const asleep = snap.mood === "sleep";
@@ -331,13 +348,19 @@ function MindTab({ snap, command, debug }: Ctx) {
         {ATTRS.map((a) => {
           const v = snap.mind[a.key];
           const note =
-            a.key === "alert"
-              ? asleep
-                ? `Resting: recharges in ${seconds(snap.driftIn.alert)}`
-                : `Wears off a step in ${seconds(snap.driftIn.alert)}`
-              : v === a.toward
-                ? "At rest"
-                : `Settles a step toward 5 in ${seconds(snap.driftIn[a.key])}`;
+            a.key === "full"
+              ? settings.friendly
+                ? "No hunger in Friendly mode: snacks are just a treat"
+                : asleep
+                  ? "Asleep: barely getting hungrier, and never past peckish"
+                  : `A step hungrier in ${seconds(snap.driftIn.full)}`
+              : a.key === "alert"
+                ? asleep
+                  ? `Resting: recharges in ${seconds(snap.driftIn.alert)}`
+                  : `Wears off a step in ${seconds(snap.driftIn.alert)}`
+                : v === a.toward
+                  ? "At rest"
+                  : `Settles a step toward 5 in ${seconds(snap.driftIn[a.key])}`;
           return (
             <div key={a.key} className="meter">
               <div className="meter-top">
@@ -359,8 +382,12 @@ function MindTab({ snap, command, debug }: Ctx) {
               <div className="meter-foot">
                 <span className="meter-note">{note}</span>
                 <span className="meter-buttons">
-                  <Button onClick={() => command({ do: "feeling", attr: a.key, value: v - 1 })}>−1</Button>
-                  <Button onClick={() => command({ do: "feeling", attr: a.key, value: v + 1 })}>+1</Button>
+                  <Button onClick={() => command({ do: "feeling", attr: a.key, value: v - 1 })}>
+                    −1
+                  </Button>
+                  <Button onClick={() => command({ do: "feeling", attr: a.key, value: v + 1 })}>
+                    +1
+                  </Button>
                 </span>
               </div>
             </div>
@@ -427,9 +454,10 @@ function MindTab({ snap, command, debug }: Ctx) {
         ) : null}
         {debug.permission === false ? (
           <p className="empty">
-            Mote doesn’t have the Screen Recording permission, so they can tell where sound is coming
-            from but not whether it’s music, talk or video, or what it’s called. You can allow it in
-            System Settings → Privacy &amp; Security → Screen &amp; System Audio Recording.
+            Mote doesn’t have the Screen Recording permission, so they can tell where sound is
+            coming from but not whether it’s music, talk or video, or what it’s called. You can
+            allow it in System Settings → Privacy &amp; Security → Screen &amp; System Audio
+            Recording.
           </p>
         ) : null}
       </Section>
@@ -444,13 +472,24 @@ function MindTab({ snap, command, debug }: Ctx) {
                   <span className="row-hint">
                     {m.app ? `${m.app} · ` : ""}
                     {m.times}× ·{" "}
-                    {m.score >= 2 ? "likes it" : m.score <= -2 ? "dislikes it" : "no strong feelings"}
+                    {m.score >= 2
+                      ? "likes it"
+                      : m.score <= -2
+                        ? "dislikes it"
+                        : "no strong feelings"}
                   </span>
                 </div>
-                <div className="memory-bar" style={{ ["--s" as string]: `${50 + (m.score / 6) * 50}%` }}>
+                <div
+                  className="memory-bar"
+                  style={{ ["--s" as string]: `${50 + (m.score / 6) * 50}%` }}
+                >
                   <span />
                 </div>
-                <button type="button" className="link" onClick={() => command({ do: "forget", key: m.key })}>
+                <button
+                  type="button"
+                  className="link"
+                  onClick={() => command({ do: "forget", key: m.key })}
+                >
                   Forget
                 </button>
               </div>
@@ -460,7 +499,9 @@ function MindTab({ snap, command, debug }: Ctx) {
             </div>
           </>
         ) : (
-          <p className="empty">Nothing yet. Things Mote watches or listens to with you show up here.</p>
+          <p className="empty">
+            Nothing yet. Things Mote watches or listens to with you show up here.
+          </p>
         )}
       </Section>
 
@@ -524,7 +565,9 @@ function ReactionRow({
   const recent = fired && fired.ago < 1500;
   const effects = Object.entries(r.effects ?? {}) as Array<[Attr, number]>;
   return (
-    <div className={`reaction${recent ? " is-recent" : ""}${r.status === "idea" ? " is-idea" : ""}`}>
+    <div
+      className={`reaction${recent ? " is-recent" : ""}${r.status === "idea" ? " is-idea" : ""}`}
+    >
       <div className="reaction-title">
         <span className="row-label">{r.name}</span>
         <span className={`tag is-${r.status}`}>{r.status === "live" ? "Built" : "Idea"}</span>
@@ -565,6 +608,7 @@ const KIND_NAME: Record<BubbleKind, string> = {
   ask: "Question",
   move: "Move me",
   pet: "Pet me",
+  feed: "Feed me",
 };
 
 function SpeechTab({ snap, command }: Ctx) {
@@ -597,7 +641,10 @@ function SpeechTab({ snap, command }: Ctx) {
                 {options && options.length > 1 ? (
                   <div className="reaction-rule">
                     <span className="reaction-word">Or</span>
-                    {options.slice(1).map((o) => `“${o}”`).join("  ")}
+                    {options
+                      .slice(1)
+                      .map((o) => `“${o}”`)
+                      .join("  ")}
                   </div>
                 ) : null}
                 {l.replies ? (
@@ -609,7 +656,11 @@ function SpeechTab({ snap, command }: Ctx) {
                   </div>
                 ) : null}
                 <div className="reaction-foot">
-                  <button type="button" className="link" onClick={() => command({ do: "say", id: l.id })}>
+                  <button
+                    type="button"
+                    className="link"
+                    onClick={() => command({ do: "say", id: l.id })}
+                  >
                     Say it now
                   </button>
                 </div>
@@ -674,9 +725,7 @@ function PoseTab({ snap, debug, command, face, setFace }: Ctx) {
     command({ do: "manual", face: next });
   };
   const fromCurrent = (): ManualFace =>
-    snap
-      ? { pose: { ...snap.pose }, gazeX: snap.gazeX, gazeY: snap.gazeY, blink: 0 }
-      : restFace();
+    snap ? { pose: { ...snap.pose }, gazeX: snap.gazeX, gazeY: snap.gazeY, blink: 0 } : restFace();
   const setKey = (key: keyof Pose, value: number) =>
     apply({ ...face, pose: { ...face.pose, [key]: value } });
 
@@ -720,9 +769,27 @@ function PoseTab({ snap, debug, command, face, setFace }: Ctx) {
           </div>
           <Section title="Gaze">
             <div className="slider-grid">
-              <Slider label="look x" min={-1} max={1} value={face.gazeX} onChange={(gazeX) => apply({ ...face, gazeX })} />
-              <Slider label="look y" min={-1} max={1} value={face.gazeY} onChange={(gazeY) => apply({ ...face, gazeY })} />
-              <Slider label="blink" min={0} max={1} value={face.blink} onChange={(blink) => apply({ ...face, blink })} />
+              <Slider
+                label="look x"
+                min={-1}
+                max={1}
+                value={face.gazeX}
+                onChange={(gazeX) => apply({ ...face, gazeX })}
+              />
+              <Slider
+                label="look y"
+                min={-1}
+                max={1}
+                value={face.gazeY}
+                onChange={(gazeY) => apply({ ...face, gazeY })}
+              />
+              <Slider
+                label="blink"
+                min={0}
+                max={1}
+                value={face.blink}
+                onChange={(blink) => apply({ ...face, blink })}
+              />
             </div>
           </Section>
           {GROUPS.map((g) => (
@@ -731,7 +798,14 @@ function PoseTab({ snap, debug, command, face, setFace }: Ctx) {
                 {g.keys.map((k) => {
                   const [min, max] = RANGES[k] ?? [-1, 1];
                   return (
-                    <Slider key={k} label={k} min={min} max={max} value={face.pose[k]} onChange={(v) => setKey(k, v)} />
+                    <Slider
+                      key={k}
+                      label={k}
+                      min={min}
+                      max={max}
+                      value={face.pose[k]}
+                      onChange={(v) => setKey(k, v)}
+                    />
                   );
                 })}
               </div>
@@ -768,7 +842,11 @@ function MotionTab({ snap, debug, command }: Ctx) {
           />
         </Row>
         <Row label="Freeze" hint="Stops Mote mid-motion.">
-          <Toggle label="Freeze" checked={debug.frozen} onChange={(value) => command({ do: "frozen", value })} />
+          <Toggle
+            label="Freeze"
+            checked={debug.frozen}
+            onChange={(value) => command({ do: "frozen", value })}
+          />
         </Row>
       </Section>
       <Section title="Pretend">
@@ -788,7 +866,11 @@ function MotionTab({ snap, debug, command }: Ctx) {
             onChange={(v) => command({ do: "fakeAudio", value: v === "off" ? null : v })}
           />
         </Row>
-        <Row label="What it is" hint="Music makes Mote dance; talk makes them listen; video, watch." stacked>
+        <Row
+          label="What it is"
+          hint="Music makes Mote dance; talk makes them listen; video, watch."
+          stacked
+        >
           <Segmented
             label="What it is"
             options={[
@@ -804,7 +886,11 @@ function MotionTab({ snap, debug, command }: Ctx) {
       </Section>
       <Section title="Overlays">
         <Row label="Show cut guides" hint="Blue line is the brow cut, peach is the cheek cut.">
-          <Toggle label="Show cut guides" checked={debug.guides} onChange={(value) => command({ do: "guides", value })} />
+          <Toggle
+            label="Show cut guides"
+            checked={debug.guides}
+            onChange={(value) => command({ do: "guides", value })}
+          />
         </Row>
       </Section>
       <Section title="Live readout">
@@ -822,7 +908,12 @@ function MotionTab({ snap, debug, command }: Ctx) {
             <Readout k="on screen x" v={snap.placement?.x ?? -1} />
             <Readout k="on screen y" v={snap.placement?.y ?? -1} />
             {POSE_KEYS.map((k) => (
-              <Readout key={k} k={k} v={snap.pose[k]} changed={Math.abs(snap.pose[k] - REST[k]) > 0.01} />
+              <Readout
+                key={k}
+                k={k}
+                v={snap.pose[k]}
+                changed={Math.abs(snap.pose[k] - REST[k]) > 0.01}
+              />
             ))}
           </div>
         ) : (
@@ -861,7 +952,9 @@ function LogTab({ log, clearLog }: Ctx) {
             ))}
           </ol>
         ) : (
-          <p className="empty">Quiet so far. Moods, pokes, blinks and setting changes show up here.</p>
+          <p className="empty">
+            Quiet so far. Moods, pokes, blinks and setting changes show up here.
+          </p>
         )}
       </Section>
     </>
@@ -885,7 +978,9 @@ function DataTab({ settings, updateSettings, snap }: Ctx) {
         </Button>
         <Button
           onClick={() =>
-            void navigator.clipboard?.writeText(JSON.stringify({ settings, snapshot: snap }, null, 2))
+            void navigator.clipboard?.writeText(
+              JSON.stringify({ settings, snapshot: snap }, null, 2),
+            )
           }
         >
           Copy everything
