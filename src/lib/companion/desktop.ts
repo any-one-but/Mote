@@ -178,7 +178,13 @@ export function onDropped(hover: (over: boolean) => void, drop: (things: Offerin
         name: app ? file.name.replace(/\.app$/i, "") : file.name,
         size: file.size,
         kind: app ? "app" : entry?.isDirectory ? "folder" : "file",
-        game: app && /^chess\.app$/i.test(file.name) ? "chess" : null,
+        game: !app
+          ? null
+          : /^chess\.app$/i.test(file.name)
+            ? "chess"
+            : /minecraft/i.test(file.name)
+              ? "minecraft"
+              : null,
         important: file.name.startsWith(".") || IMPORTANT_KINDS.test(file.name),
       };
     });

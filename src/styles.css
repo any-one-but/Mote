@@ -314,6 +314,8 @@
 
 .speech-timer {
   position: absolute;
+  /* Above the bubble's tail, which would otherwise cover the middle of it. */
+  z-index: 1;
   left: 18px;
   right: 18px;
   bottom: 5px;

@@ -109,11 +109,21 @@ each up as it fires.
   folder or from inside an app. Folders and empty files are turned down too.
 - **Games: drag a game app onto Mote's window** to play it together. Apple's
   **Chess** gets its own animations (a long think, then a clever move, a smug
-  look and checkmate, or a blunder, a worried look and a laugh). Any other game
-  (an app marked as a game, or one from Steam, GOG, Epic, Battle.net and the
-  like) gets gamer moves: locking in, button mashing, a clutch moment, then a
-  victory hop or a deflated head shake. For apps, Mote only reads the app's
-  name, ID and category to tell whether it's a game.
+  look and checkmate, or a blunder, a worried look and a laugh). So does
+  **Minecraft** (Mote bonks a block until it cracks and pops, and is delighted
+  with it; or a creeper sneaks up, hisses… BOOM, and Mote is left dazed). Any
+  other game gets gamer moves: locking in, button mashing, a clutch moment,
+  then a victory hop or a deflated head shake. Mote knows something is a game
+  if the app says so, if it's a game store or launcher (Steam, GOG, Epic,
+  Battle.net and the like) or lives in one's folder, if it's one of Steam's
+  little shortcut apps (Mote reads the shortcut's one-line script for its
+  `steam://` link; it's never run), or if it's built with a game engine or
+  game-store kit (Unity, Unreal, Godot, GameMaker, Ren'Py, Steam, Epic, GOG;
+  only checked for being there). After a game, Mote sometimes asks to go again.
+- **The Mac's own apps**: drop Safari, Music, Calculator, Photo Booth,
+  Terminal or any of about 60 others and Mote has something to say about it
+  (and hums, poses, puzzles or gets dizzy). Other apps that aren't games get
+  "that's an app, not a game".
 - **Earmuffs and sleep mask**, from the little tray that appears at the bottom
   when the pointer is in Mote's window: Mote can't see or hear anything else
   while wearing them, so they sleep through videos and your pointer. Putting

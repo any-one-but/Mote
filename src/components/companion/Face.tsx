@@ -121,6 +121,36 @@ export function Face({ onEngine, onMood, onEvent, onSpeech, onSleepSet }: FacePr
         <path className="ink" d="M-7 -4 L-3.5 -17 H3.5 L7 -4 Z" />
         <circle className="ink" cy={-21} r={6} />
       </g>
+      {/* Minecraft: a block to mine (it cracks as it's hit), and a creeper. */}
+      <g data-part="block" style={{ display: "none" }}>
+        <rect className="ink" x={-12} y={-12} width={24} height={24} rx={2.5} />
+        <path className="prop-line" d="M-7 -12 V-8 H-2 M4 -12 V-9" />
+        <path className="prop-line crack" d="M-3 -3 L1 1 L-1 5" />
+        <path className="prop-line crack" d="M1 1 L6 -2 M-3 -3 L-7 -1" />
+        <path className="prop-line crack" d="M-1 5 L3 9 M6 -2 L8 3" />
+      </g>
+      <g data-part="creeper" style={{ display: "none" }}>
+        <rect className="ink" x={-12} y={-12} width={24} height={24} rx={2} />
+        <rect className="prop-dot" x={-8} y={-7} width={5} height={5} />
+        <rect className="prop-dot" x={3} y={-7} width={5} height={5} />
+        <path
+          className="prop-dot"
+          d="M-2.5 -2 H2.5 V2 H4.5 V8 H1.5 V5.5 H-1.5 V8 H-4.5 V2 H-2.5 Z"
+        />
+      </g>
+      <g data-part="boom">
+        {Array.from({ length: 10 }, (_, i) => (
+          <rect
+            key={i}
+            className="ink"
+            x={-3}
+            y={-3}
+            width={6}
+            height={6}
+            style={{ display: "none" }}
+          />
+        ))}
+      </g>
       <g data-part="pad" style={{ display: "none" }}>
         <rect className="ink" x={-24} y={-10} width={48} height={20} rx={10} />
         <path className="prop-line" d="M-15 0 H-7 M-11 -4 V4" />

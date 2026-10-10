@@ -20,7 +20,7 @@ import {
 } from "@/lib/companion/bus";
 import { ATTRS, FRIENDLY, LASTING_MOODS, type Attr } from "@/components/companion/mind";
 import { REACTION_GROUPS, REACTIONS, type Reaction } from "@/components/companion/reactions";
-import { LINES, type BubbleKind } from "@/components/companion/speech";
+import { APPLE_APPS, LINES, type BubbleKind } from "@/components/companion/speech";
 import { DEFAULT_SETTINGS, useSettings, type Settings } from "@/lib/companion/settings";
 import { Button, Page, Row, Section, Segmented, Slider, Toggle } from "./ui";
 
@@ -74,6 +74,7 @@ const MOOD_NAMES: Record<Mood, string> = {
   startle: "Startled awake",
   munch: "Munch a file",
   chess: "Chess",
+  minecraft: "Minecraft",
   gaming: "Gaming",
   rumble: "Tummy rumble",
 };
@@ -87,17 +88,28 @@ const PRETEND_DROPS: Array<[string, Offering]> = [
     { name: "movie.mov", size: 2_400_000_000, kind: "file", game: null, important: false },
   ],
   ["Chess", { name: "Chess", size: 0, kind: "app", game: "chess", important: true }],
+  ["Minecraft", { name: "Minecraft", size: 0, kind: "app", game: "minecraft", important: true }],
   ["A game", { name: "Hades", size: 0, kind: "app", game: "game", important: false }],
-  ["An app", { name: "Notes", size: 0, kind: "app", game: null, important: true }],
+  ["Apple app", { name: "Safari", size: 0, kind: "app", game: null, important: true, bundle: "" }],
+  ["Other app", { name: "Obsidian", size: 0, kind: "app", game: null, important: true }],
   ["System file", { name: "hosts", size: 213, kind: "file", game: null, important: true }],
   ["Folder", { name: "Documents", size: 0, kind: "folder", game: null, important: false }],
 ];
 
-/** Files get a fresh name each time, so Mote hasn't eaten them yet. */
-const fresh = (thing: Offering): Offering =>
-  thing.kind === "file" && !thing.important
+/**
+ * Files get a fresh name each time, so Mote hasn't eaten them yet, and "Apple
+ * app" is a different one of the Mac's own apps each time.
+ */
+const fresh = (thing: Offering): Offering => {
+  if (thing.bundle === "") {
+    const ids = Object.keys(APPLE_APPS);
+    const bundle = ids[Math.floor(Math.random() * ids.length)];
+    return { ...thing, bundle, name: bundle.split(".").pop() ?? "App" };
+  }
+  return thing.kind === "file" && !thing.important
     ? { ...thing, name: thing.name.replace(".", `-${Math.floor(Math.random() * 900 + 100)}.`) }
     : thing;
+};
 
 const TAB_KEY = "mote.debug.tab";
 

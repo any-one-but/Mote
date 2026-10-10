@@ -15,6 +15,7 @@ import {
 } from "@/components/companion/mind";
 import { reactionById } from "@/components/companion/reactions";
 import {
+  APPLE_APPS,
   chooseLine,
   lifetime,
   lineById,
@@ -53,6 +54,7 @@ export type Mood =
   // Munching a file you dropped in, and playing a game you dropped in.
   | "munch"
   | "chess"
+  | "minecraft"
   | "gaming"
   // A hungry tummy.
   | "rumble";
@@ -119,10 +121,12 @@ export type Offering = {
   name: string;
   size: number;
   kind: "file" | "folder" | "app";
-  /** For apps: Apple's Chess, some other game, or not a game at all. */
-  game: "chess" | "game" | null;
+  /** For apps: Apple's Chess, Minecraft, some other game, or not a game at all. */
+  game: "chess" | "minecraft" | "game" | null;
   /** Something your computer needs (system files, settings, libraries). */
   important: boolean;
+  /** For apps: their ID, like "com.apple.safari". */
+  bundle?: string | null;
 };
 
 /** How many eaten things Mote remembers (and won't eat again). */
@@ -257,6 +261,7 @@ export const MOOD_LIST: Mood[] = [
   "startle",
   "munch",
   "chess",
+  "minecraft",
   "gaming",
   "rumble",
 ];
@@ -332,6 +337,7 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   startle: { dur: 1600, tempo: 1.2 },
   munch: { dur: 2600, tempo: 1.1 },
   chess: { dur: 5600, tempo: 0.95 },
+  minecraft: { dur: 5400, tempo: 1 },
   gaming: { dur: 5600, tempo: 1.2 },
   rumble: { dur: 1800, tempo: 0.9 },
   // Purring lasts as long as the petting does; see `PURR_AFTER`.
@@ -350,9 +356,17 @@ const BUSY: Mood[] = [
   "delight",
   "munch",
   "chess",
+  "minecraft",
   "gaming",
   "startle",
 ];
+
+type GameMood = "chess" | "minecraft" | "gaming";
+const GAME_MOODS: Mood[] = ["chess", "minecraft", "gaming"];
+
+/** Whether this game goes Mote's way. */
+const gameWon = (m: GameMood, seed: number) =>
+  m === "chess" ? chessWin(seed) : m === "minecraft" ? minecraftWin(seed) : gamingWin(seed);
 
 /** How long you have to be away before Mote is glad to see you back (ms). */
 const AWAY = 10 * 60_000;
@@ -405,6 +419,7 @@ const LABELS: Partial<Record<Mood, string>> = {
   startle: "Mote jolts awake!",
   munch: "Mote munches on some bits.",
   chess: "Mote is playing chess.",
+  minecraft: "Mote is playing Minecraft.",
   gaming: "Mote is gaming.",
   rumble: "Mote’s tummy rumbles.",
   purr: "Mote is enjoying the pets.",
@@ -777,6 +792,54 @@ export function poseFor(
         wobble = { y: -Math.abs(giggle) * 2.5 * fade, rot: giggle * 1.5 * fade };
       }
     }
+  } else if (mood === "minecraft") {
+    // Minecraft: either bonks a block until it pops, and is delighted with
+    // the little block they get; or a creeper turns up, hisses… and BOOM.
+    const atBlock: Partial<Pose> = { lookX: dir * 0.45, lookY: 0.7, lookMix: 1 };
+    if (minecraftWin(seed)) {
+      keys = [[0, { ...atBlock, open: 1.1 }]];
+      for (const at of BONKS) {
+        keys.push(
+          [at, { ...atBlock, x: dir * 5, rot: dir * 7, y: 2, sy: 0.94, sx: 1.05, lid: 0.15 }],
+          [at + 160, { ...atBlock, x: dir, lid: 0.1 }],
+        );
+      }
+      keys.push(
+        [2350, { ...atBlock, open: 1.2, y: -4 }],
+        [2700, { y: -12, sy: 1.07, sx: 0.95, cheek: 0.7, cheekCurve: 0.26, open: 1.05 }],
+        [3000, { y: 1, sy: 0.95, sx: 1.04, cheek: 0.7, cheekCurve: 0.26 }],
+        [3300, { cheek: 0.62, cheekCurve: 0.2, lookX: dir * 0.3, lookY: 0.4, lookMix: 1 }],
+        [4900, {}],
+      );
+    } else {
+      keys = [
+        [0, { ...atBlock, open: 1.05, rot: dir * 3 }],
+        // Is that… a creeper?
+        [900, { ...atBlock, open: 1.25, lidTilt: -0.45, lid: 0.05, x: -dir * 3, y: -1 }],
+        // BOOM.
+        [2300, { open: 1.4, wide: 0.88, y: -14, sy: 1.1, sx: 0.9, lookY: -0.1, lookMix: 1 }],
+        [2650, { open: 0.9, wide: 0.95, lookMix: 1 }],
+        [4200, { open: 1.02 }],
+        [4600, {}],
+      ];
+      if (t > 900 && t < 2300) shakeX = Math.sin((t / 1000) * Math.PI * 2 * 16) * 0.6;
+      // Dazed, eyes swirling, then shakes it off.
+      const up = Math.min(1, Math.max(0, (t - 2650) / 300));
+      const down = Math.min(1, Math.max(0, (4200 - t) / 400));
+      swirl = up * down;
+      const w = t / 1000;
+      wobble = {
+        x: Math.sin(w * 9) * 3 * swirl,
+        rot: Math.sin(w * 9 + 1) * 6 * swirl,
+        openBias: Math.sin(w * 11) * 0.15 * swirl,
+      };
+      if (t > 4200 && t < 4650) {
+        const decay = 1 - (t - 4200) / 450;
+        const shake = Math.sin(((t - 4200) / 1000) * Math.PI * 2 * 10);
+        shakeX = shake * 3 * decay;
+        shakeRot = shake * 2 * decay;
+      }
+    }
   } else if (mood === "gaming") {
     // Gaming: locks in, mashes buttons with darting eyes, a clutch moment,
     // then a victory hop or a deflated head shake.
@@ -932,6 +995,67 @@ const CHOMPS = [700, 1050, 1400, 1650];
 /** Whether this game of chess (or other game) goes Mote's way. */
 export const chessWin = (seed: number) => (seed * 7.31) % 1 < 0.6;
 export const gamingWin = (seed: number) => (seed * 7.31) % 1 < 0.65;
+export const minecraftWin = (seed: number) => (seed * 7.31) % 1 < 0.6;
+
+/** When Mote bonks the block while mining it (ms). */
+const BONKS = [600, 1100, 1600, 2100];
+
+/** The puff of pixel smoke when the creeper goes off: one square per puff. */
+export function boomAt(t: number, seed: number) {
+  const dir = seed > 0.5 ? 1 : -1;
+  const u = (t - 2300) / 700;
+  return Array.from({ length: 10 }, (_, i) => {
+    if (minecraftWin(seed) || u < 0 || u > 1) return null;
+    const angle = (i / 10) * Math.PI * 2 + (i % 2) * 0.3;
+    const reach = (28 + (i % 3) * 10) * (1 - (1 - u) ** 3);
+    return {
+      x: GEO.cx + dir * 46 + Math.cos(angle) * reach,
+      y: 226 + Math.sin(angle) * reach * 0.8 - 10 * u,
+      s: 1 + (i % 3) * 0.4 - 0.5 * u,
+      o: 1 - u * u,
+    };
+  });
+}
+
+/**
+ * The block (or the creeper), `t` ms into a game of Minecraft: where, how
+ * big, how see-through, and how cracked (0–3).
+ */
+export function blockAt(t: number, seed: number) {
+  const dir = seed > 0.5 ? 1 : -1;
+  const s = popIn(t, MOODS.minecraft.dur);
+  if (minecraftWin(seed)) {
+    const cracks = BONKS.filter((b) => t >= b + 60).length;
+    if (cracks < 4) {
+      return { creeper: false, x: GEO.cx + dir * 44, y: 226, rot: 0, s, o: 1, cracks };
+    }
+    // Popped: a little block that bobs in the air, ready to pick up.
+    const u = Math.min(1, (t - BONKS[3] - 60) / 300);
+    const bob = Math.sin((t / 1000) * Math.PI * 2 * 0.9) * 3;
+    return {
+      creeper: false,
+      x: GEO.cx + dir * (44 - 10 * u),
+      y: 226 - 14 * u + bob,
+      rot: Math.sin((t / 1000) * 3) * 12,
+      s: s * (1 - 0.4 * u),
+      o: 1,
+      cracks: 0,
+    };
+  }
+  // A creeper: swells and shudders while it hisses, then explodes.
+  const hiss = clamp((t - 900) / 1400, 0, 1);
+  const pulse = hiss * (0.06 + 0.06 * Math.sin((t / 1000) * Math.PI * 2 * (3 + 6 * hiss)));
+  const boom = clamp((t - 2300) / 260, 0, 1);
+  return {
+    creeper: true,
+    x: GEO.cx + dir * 46 + Math.sin(t / 25) * 1.2 * hiss * (1 - boom),
+    y: 226,
+    rot: 0,
+    s: s * (1 + pulse + boom * 1.2),
+    o: 1 - boom,
+    cracks: 0,
+  };
+}
 
 /** Pops a prop in at the start of a mood and out at the end (0..1). */
 const popIn = (t: number, dur: number) =>
@@ -1157,6 +1281,10 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     bitEls: Array.from(svg.querySelectorAll<SVGTextElement>('[data-part="bits"] text')),
     pawn: q<SVGGElement>(svg, "pawn"),
     pad: q<SVGGElement>(svg, "pad"),
+    block: q<SVGGElement>(svg, "block"),
+    creeper: q<SVGGElement>(svg, "creeper"),
+    puffs: Array.from(svg.querySelectorAll<SVGRectElement>('[data-part="boom"] rect')),
+    cracks: Array.from(svg.querySelectorAll<SVGPathElement>('[data-part="block"] .crack')),
   };
 
   const options: EngineOptions = {
@@ -1283,8 +1411,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   // The sleep set, what was just offered, the game being played, and what's
   // been eaten lately (names only, newest first).
   let sleepSet = false;
-  let offered: { name: string; size: number } | null = null;
-  let game: { name: string; mood: "chess" | "gaming" } | null = null;
+  let offered: SpeechContext["offering"] = null;
+  let game: { name: string; mood: GameMood; won: boolean } | null = null;
   let eaten: string[] = loadEaten();
 
   const log = (text: string) => hooks.onEvent?.(text);
@@ -1334,8 +1462,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (prev === "dizzy") dizzyReadyAt = now + 4000;
     if (prev === "dizzy" && next !== "dizzy") mention("dizzy-over", 0.5);
     if (prev === "purr" && next !== "purr") mention("petted", 0.35);
-    const gaming = (m: Mood) => m === "chess" || m === "gaming";
-    if (gaming(prev) && !gaming(next)) mention("played", 0.4);
+    if (game && next === game.mood) game.won = gameWon(game.mood, moodSeed);
+    if (GAME_MOODS.includes(prev) && !GAME_MOODS.includes(next)) mention("played", 0.5);
     if (next === "settle" && prev === "doze") blinkAt(now + 60, true);
   };
 
@@ -1355,6 +1483,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     media: interest === "media",
     offering: offered,
     game: game?.name ?? null,
+    gameKind: game ? (game.mood === "gaming" ? "game" : game.mood) : null,
+    gameWon: game?.won ?? false,
   });
 
   const showBubble = (b: Bubble | null) => {
@@ -1553,17 +1683,25 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     // Asleep, or wearing the mask: Mote doesn't even notice.
     if (mood === "sleep" || mood === "doze" || sleepSet) return;
     engage();
-    offered = { name: thing.name, size: thing.size };
+    offered = { name: thing.name, size: thing.size, bundle: thing.bundle ?? null };
     log(`offered “${thing.name}” (${thing.kind}, ${thing.size} bytes)`);
-    if (["munch", "chess", "gaming", "dizzy"].includes(mood)) return refuse("busy", "offer-busy");
+    if (["munch", "dizzy", ...GAME_MOODS].includes(mood)) return refuse("busy", "offer-busy");
 
     if (thing.kind === "app" && thing.game) {
-      const next = thing.game === "chess" ? "chess" : "gaming";
-      game = { name: thing.name, mood: next };
+      const next: GameMood = thing.game === "game" ? "gaming" : thing.game;
+      game = { name: thing.name, mood: next, won: false };
       react("play");
       if (bubble?.kind === "game") resolve("played", clock);
-      sayNow(next === "chess" ? "chess-start" : "game-start");
+      sayNow(next === "gaming" ? "game-start" : `${next}-start`);
       start(next, clock);
+      return;
+    }
+    // One of the apps that came with the Mac: Mote has something to say.
+    const known = thing.kind === "app" ? APPLE_APPS[thing.bundle ?? ""] : undefined;
+    if (known) {
+      react("offer-apple-app");
+      sayNow("apple-app");
+      if (known.mood) start(known.mood, clock);
       return;
     }
     if (thing.kind === "app") return refuse("not-a-game", "offer-app");
@@ -2279,6 +2417,22 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
     place(parts.pawn, mood === "chess" ? pawnAt(at, moodSeed) : null);
     place(parts.pad, mood === "gaming" ? padAt(at, moodSeed) : null);
+    const block = mood === "minecraft" ? blockAt(at, moodSeed) : null;
+    place(parts.block, block && !block.creeper ? block : null);
+    place(parts.creeper, block?.creeper ? block : null);
+    if (block && parts.creeper) parts.creeper.style.opacity = f(block.o);
+    const puffs = mood === "minecraft" ? boomAt(at, moodSeed) : [];
+    parts.puffs.forEach((el, i) => {
+      const b = puffs[i];
+      el.style.display = b ? "" : "none";
+      if (b) {
+        el.setAttribute("transform", `translate(${f(b.x)} ${f(b.y)}) scale(${f(b.s)})`);
+        el.style.opacity = f(b.o);
+      }
+    });
+    parts.cracks.forEach((el, i) => {
+      el.style.display = block && block.cracks > i ? "" : "none";
+    });
 
     if (debug.guides) {
       parts.guides?.setAttribute("transform", eyeShift);
