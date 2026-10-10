@@ -20,7 +20,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "mac": "tauri dev",
-    "mac:build": "tauri build",
+    "mac:build": "CI=true tauri build",
     "desktop:web": "vite --config desktop/vite.config.ts",
     "desktop:web:build": "vite build --config desktop/vite.config.ts"
   },
