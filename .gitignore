@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.output/
+.vercel/
+.tanstack/
+.nitro/
+*.log
+.DS_Store
+desktop/target/
+desktop/gen/
