@@ -1135,6 +1135,13 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (mood === "sleep") blink = 0;
     lastBlinkAmt = blink;
 
+    // When the window is dragged, Mote trails behind it a little and swings
+    // back into place when it stops.
+    const unit = GEO.vbW / (rect.width || 300);
+    target.x += clamp(-winSpeed.x * unit * 0.012, -10, 10);
+    target.y += clamp(-winSpeed.y * unit * 0.008, -7, 7);
+    target.rot += clamp(-winSpeed.x * unit * 0.014, -8, 8);
+
     // Body follows the gaze a little.
     target.x += gaze.x * 2.5;
     target.rot += gaze.x * 2.5;
@@ -1262,16 +1269,16 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   };
 
   /** Inertia (Mote lags behind the window), and dizziness if it's thrown about. */
+  // Moves arrive in uneven bursts while the window is dragged, so they're
+  // collected here and turned into a smoothed speed once per frame.
+  const winMoved = { x: 0, y: 0 };
+  const winSpeed = { x: 0, y: 0 };
   const windowMoved = (dx: number, dy: number) => {
-    lastScreen.x += dx;
-    lastScreen.y += dy;
     const d = Math.hypot(dx, dy);
-    if (d === 0 || d > 2000 || debug.manual) return;
-    const unit = GEO.vbW / (svg.getBoundingClientRect().width || 300);
-    view.x = clamp(view.x - dx * unit * 0.25, -14, 14);
-    view.y = clamp(view.y - dy * unit * 0.2, -14, 14);
-    view.rot = clamp(view.rot - dx * unit * 0.3, -12, 12);
-    shaken("window", d, window.innerWidth * 3.5);
+    if (d === 0 || d > 2000) return;
+    winMoved.x += dx;
+    winMoved.y += dy;
+    if (!debug.manual) shaken("window", d, window.innerWidth * 3.5);
   };
 
   const loop = (real: number) => {
@@ -1289,7 +1296,18 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const sx = "__TAURI_INTERNALS__" in window ? lastScreen.x : window.screenX;
     const sy = "__TAURI_INTERNALS__" in window ? lastScreen.y : window.screenY;
     if (sx !== lastScreen.x || sy !== lastScreen.y) {
-      windowMoved(sx - lastScreen.x, sy - lastScreen.y);
+      const dx = sx - lastScreen.x;
+      const dy = sy - lastScreen.y;
+      lastScreen.x = sx;
+      lastScreen.y = sy;
+      windowMoved(dx, dy);
+    }
+    if (realDt > 0) {
+      const ease = 1 - Math.exp(-realDt * 8);
+      winSpeed.x = lerp(winSpeed.x, winMoved.x / realDt, ease);
+      winSpeed.y = lerp(winSpeed.y, winMoved.y / realDt, ease);
+      winMoved.x = 0;
+      winMoved.y = 0;
     }
 
     let blink = 0;
@@ -1337,7 +1355,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   (svg as SVGSVGElement & { mote?: (m: Mood) => void }).mote = force;
   raf = requestAnimationFrame(loop);
 
-  return {
+  const api: FaceEngine = {
     destroy: () => {
       running = false;
       if (raf) cancelAnimationFrame(raf);
@@ -1416,4 +1434,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       audio: options.audio !== null,
     }),
   };
+  // Also reachable from the console while tuning: $0.moteEngine.
+  (svg as SVGSVGElement & { moteEngine?: FaceEngine }).moteEngine = api;
+  return api;
 }
