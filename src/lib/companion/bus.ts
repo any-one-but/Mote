@@ -20,6 +20,7 @@ export type DebugCommand =
   | { do: "feeling"; attr: Attr; value: number }
   | { do: "resetFeelings" }
   | { do: "react"; id: string }
+  | { do: "say"; id?: string }
   | { do: "manual"; face: ManualFace | null };
 
 /** The debug knobs as Mote's window currently has them. */

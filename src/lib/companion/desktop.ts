@@ -61,6 +61,35 @@ export function onWindowMoved(cb: (dx: number, dy: number) => void) {
   };
 }
 
+/**
+ * Where Mote's window sits on its screen: the centre, as 0..1 from the left
+ * and from the top. Null if it can't be told.
+ */
+export async function windowPlacement(): Promise<{ x: number; y: number } | null> {
+  try {
+    if (isDesktopApp()) {
+      const { currentMonitor } = await import("@tauri-apps/api/window");
+      const win = getCurrentWindow();
+      const [pos, size, monitor] = await Promise.all([
+        win.outerPosition(),
+        win.outerSize(),
+        currentMonitor(),
+      ]);
+      if (!monitor) return null;
+      return {
+        x: (pos.x + size.width / 2 - monitor.position.x) / monitor.size.width,
+        y: (pos.y + size.height / 2 - monitor.position.y) / monitor.size.height,
+      };
+    }
+    return {
+      x: (window.screenX + window.outerWidth / 2) / screen.availWidth,
+      y: (window.screenY + window.outerHeight / 2) / screen.availHeight,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Called when someone closes the debug window with its close button. */
 export function onDebugWindowClosed(cb: () => void): () => void {
   if (!isDesktopApp()) return () => {};

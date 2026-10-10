@@ -10,6 +10,7 @@ export type ReactionGroup =
   | "Window"
   | "Sound"
   | "Interest"
+  | "Speech"
   | "Accessories"
   | "Time and rest"
   | "Lasting moods"
@@ -236,6 +237,56 @@ export const REACTIONS: Reaction[] = [
     status: "live",
   },
 
+  // Speech
+  {
+    id: "speak",
+    group: "Speech",
+    name: "Speaking up",
+    when: "Every minute or two when Mote feels like it, or right after something happens",
+    then: "Says something that fits the moment in a speech bubble",
+    status: "live",
+  },
+  {
+    id: "answer-yes",
+    group: "Speech",
+    name: "Green answer",
+    when: "You press the green button on a question",
+    then: "Depends on the question; usually pleased",
+    status: "live",
+  },
+  {
+    id: "answer-no",
+    group: "Speech",
+    name: "Red answer",
+    when: "You press the red button on a question",
+    then: "Depends on the question; sometimes a little hurt",
+    status: "live",
+  },
+  {
+    id: "answer-moved",
+    group: "Speech",
+    name: "Moved as asked",
+    when: "Mote asks to go somewhere and you drag the window there",
+    then: "Delighted with the new view",
+    status: "live",
+  },
+  {
+    id: "answer-petted",
+    group: "Speech",
+    name: "Petted as asked",
+    when: "Mote asks for a pet and you give one",
+    then: "Very content",
+    status: "live",
+  },
+  {
+    id: "answer-ignored",
+    group: "Speech",
+    name: "Ignored",
+    when: "A question or request runs out of time",
+    then: "Usually a little let down; the bubble goes away",
+    status: "live",
+  },
+
   // Accessories
   {
     id: "wear-headphones",
@@ -402,6 +453,7 @@ export const REACTION_GROUPS: ReactionGroup[] = [
   "Window",
   "Sound",
   "Interest",
+  "Speech",
   "Accessories",
   "Time and rest",
   "Lasting moods",

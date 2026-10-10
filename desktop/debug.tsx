@@ -19,6 +19,7 @@ import {
 } from "@/lib/companion/bus";
 import { ATTRS, LASTING_MOODS, type Attr } from "@/components/companion/mind";
 import { REACTION_GROUPS, REACTIONS, type Reaction } from "@/components/companion/reactions";
+import { LINES, type BubbleKind } from "@/components/companion/speech";
 import { DEFAULT_SETTINGS, useSettings, type Settings } from "@/lib/companion/settings";
 import { Button, Page, Row, Section, Segmented, Slider, Toggle } from "./ui";
 
@@ -43,6 +44,7 @@ type Ctx = {
 const TABS: Array<{ id: string; label: string; render: (ctx: Ctx) => ReactNode }> = [
   { id: "moods", label: "Moods", render: (ctx) => <MoodsTab {...ctx} /> },
   { id: "mind", label: "Mind", render: (ctx) => <MindTab {...ctx} /> },
+  { id: "speech", label: "Speech", render: (ctx) => <SpeechTab {...ctx} /> },
   { id: "pose", label: "Pose", render: (ctx) => <PoseTab {...ctx} /> },
   { id: "motion", label: "Motion", render: (ctx) => <MotionTab {...ctx} /> },
   { id: "log", label: "Log", render: (ctx) => <LogTab {...ctx} /> },
@@ -476,6 +478,70 @@ function ReactionRow({
   );
 }
 
+/* Speech */
+
+const KIND_NAME: Record<BubbleKind, string> = {
+  flavor: "Remark",
+  ask: "Question",
+  move: "Move me",
+  pet: "Pet me",
+};
+
+function SpeechTab({ snap, command }: Ctx) {
+  if (!snap) return <p className="empty">Nothing yet. Is Mote’s window open?</p>;
+  const groups = [...new Set(LINES.map((l) => l.group))];
+  return (
+    <>
+      <Section title="Right now">
+        <Row
+          label={snap.speech ? `“${snap.speech.text.replace(/\*/g, "")}”` : "Not saying anything"}
+          hint={
+            snap.speech
+              ? `${KIND_NAME[snap.speech.kind]}${snap.speech.reply ? " (a reply)" : ""}`
+              : `Might say something in about ${seconds(snap.nextSpeechIn)}`
+          }
+        >
+          <Button onClick={() => command({ do: "say" })}>Say something</Button>
+        </Row>
+      </Section>
+      {groups.map((g) => (
+        <Section key={g} title={g}>
+          {LINES.filter((l) => l.group === g).map((l) => {
+            const options = typeof l.say === "function" ? null : l.say;
+            return (
+              <div key={l.id} className="reaction">
+                <div className="reaction-title">
+                  <span className="row-label">{options ? `“${options[0]}”` : l.id}</span>
+                  <span className="tag is-idea">{KIND_NAME[l.kind]}</span>
+                </div>
+                {options && options.length > 1 ? (
+                  <div className="reaction-rule">
+                    <span className="reaction-word">Or</span>
+                    {options.slice(1).map((o) => `“${o}”`).join("  ")}
+                  </div>
+                ) : null}
+                {l.replies ? (
+                  <div className="reaction-rule">
+                    <span className="reaction-word">Then</span>
+                    {Object.entries(l.replies)
+                      .map(([k, v]) => `${k}: “${v?.[0]}”`)
+                      .join("  ·  ")}
+                  </div>
+                ) : null}
+                <div className="reaction-foot">
+                  <button type="button" className="link" onClick={() => command({ do: "say", id: l.id })}>
+                    Say it now
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </Section>
+      ))}
+    </>
+  );
+}
+
 /* Pose */
 
 const RANGES: Partial<Record<keyof Pose, [number, number]>> = {
@@ -658,6 +724,8 @@ function MotionTab({ snap, debug, command }: Ctx) {
             <Readout k="idle (s)" v={snap.idleMs / 1000} />
             <Readout k="petting" v={snap.petting ? 1 : 0} changed={snap.petting} />
             <Readout k="sound elsewhere" v={snap.audio ? 1 : 0} changed={snap.audio} />
+            <Readout k="on screen x" v={snap.placement?.x ?? -1} />
+            <Readout k="on screen y" v={snap.placement?.y ?? -1} />
             {POSE_KEYS.map((k) => (
               <Readout key={k} k={k} v={snap.pose[k]} changed={Math.abs(snap.pose[k] - REST[k]) > 0.01} />
             ))}

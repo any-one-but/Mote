@@ -766,7 +766,6 @@ input:focus-visible {
 .reaction {
   margin: 0 calc(var(--unit) * -1);
   padding: calc(var(--unit) * 1.5) var(--unit);
-  border-radius: 14px;
   transition: background-color 600ms var(--soft);
 }
 
@@ -775,6 +774,7 @@ input:focus-visible {
 }
 
 .reaction.is-recent {
+  border-radius: 14px;
   background: var(--accent-wash);
   transition-duration: 80ms;
 }

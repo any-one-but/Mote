@@ -1,8 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import "@fontsource/outfit/400.css";
+import "@fontsource/outfit/500.css";
+import "@fontsource/outfit/600.css";
 import { Face } from "@/components/companion/Face";
+import { SpeechBubble } from "@/components/companion/SpeechBubble";
+import type { Bubble } from "@/components/companion/speech";
+import { GEO } from "@/lib/companion/theme";
 import type { EngineOptions, FaceEngine } from "@/components/companion/engine";
 import { DEBUG_DEFAULTS, listenBus, send, type DebugState } from "@/lib/companion/bus";
-import { onAudioElsewhere, onWindowMoved } from "@/lib/companion/desktop";
+import { onAudioElsewhere, onWindowMoved, windowPlacement } from "@/lib/companion/desktop";
 import { useSettings } from "@/lib/companion/settings";
 
 type Audio = EngineOptions["audio"];
@@ -23,6 +29,38 @@ export function Companion() {
   const press = useRef<{ x: number; y: number; moved: number; stroked: number; at: number } | null>(
     null,
   );
+  const [bubble, setBubble] = useState<Bubble | null>(null);
+  const [anchor, setAnchor] = useState({ x: 0, y: 0 });
+
+  // The bubble's tail points down at Mote, just above the eyes.
+  const measure = useCallback(() => {
+    const svg = buttonRef.current?.querySelector("svg.face");
+    if (!svg) return;
+    const r = svg.getBoundingClientRect();
+    const eyeTop = (GEO.eyeY - GEO.eyeH / 2 - 6) / GEO.vbH;
+    setAnchor({ x: r.left + r.width / 2, y: r.top + r.height * eyeTop });
+  }, []);
+
+  useEffect(() => {
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [measure]);
+
+  // Let Mote know roughly where on the screen the window is.
+  useEffect(() => {
+    let alive = true;
+    const check = async () => {
+      const placement = await windowPlacement();
+      if (alive) engineRef.current?.configure({ placement });
+    };
+    void check();
+    const t = window.setInterval(check, 3000);
+    return () => {
+      alive = false;
+      window.clearInterval(t);
+    };
+  }, []);
 
   // Sound playing in another window, or the debug window's pretend version of it.
   const applyAudio = () => {
@@ -86,6 +124,7 @@ export function Companion() {
       else if (cmd.do === "feeling") e.setFeeling(cmd.attr, cmd.value);
       else if (cmd.do === "resetFeelings") e.resetFeelings();
       else if (cmd.do === "react") e.react(cmd.id);
+      else if (cmd.do === "say") e.say(cmd.id);
       else if (cmd.do === "fakeAudio") {
         d.fakeAudio = cmd.value;
         applyAudio();
@@ -114,67 +153,85 @@ export function Companion() {
   // A quick press on Mote's body is a poke; pressing and dragging across it is
   // petting. Presses on the empty window around Mote do nothing.
   return (
-    <button
-      ref={buttonRef}
-      type="button"
-      className="window"
-      aria-label="Mote"
-      onPointerDown={(e) => {
-        if (!engineRef.current?.hitTest(e.clientX, e.clientY)) {
-          engineRef.current?.react("empty-click");
-          return;
-        }
-        press.current = { x: e.clientX, y: e.clientY, moved: 0, stroked: 0, at: performance.now() };
-        e.currentTarget.setPointerCapture(e.pointerId);
-      }}
-      onPointerMove={(e) => {
-        const p = press.current;
-        const engine = engineRef.current;
-        if (!p || !engine) return;
-        const step = Math.hypot(e.clientX - p.x, e.clientY - p.y);
-        p.moved += step;
-        p.x = e.clientX;
-        p.y = e.clientY;
-        if (!engine.hitTest(e.clientX, e.clientY)) return;
-        // It only counts as petting after a proper stroke: well over a second
-        // of moving across the face, covering a good distance.
-        p.stroked += step;
-        const width = e.currentTarget.getBoundingClientRect().width || 300;
-        if (p.stroked > width * 1.6 && performance.now() - p.at > 1100) {
-          engine.pet(e.clientX, e.clientY);
-        }
-      }}
-      onPointerUp={() => {
-        const p = press.current;
-        press.current = null;
-        if (p && p.moved < 8) engineRef.current?.poke();
-      }}
-      onPointerCancel={() => {
-        press.current = null;
-      }}
-      onClick={(e) => {
-        // Enter or Space on the focused window counts as a poke too.
-        if (e.detail === 0) engineRef.current?.poke();
-      }}
-    >
-      <Face
-        onEngine={(engine) => {
-          engineRef.current = engine;
-          engine?.configure({ followPointer, naps, energy, headphones, mustache });
-          applyAudio();
+    <div className="stage">
+      <button
+        ref={buttonRef}
+        type="button"
+        className="window"
+        aria-label="Mote"
+        onPointerDown={(e) => {
+          if (!engineRef.current?.hitTest(e.clientX, e.clientY)) {
+            engineRef.current?.react("empty-click");
+            return;
+          }
+          press.current = {
+            x: e.clientX,
+            y: e.clientY,
+            moved: 0,
+            stroked: 0,
+            at: performance.now(),
+          };
+          e.currentTarget.setPointerCapture(e.pointerId);
         }}
-        onMood={(label) => {
-          const button = buttonRef.current;
-          if (!button) return;
-          const next = label ?? "Mote";
-          if (button.getAttribute("aria-label") !== next) button.setAttribute("aria-label", next);
+        onPointerMove={(e) => {
+          const p = press.current;
+          const engine = engineRef.current;
+          if (!p || !engine) return;
+          const step = Math.hypot(e.clientX - p.x, e.clientY - p.y);
+          p.moved += step;
+          p.x = e.clientX;
+          p.y = e.clientY;
+          if (!engine.hitTest(e.clientX, e.clientY)) return;
+          // It only counts as petting after a proper stroke: well over a second
+          // of moving across the face, covering a good distance.
+          p.stroked += step;
+          const width = e.currentTarget.getBoundingClientRect().width || 300;
+          if (p.stroked > width * 1.6 && performance.now() - p.at > 1100) {
+            engine.pet(e.clientX, e.clientY);
+          }
         }}
-        onEvent={(text) => {
-          if (!debug) return;
-          events.current.push(text);
-          if (events.current.length > 200) events.current.shift();
+        onPointerUp={() => {
+          const p = press.current;
+          press.current = null;
+          if (p && p.moved < 8) engineRef.current?.poke();
         }}
+        onPointerCancel={() => {
+          press.current = null;
+        }}
+        onClick={(e) => {
+          // Enter or Space on the focused window counts as a poke too.
+          if (e.detail === 0) engineRef.current?.poke();
+        }}
+      >
+        <Face
+          onEngine={(engine) => {
+            engineRef.current = engine;
+            engine?.configure({ followPointer, naps, energy, headphones, mustache });
+            applyAudio();
+          }}
+          onMood={(label) => {
+            const button = buttonRef.current;
+            if (!button) return;
+            const next = label ?? "Mote";
+            if (button.getAttribute("aria-label") !== next) button.setAttribute("aria-label", next);
+          }}
+          onEvent={(text) => {
+            if (!debug) return;
+            events.current.push(text);
+            if (events.current.length > 200) events.current.shift();
+          }}
+          onSpeech={(b) => {
+            if (b) measure();
+            setBubble(b);
+          }}
+        />
+      </button>
+      <SpeechBubble
+        bubble={bubble}
+        anchor={anchor}
+        onAnswer={(yes) => engineRef.current?.answer(yes)}
+        onDismiss={() => engineRef.current?.dismissSpeech()}
       />
-    </button>
+    </div>
   );
 }

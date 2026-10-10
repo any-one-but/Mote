@@ -17,6 +17,17 @@ import {
   type MindValues,
 } from "@/components/companion/mind";
 import { reactionById } from "@/components/companion/reactions";
+import {
+  chooseLine,
+  lifetime,
+  lineById,
+  textFor,
+  type Bubble,
+  type Line,
+  type Outcome,
+  type SpeechContext,
+  type SpeechEvent,
+} from "@/components/companion/speech";
 import { GEO } from "@/lib/companion/theme";
 
 export type Mood =
@@ -116,6 +127,8 @@ export type EngineHooks = {
   onMood: (label: string | null) => void;
   /** Plain-text happenings (mood changes, pokes, blinks) for the debug log. */
   onEvent?: (text: string) => void;
+  /** A speech bubble appears (or goes away, with null). */
+  onSpeech?: (bubble: Bubble | null) => void;
 };
 
 export type Energy = "calm" | "normal" | "lively";
@@ -131,6 +144,8 @@ export type EngineOptions = {
    * window, in screen points (null when nothing else is playing).
    */
   audio: { dx: number; dy: number } | null;
+  /** Where Mote's window sits on its screen, 0..1 from the left / top. */
+  placement: { x: number; y: number } | null;
 };
 
 export type Accessory = "headphones" | "mustache";
@@ -159,6 +174,10 @@ export type EngineSnapshot = {
   driftIn: MindValues;
   /** How often each reaction has fired, and when last (ms of Mote's clock ago). */
   reactions: Record<string, { count: number; ago: number }>;
+  /** The speech bubble showing now, and ms until Mote next feels like talking. */
+  speech: Bubble | null;
+  nextSpeechIn: number;
+  placement: { x: number; y: number } | null;
 };
 
 export type FaceEngine = {
@@ -185,6 +204,12 @@ export type FaceEngine = {
   /** Debug: set one feeling directly, or put them all back to 5. */
   setFeeling: (attr: Attr, value: number) => void;
   resetFeelings: () => void;
+  /** Answer the question in the speech bubble: green (true) or red (false). */
+  answer: (yes: boolean) => void;
+  /** Close a remark bubble early. */
+  dismissSpeech: () => void;
+  /** Debug: say a particular line now (or anything fitting, with no id). */
+  say: (lineId?: string) => void;
   snapshot: () => EngineSnapshot;
 };
 
@@ -917,6 +942,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     headphones: false,
     mustache: false,
     audio: null,
+    placement: null,
   };
   const debug = {
     timeScale: 1,
@@ -994,6 +1020,17 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     youUntil = clock + 15_000;
   };
 
+  // Speech: the bubble showing, when Mote next feels like talking, what was
+  // said recently, and something that just happened Mote might mention.
+  let bubble: Bubble | null = null;
+  let bubbleSeq = 0;
+  let nextSpeechAt = 50_000 + Math.random() * 50_000;
+  const lastSaid = new Map<string, number>();
+  let pendingEvent: { event: SpeechEvent; at: number } | null = null;
+  const movedSince = { x: 0, y: 0 };
+  let pettedSince = false;
+  let napGranted = false;
+
   const log = (text: string) => hooks.onEvent?.(text);
 
   const react = (id: string) => {
@@ -1033,7 +1070,133 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (next === "dizzy") blinkAt(now + 2680, true);
     if (next === "checkin") blinkAt(now + 40);
     if (prev === "dizzy") dizzyReadyAt = now + 4000;
+    if (prev === "dizzy" && next !== "dizzy") mention("dizzy-over", 0.5);
+    if (prev === "purr" && next !== "purr") mention("petted", 0.35);
     if (next === "settle" && prev === "doze") blinkAt(now + 60, true);
+  };
+
+  /** Maybe bring up something that just happened, next time Mote can talk. */
+  const mention = (event: SpeechEvent, chance: number) => {
+    if (Math.random() < chance) pendingEvent = { event, at: clock };
+  };
+
+  const speechContext = (): SpeechContext => ({
+    feel,
+    moods: moodsNow,
+    interest,
+    asleep: mood === "sleep",
+    event: pendingEvent?.event ?? null,
+    hour: new Date().getHours(),
+    headphones: options.headphones,
+    mustache: options.mustache,
+    placement: options.placement,
+  });
+
+  const showBubble = (b: Bubble | null) => {
+    bubble = b;
+    hooks.onSpeech?.(b);
+  };
+
+  /** How long until Mote next feels like saying something. */
+  const speechGap = () => {
+    const fl = feelings(feel);
+    const pace = (1 - 0.3 * fl.restless + 0.3 * fl.calm) * (1 + 0.4 * fl.sleepy);
+    const watching = interest === "media" ? 1.5 : 1;
+    return (60_000 + Math.random() * 90_000) * pace * watching * ENERGY_GAP[options.energy];
+  };
+
+  const say = (line: Line, now: number) => {
+    const c = speechContext();
+    const text = textFor(line, c);
+    lastSaid.set(line.id, now);
+    pendingEvent = null;
+    movedSince.x = 0;
+    movedSince.y = 0;
+    pettedSince = false;
+    showBubble({
+      id: ++bubbleSeq,
+      lineId: line.id,
+      kind: line.kind,
+      text,
+      direction: line.direction?.(c),
+      born: now,
+      ttl: lifetime(line.kind, text),
+    });
+    react("speak");
+    log(`says “${text}”`);
+  };
+
+  /** A bubble is answered, acted on, ignored, or simply over. */
+  const resolve = (outcome: Outcome, now: number) => {
+    const b = bubble;
+    if (!b) return;
+    showBubble(null);
+    nextSpeechAt = Math.max(nextSpeechAt, now + speechGap());
+    const line = lineById.get(b.lineId);
+    if (b.reply || !line) return;
+    const effects = line.effects?.[outcome];
+    if (effects) feel = nudge(feel, effects);
+    if (outcome !== "done") react(`answer-${outcome}`);
+    const then = line.then?.[outcome];
+    if (then === "nap" && mood !== "sleep") {
+      napGranted = true;
+      start("doze", now);
+    }
+    const replies = line.replies?.[outcome];
+    if (replies?.length) {
+      const text = replies[Math.floor(Math.random() * replies.length)];
+      showBubble({
+        id: ++bubbleSeq,
+        lineId: line.id,
+        kind: "flavor",
+        text,
+        born: now,
+        ttl: Math.min(5000, 1500 + text.length * 55),
+        reply: true,
+      });
+      log(`says “${text}”`);
+    }
+  };
+
+  /** How far the window has been carried toward where Mote asked to go. */
+  const moveProgress = (b: Bubble) => {
+    const along =
+      b.direction === "left"
+        ? -movedSince.x
+        : b.direction === "right"
+          ? movedSince.x
+          : b.direction === "up"
+            ? -movedSince.y
+            : movedSince.y;
+    const span = b.direction === "up" || b.direction === "down" ? screen.availHeight : screen.availWidth;
+    return along / Math.max(160, span * 0.15);
+  };
+
+  /** Speech each frame: resolve the current bubble, or maybe start one. */
+  const speak = (now: number) => {
+    if (pendingEvent && now - pendingEvent.at > 6000) pendingEvent = null;
+    if (bubble) {
+      const age = now - bubble.born;
+      if (bubble.kind === "move" && moveProgress(bubble) >= 1) resolve("moved", now);
+      else if (bubble.kind === "pet" && pettedSince) resolve("petted", now);
+      else if (age > bubble.ttl) resolve(bubble.kind === "flavor" ? "done" : "ignored", now);
+      return;
+    }
+    if (debug.manual) return;
+    const busy = ["dizzy", "doze", "wake", "purr", "delight"].includes(mood);
+    if (busy) return;
+    if (pendingEvent) {
+      const line = chooseLine(speechContext(), lastSaid, now, 2 * 60_000);
+      pendingEvent = null;
+      if (line) say(line, now);
+      return;
+    }
+    if (now < nextSpeechAt) return;
+    nextSpeechAt = now + speechGap();
+    // Asleep, Mote only talks in their sleep, and rarely.
+    if (mood === "sleep" && Math.random() > 0.25) return;
+    const line = chooseLine(speechContext(), lastSaid, now);
+    if (line) say(line, now);
   };
 
   /** Which little idle moods are on the cards depends on how Mote feels. */
@@ -1159,7 +1322,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     pokes.push(now);
     while (pokes.length && now - pokes[0] > 2200) pokes.shift();
     if (mood === "sleep" || mood === "doze") {
-      react(feel.alert < 4 ? "wake-groggy" : "wake-rested");
+      const groggy = feel.alert < 4;
+      react(groggy ? "wake-groggy" : "wake-rested");
+      mention(groggy ? "woke-groggy" : "woke-rested", 0.6);
       start("wake", now);
     } else if (pokes.length >= 4 && mood !== "frustrate") {
       pokes.length = 0;
@@ -1256,6 +1421,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const was = interest;
     interest = media ? "media" : you ? "you" : null;
     if (interest && interest !== was) react(interest === "media" ? "intrigued-media" : "intrigued-you");
+    if (interest === "media" && was !== "media") mention("media-start", 0.3);
     const watchingMedia = media && !you;
 
     // Left completely alone (nothing playing, you away), a Mote that's actually
@@ -1281,7 +1447,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (over) {
       // A doze becomes real sleep only when Mote is properly tired; otherwise
       // they catch themself.
-      const fallsAsleep = interest ? feel.alert <= 0.5 : feel.alert <= 2 && idleFor > 8000;
+      const fallsAsleep =
+        napGranted || (interest ? feel.alert <= 0.5 : feel.alert <= 2 && idleFor > 8000);
+      if (mood === "doze") napGranted = false;
       // A tiny chance a check-in turns into something sweet, more when happy.
       const sweet = 0.03 + 0.12 * clamp((feel.happy - 5) / 5, 0, 1);
       if (debug.loop && mood !== "purr") start(mood, now);
@@ -1308,6 +1476,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       } else start(pick(), now);
     }
     if (!debug.autoMoods && mood === "settle") nextAct = Math.max(nextAct, now + 1000);
+    speak(now);
 
     const t = now - moodStart;
     const { pose: target, shakeX, shakeRot, swirl, purr } = poseFor(mood, t, moodSeed, {
@@ -1336,6 +1505,22 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       target.mLift += (0.3 * fl.happy - 0.3 * fl.frustrated) * tone;
     }
     const tempo = mood === "sleep" ? 0.12 : mood === "settle" ? 1 : MOODS[mood].tempo;
+
+    // While a bubble is up, Mote looks out at you (or toward where they want
+    // to go) and bobs a little while the words come out.
+    if (bubble && mood !== "sleep" && ["settle", "glance", "checkin"].includes(mood)) {
+      const dir = bubble.direction;
+      target.lookX = dir === "left" ? -0.8 : dir === "right" ? 0.8 : 0;
+      target.lookY = dir === "up" ? -0.75 : dir === "down" ? 0.6 : -0.05;
+      target.lookMix = 0.85;
+      const talking = now - bubble.born < 300 + bubble.text.length * 32;
+      if (talking && !reduced) {
+        const w = Math.sin(((now - bubble.born) / 1000) * Math.PI * 2 * 5);
+        target.sy += 0.014 * w;
+        target.sx -= 0.008 * w;
+        target.y -= 0.8 * Math.max(0, w);
+      }
+    }
 
     // Pointer & idle gaze.
     const rect = svg.getBoundingClientRect();
@@ -1600,6 +1785,10 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     winMoved.x += dx;
     winMoved.y += dy;
     engage();
+    if (bubble?.kind === "move") {
+      movedSince.x += dx;
+      movedSince.y += dy;
+    }
     if (clock - lastDragReact > 5000) {
       lastDragReact = clock;
       react("drag");
@@ -1699,6 +1888,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       if (clock > 1500) {
         if (!before.headphones && options.headphones) react("wear-headphones");
         if (!before.mustache && options.mustache) react("wear-mustache");
+        if ((!before.headphones && options.headphones) || (!before.mustache && options.mustache)) {
+          mention("accessory-on", 0.7);
+        }
       }
       if (!options.naps && (mood === "doze" || mood === "sleep")) start("wake", clock);
       for (const a of ["headphones", "mustache"] as const) {
@@ -1744,6 +1936,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     },
     pet: (clientX, clientY) => {
       engage();
+      if (bubble?.kind === "pet") pettedSince = true;
       const fresh = clock - petAt.t > 350;
       petAt.t = clock;
       petAt.x = clientX;
@@ -1757,6 +1950,17 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     setFeeling: (attr, value) => {
       feel = { ...feel, [attr]: clamp(value, 0, 10) };
       log(`set ${attr} to ${feel[attr].toFixed(1)}`);
+    },
+    answer: (yes) => {
+      if (bubble?.kind === "ask" && !bubble.reply) resolve(yes ? "yes" : "no", clock);
+    },
+    dismissSpeech: () => {
+      if (bubble?.kind === "flavor") resolve("done", clock);
+    },
+    say: (lineId) => {
+      if (bubble) showBubble(null);
+      const line = lineId ? lineById.get(lineId) : chooseLine(speechContext(), new Map(), clock);
+      if (line) say(line, clock);
     },
     resetFeelings: () => {
       feel = { ...MIND_START };
@@ -1778,6 +1982,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       petting: clock - petAt.t < 350,
       audio: options.audio !== null,
       intrigued: interest,
+      speech: bubble,
+      nextSpeechIn: Math.max(0, nextSpeechAt - clock),
+      placement: options.placement,
       mind: { ...feel },
       moods: [...moodsNow],
       driftIn: { ...driftAt },
