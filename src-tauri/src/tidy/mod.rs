@@ -6,6 +6,7 @@
 // names, convert videos, remove metadata, delete by a rule, compress.
 // Videos get: trim the start, trim the end, save the audio as an MP3.
 
+mod apps;
 mod archives;
 mod compress;
 mod convert;
@@ -61,6 +62,8 @@ impl Report {
 pub enum Given {
     Folder { path: String, name: String, files: usize, bytes: u64 },
     Videos { paths: Vec<String>, names: Vec<String>, bytes: u64 },
+    /// An app: a game to play, or something for Mote to have an opinion on.
+    App { name: String, bundle: Option<String>, game: Option<&'static str> },
     Other { reason: &'static str, names: Vec<String> },
 }
 
@@ -111,6 +114,13 @@ pub fn work_inspect(paths: Vec<String>) -> Given {
         return Given::Other { reason: "nothing", names };
     }
     let dirs: Vec<&PathBuf> = items.iter().filter(|p| p.is_dir()).collect();
+    // An app (the first one, if there are a few): Mote plays it or reacts.
+    if let Some(app) = items.iter().find(|p| {
+        p.is_dir() && p.extension().is_some_and(|e| e.eq_ignore_ascii_case("app"))
+    }) {
+        let (name, bundle, game) = apps::inspect(app);
+        return Given::App { name, bundle, game };
+    }
     if items.iter().any(|p| is_bundle(p)) {
         return Given::Other { reason: "app", names };
     }

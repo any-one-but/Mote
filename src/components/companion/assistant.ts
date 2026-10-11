@@ -167,6 +167,8 @@ export function greet(g: Given): string {
       `Ooh, ${what}. What’ll it be?`,
     ]);
   }
+  // (Apps don't come here: Mote plays them, or reacts to them, instead.)
+  if (g.kind === "app") return `*${g.name}*!`;
   switch (g.reason) {
     case "important":
       return "That looks like something your Mac needs. I’d better not touch it!";

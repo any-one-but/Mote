@@ -672,3 +672,17 @@
     opacity: 0.4;
   }
 }
+
+/* Game props */
+
+.prop-line {
+  fill: none;
+  stroke: var(--color-face);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.prop-dot {
+  fill: var(--color-face);
+}

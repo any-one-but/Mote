@@ -47,6 +47,22 @@ How hard your Mac works on it is the **Pace** in Settings: Gentle (quietly in
 the background), Normal (one thing at a time), or Turbo (many at once, much
 faster, but your Mac will be busy).
 
+**Apps** dropped on Mote aren't work, they're fun:
+
+- **Games** get played. Apple's **Chess** has its own animations (a long
+  think, then a clever move, a smug look and checkmate, or a blunder and a
+  laugh), and so does **Minecraft** (mining a block, or a creeper… BOOM).
+  Any other game gets gamer moves: locking in, button mashing, a clutch
+  moment, then a victory hop or a deflated head shake. Afterwards Mote
+  sometimes asks to go again. Mote knows something is a game if the app
+  says so, if it's a game store or launcher (Steam, GOG, Epic, Battle.net…)
+  or lives in one's folder, if it's one of Steam's little shortcut apps
+  (Mote reads its one-line launch script for the `steam://` link; it's never
+  run), or if it's built with a game engine.
+- **The Mac's own apps** (Safari, Music, Calculator, Photo Booth, Terminal
+  and about 60 more) each get their own line and a little reaction.
+- **Any other app** gets "That's an app, not a game."
+
 ## Mote themself
 
 Mote looks at your pointer, blinks, glances around, thinks, gets grumpy, gets

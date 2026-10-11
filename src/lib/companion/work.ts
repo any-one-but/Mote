@@ -13,6 +13,12 @@ export type Given =
   | { kind: "folder"; path: string; name: string; files: number; bytes: number }
   | { kind: "videos"; paths: string[]; names: string[]; bytes: number }
   | {
+      kind: "app";
+      name: string;
+      bundle: string | null;
+      game: "chess" | "minecraft" | "game" | null;
+    }
+  | {
       kind: "other";
       reason: "nothing" | "app" | "mixed" | "important" | "not-video";
       names: string[];
@@ -111,6 +117,19 @@ const VIDEO = /\.(mp4|m4v|mov|wmv|flv|avi|webm|mkv|mpg|mpeg|3gp|m2ts|vob|ogv|gif
 function pretendInspect(paths: string[]): Given {
   const names = paths.map((p) => p.replace(/\/$/, "").split("/").pop() ?? p);
   if (!paths.length) return { kind: "other", reason: "nothing", names };
+  const app = paths.find((p) => /\.app\/?$/i.test(p));
+  if (app) {
+    const name = app.replace(/\/$/, "").split("/").pop()!.replace(/\.app$/i, "");
+    const known: Record<string, [string | null, "chess" | "minecraft" | "game" | null]> = {
+      Chess: ["com.apple.chess", "chess"],
+      Minecraft: ["com.mojang.minecraftlauncher", "minecraft"],
+      Safari: ["com.apple.safari", null],
+      Music: ["com.apple.music", null],
+      Numbers: ["com.apple.iwork.numbers", null],
+    };
+    const [bundle, game] = known[name] ?? [null, /game|steam/i.test(name) ? "game" : null];
+    return { kind: "app", name, bundle, game };
+  }
   if (paths.length === 1 && (paths[0].endsWith("/") || !/\.[a-z0-9]+$/i.test(paths[0]))) {
     return {
       kind: "folder",

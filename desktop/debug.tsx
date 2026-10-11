@@ -74,6 +74,9 @@ const MOOD_NAMES: Record<Mood, string> = {
   fidget: "Fidget",
   hum: "Hum",
   checkin: "Check in",
+  chess: "Chess",
+  minecraft: "Minecraft",
+  gaming: "Gaming",
   present: "Offering options",
   work: "Working",
   tada: "Job done",
@@ -90,6 +93,12 @@ const PRETEND_GIFTS: Array<[string, string[]]> = [
   ["A video", ["/Users/you/Movies/talk.mov"]],
   ["Two videos", ["/Users/you/Movies/a.mp4", "/Users/you/Movies/b.mkv"]],
   ["A photo", ["/Users/you/Pictures/cat.jpg"]],
+  ["Chess", ["/System/Applications/Chess.app"]],
+  ["Minecraft", ["/Applications/Minecraft.app"]],
+  ["A game", ["/Users/you/Applications/Some Game.app"]],
+  ["Safari", ["/Applications/Safari.app"]],
+  ["Music", ["/System/Applications/Music.app"]],
+  ["Other app", ["/Applications/Obsidian.app"]],
 ];
 
 const TAB_KEY = "mote.debug.tab";

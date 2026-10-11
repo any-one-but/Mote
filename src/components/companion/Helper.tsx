@@ -111,10 +111,20 @@ export function Helper({ engine, pace, gift, onOpen }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Something new to work on.
+  // Something new to work on. (Apps aren't work: Mote plays the game or has
+  // something to say about the app, and the options go away.)
   useEffect(() => {
     if (!gift) return;
-    if (phaseRef.current.at === "working" || phaseRef.current.at === "installing") {
+    const busy = phaseRef.current.at === "working" || phaseRef.current.at === "installing";
+    if (gift.paths.some((p) => /\.app\/?$/i.test(p))) {
+      void inspect(gift.paths).then((g) => {
+        if (g.kind !== "app") return;
+        if (!busy) close();
+        engine()?.offerApp({ name: g.name, bundle: g.bundle, game: g.game });
+      });
+      return;
+    }
+    if (busy) {
       setProblems(["One thing at a time! I’m still busy with this."]);
       return;
     }
@@ -128,6 +138,11 @@ export function Helper({ engine, pace, gift, onOpen }: Props) {
       );
       plan.current = [];
       setDone([]);
+      if (g.kind === "app") {
+        close();
+        engine()?.offerApp({ name: g.name, bundle: g.bundle, game: g.game });
+        return;
+      }
       if (g.kind === "other") {
         setWork(null);
         talk(greet(g), { at: "bye" });
