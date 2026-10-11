@@ -244,13 +244,6 @@ export function Companion() {
         onPointerCancel={() => {
           press.current = null;
         }}
-        onWheel={(e) => {
-          // Scrolling on Mote spins them (scrolling down or right goes
-          // clockwise). Line-based scrolling (some mice) counts ~16px a line.
-          if (!engineRef.current?.hitTest(e.clientX, e.clientY)) return;
-          const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
-          engineRef.current.spin((e.deltaY + e.deltaX) * unit);
-        }}
         onClick={(e) => {
           // Enter or Space on the focused window counts as a poke too.
           if (e.detail === 0) engineRef.current?.poke();

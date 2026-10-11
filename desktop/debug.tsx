@@ -88,7 +88,6 @@ const MOOD_NAMES: Record<Mood, string> = {
   wake: "Wake up",
   startle: "Startled awake",
   dizzy: "Dizzy",
-  spin: "Spinning",
   purr: "Purr",
   huff: "Huff",
   sulk: "Sulk",

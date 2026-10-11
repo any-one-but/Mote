@@ -26,7 +26,6 @@ export type SpeechEvent =
   | "media-start"
   | "welcome-back"
   | "played"
-  | "spun"
   | "woke-rested"
   | "woke-groggy"
   | "startled";
@@ -47,9 +46,6 @@ export type SpeechContext = {
   game: string | null;
   gameKind: "chess" | "minecraft" | "game" | null;
   gameWon: boolean;
-  /** The spin that just ended: top speed (turns a second), how long it
-   * lasted (seconds) and how many times round. */
-  spin: { peak: number; seconds: number; turns: number } | null;
   /** A saved link being talked about: what it's called, whether it's a
    * video, and its history with you. */
   link: {
@@ -134,84 +130,6 @@ export const LINES: Line[] = [
     kind: "flavor",
     when: (c) => c.event === "media-start",
     say: ["Ooh, something’s on!", "Oh! Are we watching something?"],
-  },
-  {
-    id: "spun",
-    group: "After something happens",
-    kind: "flavor",
-    when: (c) => c.event === "spun" && c.spin !== null,
-    cooldown: 0,
-    say: (c) => {
-      const s = c.spin ?? { peak: 0, seconds: 0, turns: 0 };
-      const turns = Math.round(s.turns);
-      const lines: string[] = [];
-      // By top speed.
-      if (s.peak < 0.6) {
-        lines.push(
-          "Ooh, a little twirl!",
-          "Hehe. That tickled.",
-          "A gentle spin! Very relaxing.",
-          "Was that a spin or a wiggle? Either way, more please.",
-        );
-      } else if (s.peak < 2) {
-        lines.push(
-          "Wheee! Again!",
-          "Round and round! I love that.",
-          "That was the perfect speed. Do it again!",
-          "Spinny! Spinny spinny!",
-          "My favorite kind of exercise.",
-        );
-      } else if (s.peak < 6) {
-        lines.push(
-          "WHEEE! The room is still going!",
-          "Whoa, whoa, whoa. That was SO fun.",
-          "I think my eyes are still spinning.",
-          "Faster than a washing machine! Again!",
-          "Hold on, let me find which way is up.",
-        );
-      } else if (s.peak < 20) {
-        lines.push(
-          "THAT WAS AMAZING. Give me a second…",
-          "I can hear colors.",
-          "I think I left my stomach over there.",
-          "Is this what being a fan feels like? A ceiling fan?",
-          "My cheeks are still stuck from squishing!",
-        );
-      } else {
-        lines.push(
-          "I think I saw the back of my own head.",
-          "I am one with the centrifuge.",
-          "Was that the speed of light?!",
-          "I went so fast I arrived yesterday.",
-          "I’m pretty sure I just became a donut.",
-          "HOW. That was incredible. HOW.",
-        );
-      }
-      // By how long it lasted.
-      if (s.seconds > 30) {
-        lines.push(
-          "How long were we spinning?! I’ve lost track of time.",
-          "I’ve been spinning so long I forgot what still feels like.",
-        );
-      } else if (s.seconds > 12) {
-        lines.push(
-          "That went on forever! In the best way.",
-          "My whole world has been sideways for ages.",
-        );
-      } else if (s.seconds < 2 && s.peak >= 0.6) {
-        lines.push("Short but sweet!", "Over so fast! Wanna go again?");
-      }
-      // And how many times round.
-      if (turns >= 1000)
-        lines.push(`That was… ${turns.toLocaleString()} spins?! I stopped counting at a hundred.`);
-      else if (turns >= 50)
-        lines.push(
-          `I counted ${turns} spins! …I think.`,
-          `${turns} times round! A new record? Probably!`,
-        );
-      else if (turns >= 5) lines.push(`${turns} whole spins!`);
-      return lines;
-    },
   },
   {
     id: "woke-rested",

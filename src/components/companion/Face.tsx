@@ -71,17 +71,8 @@ export function Face({ onEngine, onMood, onEvent, onSpeech, onOpenLink }: FacePr
       />
 
       <g data-part="body">
-        <ellipse data-part="skin" cx={cx} cy={cy} rx={faceRx} ry={faceRy} className="skin" />
+        <ellipse cx={cx} cy={cy} rx={faceRx} ry={faceRy} className="skin" />
 
-        {/* Spinning very fast, the eyes blur into a ring (both sit this far from the middle). */}
-        <circle
-          data-part="spin-blur"
-          className="spin-blur"
-          cx={cx}
-          cy={cy}
-          r={Math.hypot(GEO.eyeRX - cx, GEO.eyeY - cy)}
-          style={{ display: "none" }}
-        />
         <g data-part="eyes" filter="url(#mote-soft)">
           <g mask="url(#mote-eye-l)">
             <rect className="ink" x={GEO.eyeLX - 60} y={GEO.eyeY - 72} width={120} height={144} />
