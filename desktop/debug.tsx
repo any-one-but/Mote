@@ -17,12 +17,13 @@ import {
   type DebugState,
 } from "@/lib/companion/bus";
 import {
-  ATTRS,
-  FRIENDLY,
+  FRIENDLY_FLOOR,
   LASTING_MOODS,
-  MIND_ENABLED,
-  type Attr,
+  NEEDS,
+  QUADRANT_NAME,
+  type Feeling,
 } from "@/components/companion/mind";
+import { clearMemories, GAME_NAME, loadMemories, whenWords } from "@/components/companion/memories";
 import { REACTION_GROUPS, REACTIONS, type Reaction } from "@/components/companion/reactions";
 import { LINES, type BubbleKind } from "@/components/companion/speech";
 import {
@@ -62,10 +63,7 @@ type Ctx = {
 
 const TABS: Array<{ id: string; label: string; render: (ctx: Ctx) => ReactNode }> = [
   { id: "moods", label: "Moods", render: (ctx) => <MoodsTab {...ctx} /> },
-  // Mote's feelings are switched off for now (see MIND_ENABLED), so their tab is too.
-  ...(MIND_ENABLED
-    ? [{ id: "mind", label: "Mind", render: (ctx: Ctx) => <MindTab {...ctx} /> }]
-    : []),
+  { id: "mind", label: "Mind", render: (ctx) => <MindTab {...ctx} /> },
   { id: "speech", label: "Speech", render: (ctx) => <SpeechTab {...ctx} /> },
   { id: "pose", label: "Pose", render: (ctx) => <PoseTab {...ctx} /> },
   { id: "motion", label: "Motion", render: (ctx) => <MotionTab {...ctx} /> },
@@ -114,6 +112,7 @@ const MOOD_NAMES: Record<Mood, string> = {
   "ck-lose": "Board game: lost",
   "ch-check": "Chess: check!",
   "ch-checked": "Chess: in check",
+  munch: "Eating",
 };
 
 /**
@@ -321,92 +320,160 @@ function MoodsTab({ snap, debug, command }: Ctx) {
 
 /* Mind */
 
-const ATTR_NAME: Record<Attr, string> = {
-  happy: "Happy",
-  restless: "Restless",
-};
-
-// Soft colours for each end of a feeling's track.
-const TINT: Record<Attr, [string, string]> = {
-  happy: ["#e7b7a2", "#b9cfa0"],
-  restless: ["#b9cbd9", "#e9c08f"],
-};
+const FEELING_NAME: Record<Feeling, string> = { joy: "Joy", peace: "Satisfied" };
 
 const seconds = (ms: number) => `${Math.max(0, Math.ceil(ms / 1000))}s`;
 
+/** Joy across, Satisfied up: where Mote's mood sits, as a dot on a chart. */
+function MoodChart({ joy, peace, friendly }: { joy: number; peace: number; friendly: boolean }) {
+  const S = 240;
+  const at = (v: number) => ((v + 10) / 20) * S;
+  const floor = at(FRIENDLY_FLOOR);
+  return (
+    <svg className="mood-chart" viewBox={`-72 -22 ${S + 128} ${S + 44}`} role="img" aria-label="Mood chart">
+      <rect x="0" y="0" width={S / 2} height={S / 2} className="q q-grumpy" />
+      <rect x={S / 2} y="0" width={S / 2} height={S / 2} className="q q-happy" />
+      <rect x="0" y={S / 2} width={S / 2} height={S / 2} className="q q-miserable" />
+      <rect x={S / 2} y={S / 2} width={S / 2} height={S / 2} className="q q-needy" />
+      <path
+        d={`M${at(-2.5)} 0V${S}M${at(2.5)} 0V${S}M0 ${at(-2.5)}H${S}M0 ${at(2.5)}H${S}`}
+        className="q-band"
+      />
+      {friendly ? (
+        <path d={`M${floor} 0V${S}M0 ${S - floor}H${S}`} className="q-floor" />
+      ) : null}
+      <path d={`M${S / 2} 0V${S}M0 ${S / 2}H${S}`} className="q-axis" />
+      <text x="8" y="16" className="q-name">Grumpy</text>
+      <text x={S - 8} y="16" className="q-name" textAnchor="end">Happy</text>
+      <text x="8" y={S - 8} className="q-name">Miserable</text>
+      <text x={S - 8} y={S - 8} className="q-name" textAnchor="end">Needy</text>
+      <text x={S / 2} y="-8" className="q-end" textAnchor="middle">Satisfied</text>
+      <text x={S / 2} y={S + 16} className="q-end" textAnchor="middle">Depressed</text>
+      <text x="-6" y={S / 2 + 4} className="q-end" textAnchor="end">Frustrated</text>
+      <text x={S + 6} y={S / 2 + 4} className="q-end">Joyful</text>
+      <circle cx={at(joy)} cy={S - at(peace)} r="9" className="q-dot" />
+    </svg>
+  );
+}
+
 function MindTab({ snap, command, settings }: Ctx) {
   const [show, setShow] = useState<"all" | "live" | "idea">("all");
+  const [memories, setMemories] = useState(loadMemories);
+  useEffect(() => {
+    const t = window.setInterval(() => setMemories(loadMemories()), 3000);
+    return () => window.clearInterval(t);
+  }, []);
   if (!snap) return <p className="empty">Nothing yet. Is Mote’s window open?</p>;
   const list = REACTIONS.filter((r) => show === "all" || r.status === show);
+  const { joy, peace } = snap.mind;
+  const set = (attr: "joy" | "peace" | "fullness" | "rest", value: number) => command({ do: "feeling", attr, value });
+  const since = Math.floor(snap.sinceAttention);
   return (
     <>
-      <Section title="Feelings">
-        {ATTRS.map((a) => {
-          const v = snap.mind[a.key];
-          // Every meter reads bad on the left, good on the right.
-          const shown = a.flip ? 10 - v : v;
-          const [left, right] = a.flip ? [a.high, a.low] : [a.low, a.high];
-          const [lo, hi] = a.flip ? [TINT[a.key][1], TINT[a.key][0]] : TINT[a.key];
-          const around = snap.intrigued.includes("you") || snap.intrigued.includes("typing");
-          const next = seconds(snap.driftIn[a.key]);
-          const busy = around || snap.helping !== null;
+      <Section title="Mood">
+        <div className="mood-box">
+          <MoodChart joy={joy} peace={peace} friendly={settings.friendly} />
+          <div className="mood-side">
+            <p className="mood-name">{QUADRANT_NAME[snap.quadrant]}</p>
+            <p className="mono mood-numbers">
+              Joy {joy.toFixed(1)}
+              <br />
+              Satisfied {peace.toFixed(1)}
+            </p>
+            <p className="meter-note">
+              {since < 1 ? "You’re with Mote now." : `Last time with Mote: ${since} min ago.`}
+              {since >= 20 ? " Feeling ignored." : ""}
+            </p>
+            <div className="mood-nudges">
+              <Button onClick={() => set("joy", joy - 1)}>Joy −1</Button>
+              <Button onClick={() => set("joy", joy + 1)}>Joy +1</Button>
+              <Button onClick={() => set("peace", peace - 1)}>Satisfied −1</Button>
+              <Button onClick={() => set("peace", peace + 1)}>Satisfied +1</Button>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Needs">
+        {NEEDS.map((n) => {
+          const v = snap.mind[n.key];
           const note =
-            a.key === "happy"
-              ? v <= FRIENDLY.happyMin
-                ? "Friendly mode: never lower than this"
-                : busy
-                  ? "You’re here, so not getting crosser"
-                  : `A step crosser in ${next}`
-              : v >= FRIENDLY.restlessMax
-                ? "Friendly mode: never more restless than this"
-                : busy
-                  ? "You’re here, so not getting restless"
-                  : `A step more restless in ${next}`;
+            n.key === "rest"
+              ? snap.asleep
+                ? "Asleep: resting up"
+                : v <= 3
+                  ? "Sleepy: naps come sooner"
+                  : v > 6
+                    ? "Wide awake: no naps"
+                    : "Getting tired"
+              : v <= 3
+                ? "Hungry"
+                : v >= 9
+                  ? "Full: won’t eat"
+                  : "Fine for now";
           return (
-            <div key={a.key} className="meter">
+            <div key={n.key} className="meter">
               <div className="meter-top">
-                <span>{left}</span>
-                <span className="mono meter-value">
-                  {a.flip ? `${a.high.toLowerCase()} ${v.toFixed(1)}` : v.toFixed(1)}
-                </span>
-                <span>{right}</span>
+                <span>{n.low}</span>
+                <span className="mono meter-value">{v.toFixed(1)}</span>
+                <span>{n.high}</span>
               </div>
               <div
                 className="meter-track"
                 style={{
-                  ["--v" as string]: `${shown * 10}%`,
-                  ["--lo" as string]: lo,
-                  ["--hi" as string]: hi,
+                  ["--v" as string]: `${v * 10}%`,
+                  ["--lo" as string]: n.key === "rest" ? "#b9cbd9" : "#e7b7a2",
+                  ["--hi" as string]: "#b9cfa0",
                 }}
               >
-                <span className="meter-mid" />
                 <span className="meter-dot" />
               </div>
               <div className="meter-foot">
                 <span className="meter-note">{note}</span>
                 <span className="meter-buttons">
-                  <Button
-                    onClick={() =>
-                      command({ do: "feeling", attr: a.key, value: a.flip ? v + 1 : v - 1 })
-                    }
-                  >
-                    ← 1
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      command({ do: "feeling", attr: a.key, value: a.flip ? v - 1 : v + 1 })
-                    }
-                  >
-                    1 →
-                  </Button>
+                  <Button onClick={() => set(n.key, v - 1)}>← 1</Button>
+                  <Button onClick={() => set(n.key, v + 1)}>1 →</Button>
                 </span>
               </div>
             </div>
           );
         })}
         <div className="button-row">
-          <Button onClick={() => command({ do: "resetFeelings" })}>All back to the start</Button>
+          <Button onClick={() => command({ do: "resetFeelings" })}>Mood and needs back to the start</Button>
         </div>
+      </Section>
+
+      <Section title="Games remembered">
+        {memories.length ? (
+          [...memories]
+            .reverse()
+            .slice(0, 8)
+            .map((m) => (
+              <Row
+                key={m.id}
+                label={`${GAME_NAME[m.game][0].toUpperCase()}${GAME_NAME[m.game].slice(1)} · ${m.level}`}
+                hint={`${m.winner === "draw" ? "A draw" : m.winner === "mote" ? "Mote won" : "You won"}${
+                  m.winner === "draw" ? "" : `, ${m.how === "resign" ? "by resignation" : m.margin}`
+                }${m.comeback ? ", a comeback" : ""} · ${whenWords(m.at) ?? "a while ago"} · brought up ${m.mentioned}×`}
+              >
+                <span className="mono">{m.moves} moves</span>
+              </Row>
+            ))
+        ) : (
+          <p className="empty">No games yet.</p>
+        )}
+        {memories.length ? (
+          <div className="button-row">
+            <Button
+              onClick={() => {
+                clearMemories();
+                setMemories([]);
+              }}
+            >
+              Forget them all
+            </Button>
+          </div>
+        ) : null}
       </Section>
 
       <Section title="Interest">
@@ -513,7 +580,7 @@ function ReactionRow({
   onApply: () => void;
 }) {
   const recent = fired && fired.ago < 1500;
-  const effects = Object.entries(r.effects ?? {}) as Array<[Attr, number]>;
+  const effects = Object.entries(r.effects ?? {}) as Array<[Feeling, number]>;
   return (
     <div
       className={`reaction${recent ? " is-recent" : ""}${r.status === "idea" ? " is-idea" : ""}`}
@@ -532,7 +599,7 @@ function ReactionRow({
         <div className="reaction-foot">
           {effects.map(([k, n]) => (
             <span key={k} className="effect">
-              {ATTR_NAME[k]} {n > 0 ? "↑" : "↓"} {Math.abs(n)}
+              {FEELING_NAME[k]} {n > 0 ? "↑" : "↓"} {Math.abs(n)}
             </span>
           ))}
           {fired ? (
@@ -794,8 +861,7 @@ const KIND_NAME: Record<BubbleKind, string> = {
 
 function SpeechTab({ snap, command }: Ctx) {
   if (!snap) return <p className="empty">Nothing yet. Is Mote’s window open?</p>;
-  // Needs come from feelings, which are switched off for now.
-  const lines = LINES.filter((l) => MIND_ENABLED || l.group !== "Needs");
+  const lines = LINES;
   const groups = [...new Set(lines.map((l) => l.group))];
   return (
     <>

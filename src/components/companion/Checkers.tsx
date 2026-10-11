@@ -4,6 +4,7 @@ import type { FaceEngine } from "@/components/companion/engine";
 import type { Level } from "@/lib/checkers/ai";
 import {
   colOf,
+  count,
   isKing,
   legalMoves,
   newGame,
@@ -26,7 +27,10 @@ import {
   sleep,
   store,
   type Phase,
+  margins,
+  noteSwing,
   type Stats,
+  type Swing,
   type Winner,
 } from "./board-store";
 
@@ -47,7 +51,7 @@ const piecesOf = (board: Cell[]): Piece[] =>
 
 /** A game of checkers against Mote, played in Mote's window. */
 export function Checkers({ engine, onClose }: Props) {
-  const saved = useRef(load<{ game: unknown; level: Level }>(SAVE));
+  const saved = useRef(load<{ game: unknown; level: Level; swing?: Swing }>(SAVE));
   const resumed = useRef(reviveGame(saved.current?.game));
   const [level, setLevel] = useState<Level>(savedLevel(saved.current?.level));
   const [phase, setPhase] = useState<Phase>(resumed.current ? "playing" : "pick");
@@ -70,6 +74,7 @@ export function Checkers({ engine, onClose }: Props) {
   const levelRef = useRef(level);
   levelRef.current = level;
   const standing = useRef<"even" | "ahead" | "behind">("even");
+  const swing = useRef<Swing>(saved.current?.swing ?? { min: 0, max: 0 });
   const lastForced = useRef(0);
 
   const tell = useCallback(
@@ -102,7 +107,7 @@ export function Checkers({ engine, onClose }: Props) {
   }, []);
 
   useEffect(() => {
-    if (phase === "playing") store(SAVE, { game, level });
+    if (phase === "playing") store(SAVE, { game, level, swing: swing.current });
   }, [phase, game, level]);
 
   /** Slides a piece along a move, taking pieces as it goes. */
@@ -129,7 +134,24 @@ export function Checkers({ engine, onClose }: Props) {
     setTimeout(() => alive.current && setPieces((ps) => ps.filter((p) => !p.gone)), 400);
   };
 
+  /** Mote's lead in pieces (a king counts as one and a half). */
+  const moteLead = (board: Cell[]) => {
+    const worth = (side: "you" | "mote") => {
+      const c = count(board, side);
+      return c.men + 1.5 * c.kings;
+    };
+    return worth("mote") - worth("you");
+  };
+
+  /** Mote remembers how it went: who won, by how much, from how far behind. */
+  const report = (winner: Winner, how: string, board: Cell[], moves: number, event: CheckersEvent) =>
+    engine()?.gameOver(
+      { game: "checkers", level: levelRef.current, winner, how, moves, ...margins(winner, moteLead(board), swing.current) },
+      event,
+    );
+
   const finish = (g: Game) => {
+    swing.current = noteSwing(swing.current, moteLead(g.board));
     const end = outcome(g);
     if (!end) return false;
     const winner = end.winner ?? "draw";
@@ -137,7 +159,7 @@ export function Checkers({ engine, onClose }: Props) {
     setPhase("over");
     store(SAVE, null);
     setStats(addToStats(STATS, levelRef.current, winner));
-    tell(winner === "mote" ? "mote-win" : winner === "you" ? "you-win" : "draw");
+    report(winner, end.reason, g.board, g.ply, winner === "mote" ? "mote-win" : winner === "you" ? "you-win" : "draw");
     return true;
   };
 
@@ -269,7 +291,8 @@ export function Checkers({ engine, onClose }: Props) {
     setResult(null);
     setBusy(false);
     setPhase("playing");
-    tell("start");
+    swing.current = { min: 0, max: 0 };
+    engine()?.gameStart("checkers", levelRef.current);
   };
 
   const resign = () => {
@@ -277,7 +300,7 @@ export function Checkers({ engine, onClose }: Props) {
     setPhase("over");
     store(SAVE, null);
     setStats(addToStats(STATS, level, "mote"));
-    tell("resign");
+    report("mote", "resign", game.board, game.ply, "resign");
   };
 
   const close = () => {

@@ -40,7 +40,10 @@ import {
   sleep,
   store,
   type Phase,
+  margins,
+  noteSwing,
   type Stats,
+  type Swing,
   type Winner,
 } from "./board-store";
 
@@ -51,7 +54,7 @@ type Props = {
 
 /** A piece on the board as drawn: `p` is positive for yours, negative for Mote's. */
 type Piece = { id: number; sq: number; p: number; gone?: boolean; lifted?: boolean };
-type Saved = { fen: string; history: string[]; level: Level };
+type Saved = { fen: string; history: string[]; level: Level; swing?: Swing };
 
 const SAVE = "mote.chess";
 const STATS = "mote.chess.stats";
@@ -123,6 +126,7 @@ export function Chess({ engine, onClose }: Props) {
   const levelRef = useRef(level);
   levelRef.current = level;
   const standing = useRef<"even" | "ahead" | "behind">("even");
+  const swing = useRef<Swing>(saved.current?.swing ?? { min: 0, max: 0 });
   const lastNag = useRef(0);
 
   const tell = useCallback(
@@ -138,7 +142,7 @@ export function Chess({ engine, onClose }: Props) {
   }, [engine, phase, pos.turn, busy]);
 
   useEffect(() => {
-    if (phase === "playing") store(SAVE, { fen: toFen(pos), history, level });
+    if (phase === "playing") store(SAVE, { fen: toFen(pos), history, level, swing: swing.current });
   }, [phase, pos, history, level]);
 
   /** Slides a piece (and a castling rook), and takes whatever it lands on. */
@@ -169,8 +173,19 @@ export function Chess({ engine, onClose }: Props) {
     setTimeout(() => alive.current && setPieces((ps) => ps.filter((p) => !p.gone)), 400);
   };
 
+  /** Mote's lead in pawns' worth. */
+  const moteLead = (p: Position) => -material(p.board) / 100;
+
+  /** Mote remembers how it went: who won, by how much, from how far behind. */
+  const report = (winner: Winner, how: string, p: Position, moves: number, event: ChessEvent) =>
+    engine()?.gameOver(
+      { game: "chess", level: levelRef.current, winner, how, moves, ...margins(winner, moteLead(p), swing.current) },
+      event,
+    );
+
   /** The game's over: say how, and add it to the record. */
   const finish = (next: Position, hist: string[]) => {
+    swing.current = noteSwing(swing.current, moteLead(next));
     const end = ending(next, hist);
     if (!end) return false;
     const winner: Winner = end.winner === 1 ? "you" : end.winner === -1 ? "mote" : "draw";
@@ -178,8 +193,8 @@ export function Chess({ engine, onClose }: Props) {
     setPhase("over");
     store(SAVE, null);
     setStats(addToStats(STATS, levelRef.current, winner));
-    if (end.reason === "checkmate") tell(winner === "mote" ? "mote-win" : "you-win");
-    else tell(end.reason);
+    const event: ChessEvent = end.reason === "checkmate" ? (winner === "mote" ? "mote-win" : "you-win") : end.reason;
+    report(winner, end.reason, next, hist.length - 1, event);
     return true;
   };
 
@@ -325,7 +340,8 @@ export function Chess({ engine, onClose }: Props) {
     setResult(null);
     setBusy(false);
     setPhase("playing");
-    tell("start");
+    swing.current = { min: 0, max: 0 };
+    engine()?.gameStart("chess", levelRef.current);
   };
 
   const resign = () => {
@@ -333,7 +349,7 @@ export function Chess({ engine, onClose }: Props) {
     setPhase("over");
     store(SAVE, null);
     setStats(addToStats(STATS, level, "mote"));
-    tell("resign");
+    report("mote", "resign", pos, history.length - 1, "resign");
   };
 
   const close = () => {

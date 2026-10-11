@@ -1,4 +1,4 @@
-import type { LastingMood, MindValues } from "@/components/companion/mind";
+import type { Effects, LastingMood, MindValues } from "@/components/companion/mind";
 
 // Everything Mote can say on their own, and when. Mote speaks up when
 // something happens that they'd naturally react to, when they need something
@@ -77,7 +77,7 @@ export type Line = {
   /** Which way Mote wants to be moved (move bubbles). */
   direction?: (c: SpeechContext) => Direction;
   /** How each outcome moves Mote's feelings. */
-  effects?: Partial<Record<Outcome, Partial<MindValues>>>;
+  effects?: Partial<Record<Outcome, Effects>>;
   /** What Mote says back after each outcome (a short flavor bubble). */
   replies?: Partial<Record<Outcome, string[]>>;
   /** In Friendly mode, gentler replies to use instead. */
@@ -124,7 +124,7 @@ export const LINES: Line[] = [
     kind: "ask",
     when: (c) => c.event === "dizzy-over",
     say: ["Whoaaa… was that on purpose?"],
-    effects: { yes: { happy: -0.3, restless: 0.3 }, no: { happy: 0.2 } },
+    effects: { yes: { joy: -0.3 }, no: { joy: 0.2 } },
     replies: { yes: ["Rude! …My head is still spinning."], no: ["Okay. I forgive you."] },
     kindReplies: { yes: ["Ha! It was kind of like a ride."], no: ["Whee, anyway!"] },
   },
@@ -189,7 +189,7 @@ export const LINES: Line[] = [
           : c.gameWon
             ? ["GG! Again?", "Did you see that? Again!"]
             : ["I was lagging. Again?", "Rematch?"],
-    effects: { yes: { happy: 0.3 } },
+    effects: { yes: { joy: 0.3 } },
     replies: { no: ["Aw, okay. That was fun!"] },
     then: { yes: "play-again" },
   },
@@ -413,7 +413,8 @@ export const LINES: Line[] = [
     kind: "flavor",
     cooldown: 3 * 60_000,
     weight: 3,
-    when: (c) => c.event === "chat",
+    // Cheerful thoughts, so not when Mote is low or cross.
+    when: (c) => c.event === "chat" && !c.moods.some((m) => m === "down" || m === "depressed" || m === "frustrated"),
     say: [
       "Hi. Just saying hi.",
       "What are you up to?",
@@ -433,12 +434,134 @@ export const LINES: Line[] = [
       "Stretch break? Your shoulders say yes.",
       "Boop. That’s all.",
       "Got any games? I’m pretty good. (Sometimes.)",
-      "Chess? Checkers? Right-click me. I’m ready.",
+      "Chess? Checkers? The toy chest’s right there.",
       "I’ve been practicing my checkers. Just saying.",
     ],
   },
 
+  {
+    id: "chat-joyful",
+    group: "Just chatting",
+    kind: "flavor",
+    cooldown: 8 * 60_000,
+    weight: 2,
+    when: (c) => c.event === "chat" && c.moods.includes("joyful"),
+    say: ["Today’s a good day.", "I’m in such a good mood.", "Hehe. Nothing. I’m just happy."],
+  },
+  {
+    id: "chat-low",
+    group: "Just chatting",
+    kind: "flavor",
+    cooldown: 8 * 60_000,
+    weight: 4,
+    when: (c) => c.event === "chat" && (c.moods.includes("down") || c.moods.includes("depressed")),
+    say: ["It’s been quiet.", "Do you still like me?", "…Hi.", "I don’t mind being here. I just wish we did stuff."],
+  },
+  {
+    id: "chat-grumpy",
+    group: "Just chatting",
+    kind: "flavor",
+    cooldown: 8 * 60_000,
+    weight: 4,
+    unkind: true,
+    when: (c) => c.event === "chat" && (c.moods.includes("annoyed") || c.moods.includes("frustrated")),
+    say: ["Hmph.", "Still a bit cross, if you were wondering.", "I’m fine. (I’m not.)"],
+  },
+  {
+    id: "chat-hungry",
+    group: "Just chatting",
+    kind: "flavor",
+    cooldown: 8 * 60_000,
+    weight: 4,
+    when: (c) => c.event === "chat" && (c.moods.includes("hungry") || c.moods.includes("starving")),
+    say: ["My tummy’s rumbling.", "Is it snack time? It feels like snack time."],
+  },
+  {
+    id: "chat-sleepy",
+    group: "Just chatting",
+    kind: "flavor",
+    cooldown: 8 * 60_000,
+    weight: 4,
+    when: (c) => c.event === "chat" && (c.moods.includes("sleepy") || c.moods.includes("exhausted")),
+    say: ["*yawn* …sorry.", "I could use a nap.", "My eyes keep closing on their own."],
+  },
+
+  // Looking after Mote: snacks and bedtime
+  {
+    id: "fed-cookie",
+    group: "Looking after Mote",
+    kind: "flavor",
+    when: never,
+    say: ["Mmm, cookie!", "Crunchy. Thank you!"],
+  },
+  {
+    id: "fed-berries",
+    group: "Looking after Mote",
+    kind: "flavor",
+    when: never,
+    say: ["Berries! My favorite.", "Sweet and a little sour. Perfect."],
+  },
+  {
+    id: "fed-meal",
+    group: "Looking after Mote",
+    kind: "flavor",
+    when: never,
+    say: ["A whole meal! Thank you.", "Oh, that hits the spot."],
+  },
+  {
+    id: "fed-hungry",
+    group: "Looking after Mote",
+    kind: "flavor",
+    when: never,
+    say: ["Oh, thank you. I really needed that.", "Finally! I was so hungry."],
+  },
+  {
+    id: "full",
+    group: "Looking after Mote",
+    kind: "flavor",
+    when: never,
+    say: ["I’m full! Maybe later.", "Couldn’t eat another bite."],
+  },
+  {
+    id: "tucked-in",
+    group: "Looking after Mote",
+    kind: "flavor",
+    when: never,
+    say: ["Night night…", "Just a little nap…"],
+  },
+  {
+    id: "not-sleepy",
+    group: "Looking after Mote",
+    kind: "flavor",
+    when: never,
+    say: ["I’m not sleepy yet!", "Bedtime? It’s way too early."],
+  },
+
   // Needs: Mote asks for these on their own, when they need them
+  {
+    id: "feed-me",
+    group: "Needs",
+    kind: "flavor",
+    when: never,
+    cooldown: 10 * 60_000,
+    say: ["I’m getting hungry… is there a snack?", "My tummy’s rumbling. A snack, maybe?", "Could I have something to eat?"],
+  },
+  {
+    id: "tuck-me-in",
+    group: "Needs",
+    kind: "flavor",
+    when: never,
+    cooldown: 10 * 60_000,
+    say: ["I’m so sleepy… could you tuck me in?", "*yawn* I need a nap. The bed’s right there."],
+  },
+  {
+    id: "play-with-me",
+    group: "Needs",
+    kind: "flavor",
+    when: never,
+    cooldown: 10 * 60_000,
+    say: ["Want to play something? The toy chest is right there.", "It’s been quiet. A game, maybe?", "Could we play something? Anything."],
+  },
   {
     id: "move-me",
     group: "Needs",
@@ -453,7 +576,7 @@ export const LINES: Line[] = [
         `I want a new view. Could you move me ${where}?`,
       ];
     },
-    effects: { moved: { happy: 0.8, restless: -1 }, ignored: { happy: -0.3 } },
+    effects: { moved: { joy: 0.5, peace: 0.5 }, ignored: { peace: -0.3 } },
     replies: { moved: ["Ahh, much better. Thank you!"], ignored: ["Oh well. It’s fine here too."] },
     kindReplies: { ignored: ["Actually, it’s pretty nice right here."] },
   },
@@ -464,7 +587,7 @@ export const LINES: Line[] = [
     when: never,
     cooldown: 10 * 60_000,
     say: ["Could I have a pet? I’m feeling a bit down."],
-    effects: { petted: { happy: 1, restless: -0.5 }, ignored: { happy: -0.3 } },
+    effects: { petted: { joy: 0.6, peace: 1 }, ignored: { peace: -0.4 } },
     replies: { petted: ["Mmm… that’s better."], ignored: ["Maybe later, then."] },
   },
 ];

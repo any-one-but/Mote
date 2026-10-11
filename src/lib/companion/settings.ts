@@ -4,6 +4,8 @@ import { listenBus, send } from "@/lib/companion/bus";
 
 export type Settings = {
   followPointer: boolean;
+  /** Mote never gets too upset: hurt counts for less, no sulking or sharp words. */
+  friendly: boolean;
   /** Mote naps when left alone (a poke wakes them). */
   naps: boolean;
   energy: Energy;
@@ -22,6 +24,7 @@ export type Pace = "normal" | "turbo" | "gentle";
 
 export const DEFAULT_SETTINGS: Settings = {
   followPointer: true,
+  friendly: false,
   naps: true,
   energy: "normal",
   pace: "normal",
@@ -53,6 +56,7 @@ export function readSettings(): Settings {
   const bool = (v: unknown, fb: boolean) => (typeof v === "boolean" ? v : fb);
   return {
     followPointer: bool(raw.followPointer, d.followPointer),
+    friendly: bool(raw.friendly, d.friendly),
     naps: bool(raw.naps, d.naps),
     energy: pick(raw.energy, ["calm", "normal", "lively"] as const, d.energy),
     pace: pick(raw.pace, ["normal", "turbo", "gentle"] as const, d.pace),

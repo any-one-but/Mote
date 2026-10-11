@@ -1,19 +1,29 @@
 import {
-  ATTRS,
-  ALWAYS,
-  FRIENDLY,
+  feed,
   feelings,
-  MIND_ENABLED,
   lastingMoods,
   loadMind,
   MIND_START,
   nudge,
-  driftStep,
+  quadrant,
   saveMind,
-  type Attr,
+  SNACKS,
+  tickMind,
+  type Effects,
   type LastingMood,
+  type MindKey,
   type MindValues,
+  type Quadrant,
 } from "@/components/companion/mind";
+import {
+  chatLine,
+  markMentioned,
+  recordGame,
+  startLine,
+  streakLine,
+  type GameName,
+  type GameResult,
+} from "@/components/companion/memories";
 import { reactionById } from "@/components/companion/reactions";
 import {
   addLink,
@@ -61,6 +71,9 @@ import {
 import type { Level } from "@/lib/checkers/ai";
 
 export type BoardGameState = "you" | "mote" | "idle" | null;
+
+/** What Mote would like, shown as a glow on the matching button. */
+export type Want = "food" | "sleep" | "play";
 import {
   addDays,
   dateKey,
@@ -117,7 +130,9 @@ export type Mood =
   | "ck-lose"
   // Chess: putting you in check, and being in check.
   | "ch-check"
-  | "ch-checked";
+  | "ch-checked"
+  // Eating something you gave them.
+  | "munch";
 
 /**
  * Everything Mote can do with their face. The eyes are pills; expression comes
@@ -230,11 +245,17 @@ export type EngineSnapshot = {
   /** Everything Mote is intrigued by right now, and which one they're looking at. */
   intrigued: Array<"media" | "you" | "pointer" | "typing">;
   focus: Focus | null;
-  /** Mote's feelings, 0–10, and the lasting moods they add up to. */
+  /** Mote's mood (joy and peace, −10 to 10), needs (0–10), the corner of
+   * the mood chart they're in, and the lasting moods it all adds up to. */
   mind: MindValues;
+  quadrant: Quadrant;
   moods: LastingMood[];
-  /** ms until each feeling's next drift step. */
-  driftIn: MindValues;
+  /** Asleep (or nodding off). */
+  asleep: boolean;
+  /** Something Mote would like right now, shown on their buttons. */
+  wants: Want | null;
+  /** Minutes since you last did anything with Mote. */
+  sinceAttention: number;
   /** How often each reaction has fired, and when last (ms of Mote's clock ago). */
   reactions: Record<string, { count: number; ago: number }>;
   /** The speech bubble showing now, and the need Mote is about to ask about. */
@@ -265,9 +286,18 @@ export type FaceEngine = {
   windowMoved: (dx: number, dy: number) => void;
   /** Fire a reaction by id (see reactions.ts), applying its feelings. */
   react: (id: string) => void;
-  /** Debug: set one feeling directly, or put them all back to 5. */
-  setFeeling: (attr: Attr, value: number) => void;
+  /** Debug: set one part of the mind directly, or put it all back to the start. */
+  setFeeling: (key: MindKey, value: number) => void;
   resetFeelings: () => void;
+  /** Give Mote something to eat (one of SNACKS, by id). */
+  feed: (snack: string) => void;
+  /** Put Mote to bed: they go to sleep if they're tired enough. */
+  tuckIn: () => void;
+  /** A board game starts (Mote may remember the last one) and ends (Mote
+   * remembers this one, and it moves their mood). `event` is the game's own
+   * end line to use if there's nothing more personal to say. */
+  gameStart: (game: GameName, level: Level) => void;
+  gameOver: (result: GameResult, event: string) => void;
   /** Answer the question in the speech bubble: green (true) or red (false). */
   answer: (yes: boolean) => void;
   /** Close a remark bubble early. */
@@ -345,6 +375,7 @@ export const MOOD_LIST: Mood[] = [
   "ck-lose",
   "ch-check",
   "ch-checked",
+  "munch",
 ];
 
 export const REST: Pose = {
@@ -432,6 +463,7 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   "ck-lose": { dur: 3800, tempo: 0.85 },
   "ch-check": { dur: 2200, tempo: 1 },
   "ch-checked": { dur: 2400, tempo: 1.1 },
+  munch: { dur: 2600, tempo: 1.1 },
   // Purring lasts as long as the petting does; see `PURR_AFTER`. Looking at
   // the options and working last as long as they do (see `setHelping`).
   purr: { dur: Number.POSITIVE_INFINITY, tempo: 0.8 },
@@ -473,6 +505,7 @@ const BUSY: Mood[] = [
   "ck-lose",
   "ch-check",
   "ch-checked",
+  "munch",
 ];
 
 type GameMood = "chess" | "minecraft" | "gaming";
@@ -525,6 +558,7 @@ const LABELS: Partial<Record<Mood, string>> = {
   "ck-lose": "Mote lost the game.",
   "ch-check": "Mote puts your king in check.",
   "ch-checked": "Mote's king is in check!",
+  munch: "Mote is eating.",
   chess: "Mote is playing chess.",
   minecraft: "Mote is playing Minecraft.",
   gaming: "Mote is gaming.",
@@ -1287,6 +1321,19 @@ export function poseFor(
       wobble = { lookX: Math.sign(Math.sin(w * Math.PI * 2 * 1.6)) * 0.55 };
       shakeX = Math.sin(w * Math.PI * 2 * 11) * 0.7;
     }
+  } else if (mood === "munch") {
+    // Eating: a happy hop at the snack, then eyes closed in bliss, cheeks up,
+    // chewing away with a little bob.
+    const yum: Partial<Pose> = { cheek: 0.74, cheekCurve: 0.26, open: 0.98, lookMix: 1, lookY: 0.1 };
+    keys = [
+      [0, { open: 1.2, y: -6, sy: 1.05, sx: 0.96 }],
+      [220, { ...yum, y: 1 }],
+      [2200, {}],
+    ];
+    if (t > 300 && t < 2100) {
+      const chew = Math.sin(((t - 300) / 1000) * Math.PI * 2 * 3.2);
+      wobble = { sy: chew * 0.035, sx: -chew * 0.025, y: Math.abs(chew) * 1.2 };
+    }
   } else if (mood === "purr") {
     // Melts into the petting: blissful arcs, sinking and leaning in, a soft rumble.
     const bliss: Partial<Pose> = {
@@ -1598,8 +1645,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     energy: "normal",
     media: null,
     placement: null,
-    // Always gentle: no sharp replies, nothing that hurts.
-    friendly: true,
+    // Set from Settings (see Companion).
+    friendly: false,
     calorieGoal: 0,
   };
   const debug = {
@@ -1654,10 +1701,14 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     // Nothing to clear.
   }
 
-  // The mind: feelings, their drift timers, and a tally of reactions.
-  // (With the mind switched off, Mote's feelings stay put: always happy.)
-  let feel: MindValues = MIND_ENABLED ? loadMind() : { ...ALWAYS };
-  const driftAt: MindValues = Object.fromEntries(ATTRS.map((a) => [a.key, a.every])) as MindValues;
+  // The mind: mood and needs (carried over from last time, with the time
+  // away accounted for), and a tally of reactions.
+  const loaded = loadMind();
+  let feel: MindValues = loaded.values;
+  // Away for hours: glad to see you, and likely to say so.
+  const backAfterAWhile = loaded.awayMinutes > 180;
+  if (backAfterAWhile) feel = nudge(feel, { joy: 0.8 });
+  let mindTick = 0;
   const fired: Record<string, { count: number; at: number }> = {};
   let moodsNow: LastingMood[] = lastingMoods(feel);
   let savedAt = 0;
@@ -1684,19 +1735,30 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   // Split attention: which of the things going on Mote is looking at.
   let focus: Focus | null = null;
   let focusUntil = 0;
+  // The last time you did anything with Mote: the measure of being ignored.
+  let attendedAt = 0;
   const engage = () => {
     youUntil = clock + 15_000;
+    attendedAt = clock;
   };
   // Something being dragged over the window: Mote perks up, curious.
   let hovering = false;
   // Napping: the last time you did anything with Mote themself, how long
-  // they wait before nodding off, when they fell asleep, and whether the
-  // yawn underway leads into a doze.
+  // they wait before nodding off, and whether the yawn underway leads into
+  // a doze.
   let touchedAt = 0;
-  const newNapAfter = () => 4 * 60_000 + Math.random() * 3 * 60_000;
+  // Only a tired Mote naps: rested, never; a bit tired, after 4–7 quiet
+  // minutes; sleepy, after a minute and a half or so.
+  const newNapAfter = () => {
+    if (feel.rest > 6) return Number.POSITIVE_INFINITY;
+    const base = feel.rest < 3 ? 90_000 : 4 * 60_000;
+    return base + Math.random() * base * 0.75;
+  };
   let napAfter = newNapAfter();
-  let sleptAt = 0;
   let dozeNext = false;
+  // Tucked in (or too exhausted to stay up): the yawn becomes sleep even if
+  // things aren't quiet.
+  let tucked = false;
   let twitchStart = -1;
   let nextTwitch = 5000;
   /** You did something with Mote: no nodding off for a while. */
@@ -1721,7 +1783,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   const lastSaid = new Map<string, number>();
   let pendingEvent: { event: SpeechEvent; at: number } | null = null;
   // Chatting: 3 to 6 minutes apart at Normal energy, more often when lively.
-  const chatGap = () => (3 + Math.random() * 3) * 60_000 * ENERGY_GAP[options.energy];
+  // A joyful Mote chats a bit more; a low one, less.
+  const chatGap = () => {
+    const fl = feelings(feel);
+    return (3 + Math.random() * 3) * 60_000 * ENERGY_GAP[options.energy] * (1 - 0.25 * fl.joyful + 0.6 * fl.depressed);
+  };
   let nextChatAt = 90_000;
   const movedSince = { x: 0, y: 0 };
   let pettedSince = false;
@@ -1747,8 +1813,13 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   const log = (text: string) => hooks.onEvent?.(text);
 
   /** In Friendly mode, nothing makes Mote less happy. */
-  const kindly = (effects: Partial<MindValues> | undefined) =>
-    effects && options.friendly && (effects.happy ?? 0) < 0 ? { ...effects, happy: 0 } : effects;
+  /** Friendly mode softens anything that would hurt. */
+  const kindly = (effects: Effects | undefined) =>
+    effects && options.friendly && (effects.joy ?? 0) < 0 ? { ...effects, joy: (effects.joy ?? 0) / 2 } : effects;
+  const moveMind = (effects: Effects | undefined) => {
+    const e = kindly(effects);
+    if (e) feel = nudge(feel, e, options.friendly);
+  };
 
   const react = (id: string) => {
     const r = reactionById.get(id);
@@ -1756,8 +1827,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const tick = (fired[id] ??= { count: 0, at: 0 });
     tick.count++;
     tick.at = clock;
-    const effects = kindly(r.effects);
-    if (effects && MIND_ENABLED) feel = nudge(feel, effects);
+    moveMind(r.effects);
     log(`reaction: ${r.name.toLowerCase()}`);
   };
 
@@ -1798,6 +1868,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   const mention = (event: SpeechEvent, chance: number) => {
     if (Math.random() < chance) pendingEvent = { event, at: clock };
   };
+  // Back after hours away: a hello first thing.
+  if (backAfterAWhile) mention("welcome-back", 0.9);
 
   const speechContext = (): SpeechContext => ({
     feel,
@@ -1858,8 +1930,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     showBubble(null);
     const line = lineById.get(b.lineId);
     if (b.reply || !line) return;
-    const effects = kindly(line.effects?.[outcome]);
-    if (effects && MIND_ENABLED) feel = nudge(feel, effects);
+    moveMind(line.effects?.[outcome]);
     if (outcome !== "done") react(`answer-${outcome}`);
     if (line.then?.[outcome] === "play-again" && game) {
       react("play");
@@ -1903,13 +1974,14 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   };
 
   /**
-   * What Mote needs most right now, if anything: a pet, or a change of
-   * scene. Needs are what make Mote speak up on their own.
+   * What Mote needs most right now, if anything: food, sleep, or some time
+   * with you (a game, or a pet). Needs make Mote speak up on their own.
    */
   const currentNeed = (): string | null => {
-    if (helping || !MIND_ENABLED) return null;
-    if (feel.happy <= 3) return "pet-me";
-    if (feel.restless >= 7.5) return "move-me";
+    if (helping || playing || mood === "sleep" || mood === "doze") return null;
+    if (feel.fullness <= 2.5) return "feed-me";
+    if (feel.rest <= 1.5) return "tuck-me-in";
+    if (feel.peace <= -4) return feel.joy >= -2 ? "play-with-me" : "pet-me";
     return null;
   };
 
@@ -1942,9 +2014,27 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       return;
     }
 
-    // Every few minutes, if you're around, Mote says something just to chat.
+    // Every few minutes, if you're around, Mote says something just to chat:
+    // now and then, a game that's still on their mind.
     if (now >= nextChatAt) {
       nextChatAt = now + chatGap();
+      if (clock - lastYou < 2 * 60_000 && Math.random() < 0.3) {
+        const memo = chatLine({ friendly: options.friendly });
+        if (memo) {
+          markMentioned(memo.id);
+          react("remember-game");
+          showBubble({
+            id: ++bubbleSeq,
+            lineId: "memory-chat",
+            kind: "flavor",
+            text: memo.text,
+            born: now,
+            ttl: lifetime("flavor", memo.text),
+          });
+          log(`says “${memo.text}”`);
+          return;
+        }
+      }
       if (clock - lastYou < 2 * 60_000) {
         pendingEvent = { event: "chat", at: now };
         const line = chooseLine(speechContext(), lastSaid, now, 10 * 60_000, options.friendly);
@@ -2227,6 +2317,82 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     log(state ? `helping: ${state}` : "done helping");
   };
 
+  /** What Mote would like right now, for a glow on the matching button. */
+  const wants = (): Want | null => {
+    if (mood === "sleep" || mood === "doze" || helping || playing) return null;
+    if (feel.fullness <= 3.5) return "food";
+    if (feel.rest <= 2.5) return "sleep";
+    if (feel.peace <= -2) return "play";
+    return null;
+  };
+
+  /** Something to eat. Full, Mote politely says no. */
+  const feedMote = (id: string) => {
+    const snack = SNACKS.find((x) => x.id === id);
+    if (!snack || mood === "sleep" || mood === "doze") return;
+    engage();
+    touch();
+    if (feel.fullness >= 9) {
+      react("fed-full");
+      start("cute", clock);
+      sayNow("full");
+      return;
+    }
+    const hungry = feel.fullness <= 3;
+    feel = feed(feel, snack.fill);
+    react(hungry ? "fed-hungry" : "fed");
+    start("munch", clock);
+    log(`ate ${snack.name.toLowerCase()}`);
+    if (hungry) sayNow("fed-hungry");
+    else if (Math.random() < 0.7) sayNow(`fed-${snack.id}`);
+  };
+
+  /** Bedtime: tired enough, Mote yawns and drifts off. */
+  const tuckIn = () => {
+    if (mood === "sleep" || mood === "doze" || helping || playing) return;
+    engage();
+    touch();
+    if (feel.rest > 7) {
+      react("tuck-not-sleepy");
+      start("cute", clock);
+      sayNow("not-sleepy");
+      return;
+    }
+    react("tucked-in");
+    dozeNext = true;
+    tucked = true;
+    if (Math.random() < 0.6) sayNow("tucked-in");
+    start("yawn", clock);
+  };
+
+  /** A board game starting: maybe a word about the last one. */
+  const gameStart = (game: GameName, level: Level) => {
+    rouse();
+    engage();
+    react("game-start");
+    const memo = startLine(game, level, { friendly: options.friendly });
+    if (!memo) {
+      if (game === "checkers") checkersEvent("start", level);
+      else chessEvent("start", level);
+      return;
+    }
+    markMentioned(memo.id);
+    gameMoment(`${game}-start`, "delight", 1, () => ({ id: `memory-start-${Date.now()}`, text: memo.text }));
+  };
+
+  /** A board game over: remembered, felt, and maybe a word about a streak. */
+  const gameOver = (result: GameResult, event: string) => {
+    const { memory, effects } = recordGame(result);
+    moveMind(effects);
+    log(`remembered ${memory.game}: ${memory.winner} won (${memory.margin}${memory.comeback ? ", a comeback" : ""})`);
+    const streakSaid = streakLine(result.game, { friendly: options.friendly });
+    if (streakSaid) {
+      const face = memory.winner === "mote" ? "ck-win" : memory.winner === "you" ? "ck-lose" : "cute";
+      gameMoment(`${result.game}-${event}`, face, 1, () => ({ id: `streak-${Date.now()}`, text: streakSaid }));
+    } else if (result.game === "checkers") checkersEvent(event as CheckersEvent, result.level);
+    else chessEvent(event as ChessEvent, result.level);
+  };
+
   /** Say a particular line right away (a reply to something you just did). */
   const sayNow = (id: string) => {
     const line = lineById.get(id);
@@ -2318,16 +2484,20 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       more("frustrate", 1);
     } else if (has("annoyed")) {
       bag.splice(bag.indexOf("cute"), 1);
+      more("huff", 1);
     }
-    if (has("happy")) {
+    if (has("joyful")) {
       more("hum", 2);
       more("cute", 2);
     }
-    if (has("restless")) {
-      more("fidget", 3);
-      more("glance", 2);
+    if (has("down") || has("depressed")) {
+      // Quieter: fewer bright moments, more wistful looks your way.
+      bag = bag.filter((m) => m !== "surprise" && m !== "cute");
+      more("checkin", has("depressed") ? 3 : 2);
+      if (has("depressed")) more("sulk", 1);
     }
-    if (has("calm")) bag = bag.filter((m) => m !== "surprise");
+    if (has("sleepy") || has("exhausted")) more("yawn", 3);
+    if (has("hungry") || has("starving")) more("fidget", 2);
     const opts = bag.filter((m) => m !== lastAct);
     react("idle-mood");
     return opts[Math.floor(Math.random() * opts.length)] ?? "glance";
@@ -2337,15 +2507,16 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   const actGap = (watchingMedia: boolean, engaged: boolean) => {
     if (watchingMedia) {
       const fl = feelings(feel);
-      return (15_000 + Math.random() * 20_000) * (1 - 0.3 * fl.restless + 0.4 * fl.calm);
+      return (15_000 + Math.random() * 20_000) * (1 - 0.3 * fl.joyful + 0.4 * fl.depressed);
     }
     // Busy with you, Mote does fewer random things.
     return restGap() * (engaged ? 2 : 1);
   };
 
   const restGap = () => {
-    const has = (m: LastingMood) => moodsNow.includes(m);
-    const pace = has("restless") ? 0.55 : has("calm") ? 1.6 : 1;
+    const fl = feelings(feel);
+    // Livelier when joyful; slower when low or sleepy.
+    const pace = (1 - 0.3 * fl.joyful) * (1 + 0.6 * fl.depressed) * (1 + 0.4 * fl.sleepy);
     // Most of the time Mote just rests; little moods are the exception.
     return (7000 + Math.random() * 9000) * ENERGY_GAP[options.energy] * pace;
   };
@@ -2390,7 +2561,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     shakes.pointer.length = 0;
   };
   window.addEventListener("pointerdown", onPress, { passive: true });
-  const keepFeelings = () => MIND_ENABLED && saveMind(feel);
+  const keepFeelings = () => saveMind(feel);
   window.addEventListener("pagehide", keepFeelings);
 
   let raf = 0;
@@ -2430,9 +2601,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     pokes.push(now);
     while (pokes.length && now - pokes[0] > 2200) pokes.shift();
     if (mood === "sleep" || mood === "doze" || (mood === "yawn" && dozeNext)) {
-      // Woken up: after a proper nap, bright and breezy; poked awake almost
-      // as soon as they dropped off, a bit groggy.
-      const rested = mood === "sleep" && now - sleptAt > 3 * 60_000;
+      // Woken up: well rested, bright and breezy; still tired, groggy (and a
+      // little put out about it).
+      const rested = mood === "sleep" && feel.rest >= 6;
+      tucked = false;
+      dozeNext = false;
       react(rested ? "wake-rested" : "wake-groggy");
       if (mood === "sleep") mention(rested ? "woke-rested" : "woke-groggy", 0.8);
       start("wake", now);
@@ -2455,23 +2628,37 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   };
 
   /**
-   * The slow side of the mind: left to themselves, Mote slowly gets crosser
-   * and more restless; timed stimuli tick up, and lasting moods are re-read.
+   * The slow side of the mind: as time passes, mood and needs move (see
+   * tickMind), a tired Mote gets closer to napping, and lasting moods are
+   * re-read.
    */
   const think = (dt: number, now: number, attention: number, sincePet: number) => {
     const ms = dt * 1000;
-    for (const a of ATTRS) {
-      driftAt[a.key] -= ms;
-      if (driftAt[a.key] > 0) continue;
-      driftAt[a.key] += a.every;
-      if (!MIND_ENABLED) continue;
-      // Not while you're around (using Mote's window or typing nearby), or
-      // while Mote is helping you with something.
-      const around = clock < youUntil || clock < typingUntil || helping !== null || playing !== null;
-      if (around) continue;
-      const before = feel[a.key];
-      feel = { ...feel, [a.key]: driftStep(before, a.toward) };
-      if (before !== feel[a.key]) react(a.key === "happy" ? "drift-cross" : "drift-restless");
+    // Looking at Mote (the pointer on their window) counts as spending time with them.
+    if (attention > 0.5) attendedAt = clock;
+    mindTick += ms;
+    if (mindTick >= 5000) {
+      const asleep = mood === "sleep" || mood === "doze";
+      const before = feel;
+      feel = tickMind(feel, mindTick / 60_000, {
+        asleep,
+        sinceAttention: (clock - attendedAt) / 60_000,
+        youAround: clock - lastYou < 2 * 60_000,
+        busyTogether: helping !== null || (playing !== null && playing !== "idle"),
+        hour: new Date().getHours(),
+        friendly: options.friendly,
+      });
+      mindTick = 0;
+      // Getting tired: naps come sooner.
+      if (feel.rest < before.rest || napAfter === Number.POSITIVE_INFINITY) {
+        napAfter = Math.min(napAfter, newNapAfter());
+      }
+      // Slept enough: up and about.
+      if (mood === "sleep" && feel.rest >= 9.8) {
+        react("wake-rested");
+        mention("woke-rested", 0.8);
+        start("wake", now);
+      }
     }
 
     if (sincePet < 350) {
@@ -2506,20 +2693,12 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       }
     } else tally.sound = 0;
 
-    // Friendly mode keeps Mote out of grumpy territory altogether.
-    if (options.friendly) {
-      feel = {
-        ...feel,
-        happy: Math.max(feel.happy, FRIENDLY.happyMin),
-        restless: Math.min(feel.restless, FRIENDLY.restlessMax),
-      };
-    }
     const next = lastingMoods(feel);
     for (const m of next) if (!moodsNow.includes(m)) react(`mood-${m}`);
     for (const m of moodsNow) if (!next.includes(m)) log(`no longer ${m}`);
     moodsNow = next;
 
-    if (MIND_ENABLED && now - savedAt > 5000) {
+    if (now - savedAt > 5000) {
       savedAt = now;
       saveMind(feel);
     }
@@ -2580,15 +2759,18 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     // yawns and nods off. Only a poke (or something starting to play, or
     // something dropped on them) wakes them.
     const quiet = !interest && !helping && !playing && !typing && !pointerOutThere && !bubble;
+    // Exhausted, Mote nods off even with things going on (just not mid-game
+    // or mid-job).
+    const spent = feel.rest <= 1 && !helping && !playing && now - touchedAt > 60_000;
     if (
       debug.autoMoods &&
       options.naps &&
-      quiet &&
       mood === "settle" &&
-      now - touchedAt > napAfter
+      ((quiet && now - touchedAt > napAfter) || spent)
     ) {
       react("doze");
       dozeNext = true;
+      tucked = spent;
       start("yawn", now);
     }
     const over =
@@ -2600,18 +2782,23 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (over) {
       // Nodding off: a doze becomes real sleep, unless something happened in
       // the meantime and they catch themself.
-      const stillQuiet = quiet && now - touchedAt > napAfter;
-      // A tiny chance a check-in turns into something sweet, more when happy.
-      const sweet = 0.03 + 0.12 * clamp((feel.happy - 5) / 5, 0, 1);
+      const stillQuiet = (quiet && now - touchedAt > napAfter) || tucked;
+      // A tiny chance a check-in turns into something sweet, more when joyful.
+      const sweet = 0.03 + 0.12 * feelings(feel).joyful;
       if (debug.loop && mood !== "purr") start(mood, now);
       else if (mood === "yawn" && dozeNext && stillQuiet) start("doze", now);
       else if (mood === "doze" && stillQuiet) {
-        sleptAt = now;
+        tucked = false;
         react("fall-asleep");
         start("sleep", now);
       } else if (mood === "checkin" && Math.random() < sweet) {
         react("check-in-happy");
         start(Math.random() < 0.5 ? "cute" : "delight", now);
+      } else if (mood === "doze" || mood === "yawn") {
+        // Caught themself nodding off.
+        tucked = false;
+        start("settle", now);
+        nextAct = now + actGap(watchingMedia, you || typing);
       } else if (helping) {
         // Back to looking at the options, or to the job.
         start(helping === "busy" ? "work" : "present", now);
@@ -2655,15 +2842,26 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     // Petting a sleeping Mote gets a sleepy little purr without waking them.
     purrNow = mood === "sleep" && sincePet < 350 ? 0.6 : purr;
 
-    // Lasting moods colour the idle face: a scowl when frustrated, brighter
-    // eyes when happy. Moods with their own expression mostly override it.
+    // Lasting moods colour the idle face: a scowl when frustrated, a little
+    // smile when joyful, a droop when low, heavy lids when sleepy, worried
+    // brows when hungry. Moods with their own expression mostly override it.
     const fl = feelings(feel);
-    const tone = mood === "settle" ? 1 : mood === "glance" ? 0.7 : mood === "think" ? 0.5 : 0;
+    const tone =
+      mood === "settle" || mood === "ck-watch" ? 1 : mood === "glance" ? 0.7 : mood === "think" || mood === "checkin" ? 0.5 : 0;
     if (tone > 0) {
       const scowl = fl.frustrated > 0.2 ? 0.2 + 0.06 * fl.frustrated : 0;
-      target.lid += scowl * tone;
-      target.lidTilt += (scowl ? 0.5 * fl.frustrated : 0) * tone;
-      target.open += 0.05 * fl.happy * tone;
+      target.lid += (scowl + 0.24 * fl.sleepy + 0.08 * fl.depressed) * tone;
+      target.lidTilt += ((scowl ? 0.5 * fl.frustrated : 0) - 0.3 * fl.hungry - 0.22 * fl.depressed) * tone;
+      target.lidCurve += 0.08 * fl.sleepy * tone;
+      target.open += (0.05 * fl.joyful - 0.06 * fl.depressed - 0.06 * fl.sleepy) * tone;
+      target.cheek = Math.max(target.cheek, (0.24 * fl.joyful + 0.1 * fl.satisfied) * tone);
+      target.cheekCurve += 0.08 * fl.joyful * tone;
+      target.y += 2.5 * fl.depressed * tone;
+      target.sy -= 0.03 * fl.depressed * tone;
+      if (fl.depressed > 0) {
+        target.lookY = lerp(target.lookY, 0.55, fl.depressed * tone);
+        target.lookMix = Math.max(target.lookMix, 0.35 * fl.depressed * tone);
+      }
     }
     const tempo = mood === "sleep" ? 0.12 : mood === "settle" ? 1 : MOODS[mood].tempo;
 
@@ -2760,9 +2958,10 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         };
       } else {
         const fl = feelings(feel);
-        const home = Math.random() < 0.45 - 0.25 * fl.restless;
-        const reach = 1 + 0.5 * fl.restless;
-        const pace = 1 - 0.5 * fl.restless + 0.6 * fl.calm;
+        const home = Math.random() < 0.45 - 0.2 * fl.joyful;
+        const reach = 1 + 0.4 * fl.joyful;
+        // At peace or sleepy, the eyes wander slowly.
+        const pace = 1 + 0.6 * fl.satisfied + 0.8 * fl.sleepy;
         wander = {
           x: home ? 0 : (Math.random() - 0.5) * 0.9 * reach,
           y: home ? 0 : (Math.random() - 0.5) * 0.5 * reach,
@@ -2770,8 +2969,10 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         };
       }
     }
-    // A frustrated Mote doesn't want to look at you quite as much.
-    const engaged = looking * (1 - 0.45 * feelings(feel).frustrated);
+    // A frustrated Mote doesn't want to look at you quite as much; a low one
+    // looks away more too.
+    const fe = feelings(feel);
+    const engaged = looking * (1 - 0.45 * fe.frustrated - 0.3 * fe.depressed);
     const freeX = lerp(wander.x, px, engaged);
     const freeY = lerp(wander.y, py, engaged);
     const nextGX = lerp(freeX, target.lookX, target.lookMix);
@@ -2819,9 +3020,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const fb = feelings(feel);
     if (blinkFree && now >= nextBlink) {
       blinkAt(now, Math.random() < 0.16);
-      nextBlink = now + (2400 + Math.random() * 3600) * (1 + 0.5 * fb.calm);
+      nextBlink = now + (2400 + Math.random() * 3600) * (1 + 0.5 * fb.satisfied);
     }
-    const slow = mood === "doze" || fb.calm > 0.6;
+    const slow = mood === "doze" || fb.satisfied > 0.6 || fb.sleepy > 0.4;
     let blink = 0;
     blinks = blinks.filter((b) => now - b < 900);
     for (const b of blinks) blink = Math.max(blink, blinkCurve(now - b, slow));
@@ -2843,7 +3044,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     // Breathing.
     if (!reduced) {
       const base = mood === "sleep" ? 3400 : mood === "think" ? 1600 : 2600;
-      const period = base * (1 + 0.35 * fb.calm - 0.2 * fb.restless);
+      const period = base * (1 + 0.35 * fb.satisfied + 0.3 * fb.sleepy - 0.15 * fb.joyful);
       const b = Math.sin((now / period) * Math.PI * 2);
       const deep = mood === "sleep" ? 1.4 : 1;
       target.sy += b * 0.012 * deep;
@@ -3114,10 +3315,15 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     },
     windowMoved: (dx, dy) => windowMoved(dx, dy),
     react,
-    setFeeling: (attr, value) => {
-      feel = { ...feel, [attr]: clamp(value, 0, 10) };
-      log(`set ${attr} to ${feel[attr].toFixed(1)}`);
+    setFeeling: (key, value) => {
+      const low = key === "joy" || key === "peace" ? -10 : 0;
+      feel = { ...feel, [key]: clamp(value, low, 10) };
+      log(`set ${key} to ${feel[key].toFixed(1)}`);
     },
+    feed: feedMote,
+    tuckIn,
+    gameStart,
+    gameOver,
     answer: (yes) => {
       touch();
       if (bubble?.kind === "ask" && !bubble.reply) resolve(yes ? "yes" : "no", clock);
@@ -3184,7 +3390,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     },
     resetFeelings: () => {
       feel = { ...MIND_START };
-      log("feelings reset to 5");
+      log("mind reset to the start");
     },
     setManual: (face) => {
       debug.manual = face;
@@ -3213,8 +3419,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       helping,
       placement: options.placement,
       mind: { ...feel },
+      quadrant: quadrant(feel),
       moods: [...moodsNow],
-      driftIn: { ...driftAt },
+      asleep: mood === "sleep" || mood === "doze",
+      wants: wants(),
+      sinceAttention: (clock - attendedAt) / 60_000,
       reactions: Object.fromEntries(
         Object.entries(fired).map(([id, r]) => [id, { count: r.count, ago: clock - r.at }]),
       ),

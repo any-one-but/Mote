@@ -76,6 +76,16 @@ function SettingsWindow() {
             onChange={(naps) => set({ naps })}
           />
         </Row>
+        <Row
+          label="Friendly mode"
+          hint="Mote never gets too upset: hurt counts for half, and no sulking or sharp words."
+        >
+          <Toggle
+            label="Friendly mode"
+            checked={settings.friendly}
+            onChange={(friendly) => set({ friendly })}
+          />
+        </Row>
         <Row label="Energy" hint="How often Mote does something on their own." stacked>
           <Segmented
             label="Energy"

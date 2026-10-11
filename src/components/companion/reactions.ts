@@ -1,4 +1,4 @@
-import type { MindValues } from "@/components/companion/mind";
+import type { Effects } from "@/components/companion/mind";
 
 // Every stimulus → response rule Mote follows, in one place. The engine fires
 // these by id (and applies their `effects` to Mote's feelings); the debug
@@ -17,6 +17,8 @@ export type ReactionGroup =
   | "Chess"
   | "Time"
   | "Lasting moods"
+  | "Looking after Mote"
+  | "Memories"
   | "Ideas";
 
 export type Reaction = {
@@ -28,7 +30,7 @@ export type Reaction = {
   /** The outcome: what Mote does. */
   then: string;
   /** How it moves Mote's feelings, each time it fires. */
-  effects?: Partial<MindValues>;
+  effects?: Effects;
   /** "live" is built; "idea" is planned and doesn't happen yet. */
   status: "live" | "idea";
 };
@@ -41,7 +43,7 @@ export const REACTIONS: Reaction[] = [
     name: "Poke",
     when: "You click right on Mote’s face",
     then: "A happy little hop",
-    effects: { happy: 0.5 },
+    effects: { joy: 0.3, peace: 0.1 },
     status: "live",
   },
   {
@@ -50,7 +52,7 @@ export const REACTIONS: Reaction[] = [
     name: "Poke while frustrated",
     when: "You poke Mote while they’re frustrated",
     then: "A grumpy scowl and stomp instead of a hop",
-    effects: { happy: -0.5, restless: 0.5 },
+    effects: { joy: -0.3 },
     status: "live",
   },
   {
@@ -59,7 +61,7 @@ export const REACTIONS: Reaction[] = [
     name: "Too many pokes",
     when: "Four pokes within about two seconds",
     then: "Gets grumpy: scowls and stomps",
-    effects: { happy: -2.5, restless: 1 },
+    effects: { joy: -2 },
     status: "live",
   },
   {
@@ -68,7 +70,7 @@ export const REACTIONS: Reaction[] = [
     name: "Lots of pokes (Friendly mode)",
     when: "Four pokes within about two seconds, with Friendly mode on",
     then: "It tickles! A giggly little wiggle",
-    effects: { happy: 0.3 },
+    effects: { joy: 0.3 },
     status: "live",
   },
   {
@@ -77,7 +79,7 @@ export const REACTIONS: Reaction[] = [
     name: "Petting",
     when: "You press and keep stroking across Mote’s face (each second)",
     then: "Melts into a relaxed purr, leaning into your hand",
-    effects: { happy: 0.3, restless: -0.3 },
+    effects: { joy: 0.4, peace: 0.15 },
     status: "live",
   },
   {
@@ -112,7 +114,7 @@ export const REACTIONS: Reaction[] = [
     name: "Keeping company",
     when: "You’ve been around Mote’s window for a minute",
     then: "Cheers up and settles a tiny bit",
-    effects: { happy: 0.15, restless: -0.1 },
+    effects: { peace: 0.15 },
     status: "live",
   },
   {
@@ -121,7 +123,7 @@ export const REACTIONS: Reaction[] = [
     name: "Shaken pointer",
     when: "You whip the pointer around wildly (not while holding the button down: that's petting)",
     then: "Gets dizzy: swirling eyes, wobbling, then shakes it off",
-    effects: { happy: -0.5, restless: 1 },
+    effects: { joy: -1 },
     status: "live",
   },
   {
@@ -140,7 +142,6 @@ export const REACTIONS: Reaction[] = [
     name: "Window dragged",
     when: "You drag Mote’s window",
     then: "Trails behind it and swings back into place",
-    effects: { restless: 0.3 },
     status: "live",
   },
   {
@@ -149,7 +150,7 @@ export const REACTIONS: Reaction[] = [
     name: "Window thrown around",
     when: "You shake the window back and forth hard",
     then: "Gets dizzy",
-    effects: { happy: -0.75, restless: 1 },
+    effects: { joy: -1.5 },
     status: "live",
   },
 
@@ -268,7 +269,7 @@ export const REACTIONS: Reaction[] = [
     name: "Playing a game",
     when: "You drop a game on Mote: Chess, Minecraft, any app marked as a game or built with a game engine, Steam/GOG/Epic/Battle.net and their games (including Steam’s little shortcut apps)",
     then: "Chess: a long think, then a clever move and a smug look, or a blunder and a laugh. Minecraft: mines a block, or a creeper… BOOM. Other games: locks in, mashes buttons, wins or loses. May ask to go again",
-    effects: { happy: 0.4, restless: -0.6 },
+    effects: { joy: 0.5, peace: 0.5 },
     status: "live",
   },
   {
@@ -325,7 +326,7 @@ export const REACTIONS: Reaction[] = [
     name: "Job done",
     when: "A job finishes without problems",
     then: "A happy hop, then a short report",
-    effects: { happy: 0.4, restless: -0.3 },
+    effects: { joy: 0.4, peace: 0.3 },
     status: "live",
   },
   {
@@ -334,7 +335,7 @@ export const REACTIONS: Reaction[] = [
     name: "Job had problems",
     when: "Some files in a job failed",
     then: "A worried look and a sheepish shrug, then says what went wrong",
-    effects: { happy: -0.2 },
+    effects: { joy: -0.2 },
     status: "live",
   },
   {
@@ -797,8 +798,8 @@ export const REACTIONS: Reaction[] = [
     id: "needs",
     group: "Speech",
     name: "Asking for what they need",
-    when: "Mote notices a need and it lasts 8–25 seconds: feeling down (Happy 3 or less) or restless (Restless 7½ or more). Never while helping you",
-    then: "Asks for a pet, or to be moved somewhere new. If ignored, asks again only after a while",
+    when: "Mote notices a need and it lasts 8–25 seconds: hungry (Fullness 2½ or less), worn out (Rest 1½ or less), or lonely (Satisfied −4 or less). Never while helping you, playing, or asleep",
+    then: "Asks to be fed, to be tucked in, to play something, or (if they’re cross as well) for a pet. If ignored, asks again only after a while",
     status: "live",
   },
   {
@@ -807,7 +808,7 @@ export const REACTIONS: Reaction[] = [
     name: "Welcome back",
     when: "You do something after 10 minutes or more away (move the pointer, type, touch Mote)",
     then: "Often says hello",
-    effects: { happy: 0.5 },
+    effects: { joy: 0.6 },
     status: "live",
   },
 
@@ -816,7 +817,7 @@ export const REACTIONS: Reaction[] = [
     id: "doze",
     group: "Time",
     name: "Nodding off",
-    when: "Left be for 4–7 minutes (nobody poking, petting or moving Mote’s window) with nothing intriguing going on",
+    when: "Tired (Rest 6 or lower) and left be for 4–7 minutes, or about a minute and a half when sleepy. Exhausted (Rest 1 or lower), even with things going on, unless you’re playing",
     then: "Yawns, dozes, and falls asleep (unless something happens meanwhile). Can be switched off in Settings",
     status: "live",
   },
@@ -832,7 +833,7 @@ export const REACTIONS: Reaction[] = [
     id: "wake-rested",
     group: "Touch",
     name: "Woken after a proper nap",
-    when: "You poke Mote after more than 3 minutes asleep (or drop something on them)",
+    when: "You poke Mote once they’re rested (Rest 6 or more), or they’ve slept enough and wake up on their own",
     then: "Wakes up bright: “Good morning! …Is it morning?”",
     status: "live",
   },
@@ -840,8 +841,9 @@ export const REACTIONS: Reaction[] = [
     id: "wake-groggy",
     group: "Touch",
     name: "Woken too soon",
-    when: "You poke Mote while dozing or just after they dropped off",
+    when: "You poke Mote awake while they’re still tired",
     then: "Wakes up groggy: “Five more minutes…”",
+    effects: { joy: -0.4 },
     status: "live",
   },
   {
@@ -850,30 +852,82 @@ export const REACTIONS: Reaction[] = [
     name: "Startled awake",
     when: "Something starts playing while Mote is napping",
     then: "Jolts awake, eyes huge: “Who’s there?!”",
+    effects: { joy: -0.3 },
+    status: "live",
+  },
+
+
+
+  {
+    id: "mind-joy-fade",
+    group: "Time",
+    name: "Joy settles",
+    when: "All the time",
+    then: "Joy drifts back toward the middle, about a point every 50 minutes",
     status: "live",
   },
   {
-    id: "drift-cross",
+    id: "mind-company",
     group: "Time",
-    name: "Left to themselves: crosser",
-    when: "Every 6 minutes with nobody around (not while you use Mote’s window, type nearby, or Mote is helping you)",
-    then: "Happy drops a step. Attention is what lifts Mote back up",
+    name: "Time together",
+    when: "You’ve done something with Mote in the last 10 minutes (or you’re playing, or Mote’s helping you), and they’re fed and rested",
+    then: "Satisfied rises, about a point every 20 minutes",
     status: "live",
   },
   {
-    id: "drift-restless",
+    id: "mind-ignored",
     group: "Time",
-    name: "Left to themselves: restless",
-    when: "Every 6 minutes awake with nobody around",
-    then: "Restless rises a step. Petting and attention calm Mote down",
+    name: "Being ignored",
+    when: "20 minutes or more without you doing anything with Mote, while they’re awake",
+    then: "Satisfaction slides toward Depressed: a point every half hour, or every 20 minutes if you’re right there at the computer",
+    status: "live",
+  },
+  {
+    id: "mind-needs",
+    group: "Time",
+    name: "Hungry or worn out",
+    when: "Fullness under 3, or Rest under 2 while awake",
+    then: "Satisfaction slides, a point every half hour",
+    status: "live",
+  },
+  {
+    id: "mind-hunger",
+    group: "Time",
+    name: "Getting hungry",
+    when: "Awake (a quarter as fast asleep)",
+    then: "Fullness drops a point every 25 minutes, a bit faster while playing",
+    status: "live",
+  },
+  {
+    id: "mind-tired",
+    group: "Time",
+    name: "Getting tired",
+    when: "Awake; faster late at night (10pm–6am) and while playing",
+    then: "Rest drops a point every 40 minutes",
+    status: "live",
+  },
+  {
+    id: "mind-sleep",
+    group: "Time",
+    name: "Sleeping it off",
+    when: "Asleep",
+    then: "Rest comes back a point every 4 minutes; once fully rested, Mote wakes up on their own",
+    status: "live",
+  },
+  {
+    id: "mind-away",
+    group: "Time",
+    name: "Time away",
+    when: "Mote’s app is closed",
+    then: "Counts as sleeping; a little hungrier (never below 3); a long time away is a bit lonely (Satisfied drifts down, no lower than −2). Back after 3 hours or more: glad to see you, and says hello",
     status: "live",
   },
   {
     id: "friendly-floors",
     group: "Time",
-    name: "Friendly mode’s limits",
+    name: "Friendly mode",
     when: "Friendly mode is on",
-    then: "However long Mote is left alone: Happy stays at 4 or above, Restless at 7 or below",
+    then: "Joy and Satisfaction never go below −3, anything hurtful counts half, and nothing sharp is said",
     status: "live",
   },
   {
@@ -886,44 +940,162 @@ export const REACTIONS: Reaction[] = [
   },
 
   // Lasting moods
+
+
+
+
+
+
   {
-    id: "mood-frustrated",
+    id: "mood-joyful",
     group: "Lasting moods",
-    name: "Frustrated",
-    when: "Happy is 2 or lower (rare: takes real pestering)",
-    then: "Scowls; huffs, sulks and looks away; pokes make it worse",
+    name: "Joyful",
+    when: "Joy is 4 or more",
+    then: "A little smile; hums, sways and does cute things more; chats a bit more",
     status: "live",
   },
   {
     id: "mood-annoyed",
     group: "Lasting moods",
     name: "Annoyed",
-    when: "Happy is 3.5 or lower",
-    then: "A slight scowl and fewer cute moods",
+    when: "Joy is −3 or lower",
+    then: "A slight scowl, fewer cute moods, the odd huff",
     status: "live",
   },
   {
-    id: "mood-happy",
+    id: "mood-frustrated",
     group: "Lasting moods",
-    name: "Happy",
-    when: "Happy is 8 or higher",
-    then: "Brighter eyes; hums and sways; more cute moods",
+    name: "Frustrated",
+    when: "Joy is −6 or lower",
+    then: "Scowls; huffs, sulks and looks away; pokes make it worse",
     status: "live",
   },
   {
-    id: "mood-restless",
+    id: "mood-satisfied",
     group: "Lasting moods",
-    name: "Restless",
-    when: "Restless is 8 or higher",
-    then: "Fidgets, looks around more, does things a bit more often",
+    name: "Satisfied",
+    when: "Satisfied is 4 or more",
+    then: "Relaxed: slow blinks, unhurried glances",
     status: "live",
   },
   {
-    id: "mood-calm",
+    id: "mood-down",
     group: "Lasting moods",
-    name: "Calm",
-    when: "Restless is 2 or lower",
-    then: "Slower breathing, fewer moods, long blinks",
+    name: "Down",
+    when: "Satisfied is −3 or lower",
+    then: "Droops a little, looks down more and at you less, wistful check-ins, chats less",
+    status: "live",
+  },
+  {
+    id: "mood-depressed",
+    group: "Lasting moods",
+    name: "Depressed",
+    when: "Satisfied is −6 or lower",
+    then: "All of Down, more so; the odd sulk; asks for company",
+    status: "live",
+  },
+  {
+    id: "mood-hungry",
+    group: "Lasting moods",
+    name: "Hungry",
+    when: "Fullness is 3 or lower",
+    then: "Worried brows, fidgets; the snack button glows; asks to be fed",
+    status: "live",
+  },
+  {
+    id: "mood-starving",
+    group: "Lasting moods",
+    name: "Starving",
+    when: "Fullness is 1 or lower",
+    then: "All of Hungry, more so",
+    status: "live",
+  },
+  {
+    id: "mood-sleepy",
+    group: "Lasting moods",
+    name: "Sleepy",
+    when: "Rest is 3 or lower",
+    then: "Heavy lids, yawns, slow blinks; naps come sooner; the bed button glows",
+    status: "live",
+  },
+  {
+    id: "mood-exhausted",
+    group: "Lasting moods",
+    name: "Exhausted",
+    when: "Rest is 1 or lower",
+    then: "Nods off even with things going on; asks to be tucked in",
+    status: "live",
+  },
+
+  // Looking after Mote
+  {
+    id: "fed",
+    group: "Looking after Mote",
+    name: "A snack",
+    when: "You give Mote something to eat from the snack button",
+    then: "Eats it happily (a cookie fills them a little, a proper meal a lot)",
+    effects: { joy: 0.3, peace: 0.5 },
+    status: "live",
+  },
+  {
+    id: "fed-hungry",
+    group: "Looking after Mote",
+    name: "A snack when hungry",
+    when: "You feed Mote while they’re hungry",
+    then: "Eats gratefully, and says so",
+    effects: { joy: 0.6, peace: 1.2 },
+    status: "live",
+  },
+  {
+    id: "fed-full",
+    group: "Looking after Mote",
+    name: "Too full",
+    when: "You offer food when Mote is full (9 or more)",
+    then: "Politely says no",
+    status: "live",
+  },
+  {
+    id: "tucked-in",
+    group: "Looking after Mote",
+    name: "Tucked in",
+    when: "You press the bed button while Mote is tired (Rest 7 or less)",
+    then: "Yawns, maybe says goodnight, and falls asleep",
+    effects: { peace: 0.3 },
+    status: "live",
+  },
+  {
+    id: "tuck-not-sleepy",
+    group: "Looking after Mote",
+    name: "Not sleepy",
+    when: "You press the bed button while Mote is rested",
+    then: "Says it’s too early",
+    status: "live",
+  },
+
+  // Memories
+  {
+    id: "game-start",
+    group: "Memories",
+    name: "A game begins",
+    when: "You start checkers or chess",
+    then: "Satisfying. If there’s a recent game worth a nod (a rematch, a streak, moving up or down a level, a close one or a thrashing), Mote mentions it instead of their usual opener",
+    effects: { peace: 0.3 },
+    status: "live",
+  },
+  {
+    id: "game-result",
+    group: "Memories",
+    name: "A game ends",
+    when: "Any game of checkers or chess finishes",
+    then: "Remembered: who won, by how much, whether it was a comeback. Playing is satisfying (+1.2). Mote winning is joyful (a close win most of all); losing is frustrating (a thrashing most of all), more each time in a row. Three in a row either way often gets mentioned",
+    status: "live",
+  },
+  {
+    id: "remember-game",
+    group: "Memories",
+    name: "A game comes back to mind",
+    when: "Now and then while chatting: a memorable game (close, one-sided, or a comeback) from the last 4 days, not played in the last half hour",
+    then: "Mentions it, in a way that fits how it went. Each game comes up at most twice, hours apart",
     status: "live",
   },
 
@@ -934,7 +1106,6 @@ export const REACTIONS: Reaction[] = [
     name: "Busy typing",
     when: "You’re typing a lot in another app",
     then: "Intrigued: watches quietly and stays calm",
-    effects: { restless: -0.5 },
     status: "idea",
   },
 ];
@@ -952,6 +1123,8 @@ export const REACTION_GROUPS: ReactionGroup[] = [
   "Speech",
   "Time",
   "Lasting moods",
+  "Looking after Mote",
+  "Memories",
   "Ideas",
 ];
 

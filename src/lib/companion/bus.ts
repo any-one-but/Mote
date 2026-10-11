@@ -1,6 +1,6 @@
 import { emit, listen } from "@tauri-apps/api/event";
 import type { EngineSnapshot, ManualFace, Mood } from "@/components/companion/engine";
-import type { Attr } from "@/components/companion/mind";
+import type { MindKey } from "@/components/companion/mind";
 import type { CalorieBook } from "@/lib/companion/calories";
 import type { Settings } from "@/lib/companion/settings";
 import { isDesktopApp } from "@/lib/companion/desktop";
@@ -17,7 +17,7 @@ export type DebugCommand =
   | { do: "loop"; value: boolean }
   | { do: "guides"; value: boolean }
   | { do: "fakeAudio"; value: "left" | "right" | null }
-  | { do: "feeling"; attr: Attr; value: number }
+  | { do: "feeling"; attr: MindKey; value: number }
   | { do: "resetFeelings" }
   | { do: "react"; id: string }
   | { do: "say"; id?: string }

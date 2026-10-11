@@ -976,3 +976,108 @@ input:focus-visible {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
+/* The mood chart: joy across, satisfaction up, one corner each. */
+
+.mood-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--unit) * 2);
+  padding: calc(var(--unit) * 1.5) 0;
+}
+
+.mood-chart {
+  flex: none;
+  width: 300px;
+  max-width: 100%;
+  font-family: inherit;
+}
+
+.mood-chart .q-happy {
+  fill: #dfe8d1;
+}
+
+.mood-chart .q-needy {
+  fill: #f2e3c9;
+}
+
+.mood-chart .q-grumpy {
+  fill: #f2d6c9;
+}
+
+.mood-chart .q-miserable {
+  fill: #dcd7e5;
+}
+
+.mood-chart .q-band {
+  stroke: var(--card);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+  fill: none;
+  opacity: 0.9;
+}
+
+.mood-chart .q-axis {
+  stroke: var(--card);
+  stroke-width: 2;
+}
+
+.mood-chart .q-floor {
+  stroke: var(--ink-soft);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  fill: none;
+  opacity: 0.6;
+}
+
+.mood-chart .q-name {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--ink-soft);
+}
+
+.mood-chart .q-end {
+  font-size: 11px;
+  fill: var(--ink-soft);
+}
+
+.mood-chart .q-dot {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 3;
+  transition:
+    cx 600ms var(--spring),
+    cy 600ms var(--spring);
+}
+
+.mood-side {
+  flex: 1;
+  min-width: 160px;
+}
+
+.mood-name {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.mood-numbers {
+  margin: 4px 0 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.mood-nudges {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: var(--unit);
+}
+
+.mood-nudges .btn {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 13px;
+}

@@ -86,12 +86,14 @@ pokes in a row is too many, and Mote gets annoyed.
   button held down never counts as shaking.
 - **Dizzy:** shaking the pointer around wildly (without holding the button),
   or throwing the window around the screen, makes Mote dizzy for a moment.
-- **Naps:** left be for a few minutes (no poking, petting or moving the
-  window) with nothing interesting going on, Mote yawns, dozes and falls
-  asleep. A poke wakes them ("Five more minutes…" if they'd only just dropped
-  off), and so does something starting to play (with a jolt) or something
-  dropped on them. Petting a sleeping Mote gets a sleepy purr. Naps can be
-  switched off in Settings.
+- **Sleep:** Mote gets tired while awake (faster late at night and while
+  playing). Once tired, left be for a few minutes with nothing interesting
+  going on, they yawn, doze and fall asleep, and they sleep until rested.
+  Exhausted, they nod off even with things going on. A poke wakes them
+  (groggy, and a little put out, if they're still tired), and so does
+  something starting to play (with a jolt) or something dropped on them.
+  Petting a sleeping Mote gets a sleepy purr. Naps on their own can be
+  switched off in Settings; tucking them in still works.
 - **Eyes on you:** Mote's eyes follow your pointer anywhere on the screen,
   even while you're busy in other windows.
 - **Watching along:** in the Mac app, if another visible window is playing
@@ -100,17 +102,70 @@ pokes in a row is too many, and Mote gets annoyed.
   and so does typing in another app (Mote only notices *that* keys are
   pressed, never which).
 
-Mote is always cheerful: interactions are momentary and nothing changes
-Mote over time. Mote only speaks up when something happens (after a pet,
-getting dizzy, something starting to play, you coming back after a while),
-and every few minutes while you're around, just to chat: a hello, a passing
-thought, something about the time of day, or what you're up to. How often
-follows **Energy** in Settings (about every 3–6 minutes at Normal).
+## Mood, hunger and sleep
 
-(A whole system of feelings that drift over time, lasting moods and needs is
-still in the code, switched off: `MIND_ENABLED` in
-`src/components/companion/mind.ts`. Its Debug tab and saved state come back
-with it.)
+Mote's mood sits on two axes, which the Debug window draws as a chart:
+
+- **Joyful ↔ Frustrated** is about how Mote is *treated*. Petting, pokes,
+  playing, attention and winning bring joy. Meanness (poking over and over),
+  being shaken or thrown around, being woken up tired, and losing at games
+  (more so each time in a row) bring frustration. It fades back toward the
+  middle on its own.
+- **Satisfied ↔ Depressed** is about whether Mote is *looked after* and not
+  ignored. Time together, playing anything, being fed and being rested
+  bring satisfaction. Being left alone for 20 minutes or more (faster when
+  you're right there at the computer, just not with Mote), hunger, and
+  being kept up exhausted bring them down. It changes slowly.
+
+The corners are **Happy**, **Needy** (treated well but too often left out),
+**Grumpy** (looked after, but someone's been mean) and **Miserable**; with
+only one axis leaning, Mote is **Cheerful**, **Cross**, **Content** or
+**Lonely**; near the middle, **Okay**. It shows on Mote's face (a little
+smile, a scowl, a droop, heavy lids, worried brows), in what they do on their
+own, in how much they chat and what about, and they ask for what they need:
+a snack, bedtime, or a game.
+
+**Hunger:** fullness goes down while Mote is awake (about four hours from
+full to empty). Feed them from the snack bowl: a cookie, some berries, or a
+proper meal. Full, they politely say no.
+
+All of it carries over when Mote's app is closed: that time counts as
+sleeping, a little hunger builds (never below 3), and being gone for more
+than ten hours or so gets a bit lonely. Back after a few hours, Mote is glad
+to see you.
+
+**Friendly mode** (in Settings) keeps Mote from getting too upset: joy and
+satisfaction never go below −3, hurt counts for half, and nothing sharp is
+said.
+
+**Games Mote remembers:** every game of checkers or chess is remembered: who
+won, by how much, whether it was a comeback, and when. Starting a game, Mote
+may nod to the last one ("Rematch. I'm ready this time.", "You crushed me
+yesterday. I've been practicing since.", "Moving up? Brave."). Three in a row
+either way gets noticed. And now and then, while chatting, a memorable game
+from the last few days comes back to them ("I was so far behind at chess the
+other day. And then I won!"). Old, ordinary or just-played games aren't
+brought up, and each game at most twice.
+
+Mote speaks up when something happens (after a pet, getting dizzy, something
+starting to play, you coming back after a while), when they need something,
+and every few minutes while you're around, just to chat: a hello, a passing
+thought, something about the time of day, what you're up to, or how they're
+feeling. How often follows **Energy** in Settings (about every 3–6 minutes at
+Normal), and their mood.
+
+## The buttons
+
+Along the bottom of Mote's window (quiet until your pointer is over it):
+
+- **Toy chest:** the games (checkers and chess).
+- **Carrot:** log calories, or see the days.
+- **Snack bowl:** feed Mote.
+- **Bed:** tuck Mote in (if they're tired enough). While they sleep it turns
+  into a sun, to wake them.
+
+A soft pulsing ring on a button means Mote would like that: hungry, sleepy,
+or wanting to play.
 
 ## Try it as a Mac app
 
@@ -125,7 +180,7 @@ Drag the window by its top edge.
 
 ## Calories
 
-Set a **daily goal** in Settings (0 turns this off). Right-click Mote and
+Set a **daily goal** in Settings (0 turns this off). Press the carrot and
 choose **Log calories**: type an amount and press **+** (or Return) to add it,
 or **−** to take it away. Click the big number to type today's total outright.
 
@@ -141,7 +196,7 @@ next morning. Every line is in `src/components/companion/calorie-lines.ts`.
 
 ## Checkers
 
-Right-click Mote and choose **Play checkers**. Pick a level (**Easy**: Mote is
+Open the toy chest and choose **Checkers**. Pick a level (**Easy**: Mote is
 still learning; **Normal**: a fair game; **Hard**: Mote looks as far ahead as
 they can in about a second and always plays their best), then **Play**. Mote's
 window grows to fit the board, with Mote sitting just above it.
@@ -161,7 +216,7 @@ record against Mote at each level sits at the top of the board.
 
 ## Chess
 
-Right-click Mote and choose **Play chess**. Same board, same levels, same
+Open the toy chest and choose **Chess**. Same board, same levels, same
 record-keeping and saving as checkers. You're white and go first: click a
 piece and the dots show where it can go (rings mean a capture). All the rules
 are there: castling (move the king two squares), en passant, promotion (you
@@ -184,7 +239,7 @@ good-sport smile at the end.
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. You can choose
-whether Mote follows your pointer, whether Mote naps, how lively Mote is, the pace
+whether Mote follows your pointer, Friendly mode, whether Mote naps, how lively Mote is, the pace
 for helping with files, whether Mote opens when you log in, and whether the
 window floats above others.
 
@@ -193,6 +248,8 @@ Text in the app calls Mote "Mote", or "they/them" when a pronoun is needed.
 At the bottom of Settings, **Debug mode** opens a separate window of testing tools:
 
 - **Moods**: play any mood on demand, blink, poke, turn off automatic moods, loop a mood
+- **Mind**: the mood chart, hunger and rest (with buttons to nudge them), the
+  games Mote remembers, and every reaction with what it does to the mood
 - **Pose**: shape Mote's face by hand with sliders, then "Copy values" to share the numbers
 - **Motion**: slow time down, freeze Mote, show outlines of the eye cuts, pretend
   another window is playing sound, give Mote a folder or video by typing its path
@@ -212,7 +269,7 @@ The current Mac app is already built and kept in the project. Quit Mote if it
 is open, then drag the new one into Applications and replace the old one.
 
 - `src-tauri/target/release/bundle/macos/Mote.app`
-- `src-tauri/target/release/bundle/dmg/Mote_0.5.0_aarch64.dmg` (an installer you can share)
+- `src-tauri/target/release/bundle/dmg/Mote_0.6.0_aarch64.dmg` (an installer you can share)
 
 To build a fresh copy later:
 
@@ -233,7 +290,9 @@ Each face there is one expression frozen in place, handy for tweaking how they l
 - `desktop/` — the Mac app's pages: Mote (`index.html`), Settings, Debug, and the gallery
 - `desktop/ui.tsx` and `desktop/ui.css` — the soft buttons, switches and sliders
 - `src/lib/companion/settings.ts` — the list of settings and their defaults
-- `src/components/companion/mind.ts` — Mote's feelings (switched off for now)
+- `src/components/companion/mind.ts` — Mote's mood, hunger and rest, and how they change
+- `src/components/companion/memories.ts` — the games Mote remembers, and how they bring them up
+- `src/components/companion/Toolbar.tsx` — the buttons along the bottom of Mote's window
 - `src/components/companion/reactions.ts` — every stimulus → response rule
 - `src/components/companion/speech.ts` — everything Mote can say, and when
 - `src/components/companion/SpeechBubble.tsx` — how the bubbles look

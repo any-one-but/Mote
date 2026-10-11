@@ -44,3 +44,18 @@ export function addToStats(key: string, level: Level, winner: Winner): Stats {
   store(key, next);
   return next;
 }
+
+/** How far ahead (max) and behind (min) Mote got during a game. */
+export type Swing = { min: number; max: number };
+
+export const noteSwing = (swing: Swing, moteLead: number): Swing => ({
+  min: Math.min(swing.min, moteLead),
+  max: Math.max(swing.max, moteLead),
+});
+
+/** The winner's lead at the end and their worst moment, for Mote's memory. */
+export function margins(winner: Winner, moteLead: number, swing: Swing) {
+  if (winner === "mote") return { lead: moteLead, worst: swing.min };
+  if (winner === "you") return { lead: -moteLead, worst: -swing.max };
+  return { lead: moteLead, worst: 0 };
+}

@@ -7,7 +7,7 @@ import { Helper, type Gift } from "@/components/companion/Helper";
 import { SpeechBubble } from "@/components/companion/SpeechBubble";
 import type { Bubble } from "@/components/companion/speech";
 import { GEO } from "@/lib/companion/theme";
-import type { EngineOptions, FaceEngine } from "@/components/companion/engine";
+import type { EngineOptions, FaceEngine, Want } from "@/components/companion/engine";
 import { DEBUG_DEFAULTS, listenBus, send, type DebugState } from "@/lib/companion/bus";
 import {
   onDropped,
@@ -24,6 +24,7 @@ import { useSettings } from "@/lib/companion/settings";
 import { CaloriePad } from "@/components/companion/CaloriePad";
 import { Checkers } from "@/components/companion/Checkers";
 import { Chess } from "@/components/companion/Chess";
+import { Toolbar } from "@/components/companion/Toolbar";
 import { applyToBook, dateKey, readBook } from "@/lib/companion/calories";
 import { markCalorieCare, useCalorieBook } from "@/lib/companion/calorie-store";
 
@@ -39,7 +40,8 @@ export function Companion() {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [settings] = useSettings();
   const [book, commitBook] = useCalorieBook();
-  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
+  // What the buttons show: asleep (the bed becomes a sun), and what Mote would like.
+  const [status, setStatus] = useState<{ asleep: boolean; wants: Want | null }>({ asleep: false, wants: null });
   const [logging, setLogging] = useState(false);
   const [playing, setPlaying] = useState<"checkers" | "chess" | null>(null);
   const debugState = useRef<DebugState>({ ...DEBUG_DEFAULTS });
@@ -107,10 +109,10 @@ export function Companion() {
     });
   };
 
-  const { followPointer, naps, energy, debug, pace, calorieGoal } = settings;
+  const { followPointer, naps, energy, debug, pace, calorieGoal, friendly } = settings;
   useEffect(() => {
-    engineRef.current?.configure({ followPointer, naps, energy, calorieGoal });
-  }, [followPointer, naps, energy, calorieGoal]);
+    engineRef.current?.configure({ followPointer, naps, energy, calorieGoal, friendly });
+  }, [followPointer, naps, energy, calorieGoal, friendly]);
 
   useEffect(
     () =>
@@ -216,25 +218,21 @@ export function Companion() {
   }, [debug]);
 
   useEffect(() => {
-    if (!menuAt) return;
-    const close = (e: PointerEvent) => {
-      const target = e.target;
-      if (target instanceof Element && target.closest(".mote-menu")) return;
-      setMenuAt(null);
-    };
-    window.addEventListener("pointerdown", close);
-    return () => window.removeEventListener("pointerdown", close);
-  }, [menuAt]);
+    const t = window.setInterval(() => {
+      const snap = engineRef.current?.snapshot();
+      if (!snap) return;
+      setStatus((s) => (s.asleep === snap.asleep && s.wants === snap.wants ? s : { asleep: snap.asleep, wants: snap.wants }));
+    }, 1000);
+    return () => window.clearInterval(t);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      if (menuAt) setMenuAt(null);
-      else if (logging) setLogging(false);
+      if (e.key === "Escape" && logging) setLogging(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [menuAt, logging]);
+  }, [logging]);
 
   const todayTotal = book.days[dateKey()]?.total ?? 0;
   const changeCalories = (kind: "add" | "sub" | "set", amount: number) => {
@@ -245,8 +243,8 @@ export function Companion() {
   };
 
   // A quick press on Mote's body is a poke; pressing and dragging across it is
-  // petting. Presses on the empty window around Mote do nothing. A right-click
-  // opens Mote's menu.
+  // petting. Presses on the empty window around Mote do nothing. The buttons
+  // along the bottom hold games, calories, snacks and bedtime.
   return (
     <div
       className={`stage${helping ? " is-helping" : ""}${logging ? " is-logging" : ""}${playing && !helping ? " is-playing" : ""}`}
@@ -254,15 +252,6 @@ export function Companion() {
         const target = e.target;
         if (target instanceof Element && target.closest("input, textarea")) return;
         e.preventDefault();
-        // Not while Mote is helping with files: that conversation has the window.
-        if (helping) return;
-        if (target instanceof Element && target.closest(".cal-pad, .mote-menu, .ck")) return;
-        const width = 196;
-        const height = 188;
-        setMenuAt({
-          x: Math.max(8, Math.min(e.clientX, window.innerWidth - width - 8)),
-          y: Math.max(8, Math.min(e.clientY, window.innerHeight - height - 8)),
-        });
       }}
     >
       <button
@@ -318,7 +307,7 @@ export function Companion() {
         <Face
           onEngine={(engine) => {
             engineRef.current = engine;
-            engine?.configure({ followPointer, naps, energy, calorieGoal });
+            engine?.configure({ followPointer, naps, energy, calorieGoal, friendly });
             applyAudio();
           }}
           onMood={(label) => {
@@ -352,55 +341,30 @@ export function Companion() {
           }
         }}
       />
-      {menuAt ? (
-        <div className="mote-menu" style={{ left: menuAt.x, top: menuAt.y }} role="menu">
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setMenuAt(null);
-              setPlaying(null);
-              setLogging(true);
-              markCalorieCare();
-            }}
-          >
-            Log calories
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setMenuAt(null);
-              setLogging(false);
-              setPlaying("checkers");
-            }}
-          >
-            Play checkers
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setMenuAt(null);
-              setLogging(false);
-              setPlaying("chess");
-            }}
-          >
-            Play chess
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setMenuAt(null);
-              markCalorieCare();
-              openCaloriesWindow();
-            }}
-          >
-            See the days
-          </button>
-        </div>
-      ) : null}
+      <Toolbar
+        asleep={status.asleep}
+        wants={status.wants}
+        onGame={(game) => {
+          setLogging(false);
+          setPlaying(game);
+        }}
+        onLogCalories={() => {
+          setPlaying(null);
+          setLogging(true);
+          markCalorieCare();
+        }}
+        onDays={() => {
+          markCalorieCare();
+          openCaloriesWindow();
+        }}
+        onFeed={(snack) => engineRef.current?.feed(snack)}
+        onBed={() => {
+          const engine = engineRef.current;
+          if (!engine) return;
+          if (status.asleep) engine.poke();
+          else engine.tuckIn();
+        }}
+      />
       {playing === "checkers" && !helping ? <Checkers engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "chess" && !helping ? <Chess engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {logging ? (

@@ -1,7 +1,7 @@
 {
   "name": "app-builder-workspace",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.6.0",
   "sideEffects": false,
   "type": "module",
   "overrides": {
@@ -17,7 +17,7 @@
     "preview:stop": "node scripts/preview.mjs stop",
     "typecheck": "tsc --noEmit",
     "check:auth": "node scripts/check-auth-invariant.mjs",
-    "test": "node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/app-data/readiness-schedule.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts src/lib/preview-path-prefix.test.ts src/lib/companion/calories.test.ts src/lib/checkers/checkers.test.ts src/lib/chess/chess.test.ts && node --test 'scripts/**/*.test.mjs'",
+    "test": "node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/app-data/readiness-schedule.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts src/lib/preview-path-prefix.test.ts src/lib/companion/calories.test.ts src/lib/checkers/checkers.test.ts src/lib/chess/chess.test.ts src/components/companion/mind.test.ts && node --test 'scripts/**/*.test.mjs'",
     "lint": "eslint .",
     "format": "prettier --write .",
     "mac": "npm run senses:build && tauri dev",
