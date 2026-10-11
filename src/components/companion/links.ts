@@ -73,6 +73,24 @@ export function removeLink(url: string) {
   saveLinks(loadLinks().filter((l) => l.url !== url));
 }
 
+/** Forgets a link's history: as if Mote had never suggested it. */
+export function resetLink(url: string) {
+  saveLinks(
+    loadLinks().map((l) =>
+      l.url === url ? { ...l, suggested: 0, opened: 0, lastSuggested: null } : l,
+    ),
+  );
+}
+
+/** Gives a link a new title (or none, with an empty one). */
+export function renameLink(url: string, title: string) {
+  saveLinks(loadLinks().map((l) => (l.url === url ? { ...l, title: title.trim() || null } : l)));
+}
+
+export function clearLinks() {
+  saveLinks([]);
+}
+
 export function noteSuggested(url: string) {
   const list = loadLinks();
   const l = list.find((x) => x.url === url);

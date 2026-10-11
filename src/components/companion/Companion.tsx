@@ -170,7 +170,7 @@ export function Companion() {
       else if (cmd.do === "say") e.say(cmd.id);
       else if (cmd.do === "give") give(cmd.paths);
       else if (cmd.do === "saveLink") e.saveLink(cmd.url, cmd.title);
-      else if (cmd.do === "suggestLink") e.suggestLink();
+      else if (cmd.do === "suggestLink") e.suggestLink(cmd.url);
       else if (cmd.do === "fakeAudio") {
         d.fakeAudio = cmd.value;
         applyAudio();

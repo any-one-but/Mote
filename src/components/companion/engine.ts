@@ -243,8 +243,8 @@ export type FaceEngine = {
   offerApp: (app: AppOffer) => void;
   /** A link dropped on Mote, to save for suggesting some day. */
   saveLink: (url: string, title: string | null) => void;
-  /** Debug: suggest a saved link right now. */
-  suggestLink: () => void;
+  /** Debug: suggest a saved link right now (this one, or Mote's pick). */
+  suggestLink: (url?: string) => void;
   snapshot: () => EngineSnapshot;
 };
 
@@ -1631,8 +1631,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   };
 
   /** Brings up one of your saved links, asking if you'd like to go there. */
-  const suggestLink = (now: number) => {
-    const link = pickLink();
+  const suggestLink = (now: number, url?: string) => {
+    const link = url ? (loadLinks().find((l) => l.url === url) ?? null) : pickLink();
     if (!link) return;
     talkingLink = link;
     lastLinkAt = now;
@@ -2595,9 +2595,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     jobDone,
     offerApp,
     saveLink,
-    suggestLink: () => {
+    suggestLink: (url) => {
       if (bubble) showBubble(null);
-      suggestLink(clock);
+      suggestLink(clock, url);
     },
     say: (lineId) => {
       if (bubble) showBubble(null);

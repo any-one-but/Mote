@@ -134,6 +134,10 @@ At the bottom of Settings, **Debug mode** opens a separate window of testing too
 - **Motion**: slow time down, freeze Mote, show outlines of the eye cuts, pretend
   another window is playing sound, give Mote a folder or video by typing its path
   (or pretend ones, in a browser), live numbers
+- **Links**: every saved link with its history (when it was saved, how often
+  Mote has suggested it and you've opened it), its weight and its chance of
+  coming up next; add, rename, open, reset or remove links, or have Mote
+  suggest a particular one right now
 - **Log**: everything that happened, in order
 - **Data**: the saved settings, and a reset button
 

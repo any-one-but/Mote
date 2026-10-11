@@ -22,7 +22,7 @@ export type DebugCommand =
   | { do: "say"; id?: string }
   | { do: "give"; paths: string[] }
   | { do: "saveLink"; url: string; title: string | null }
-  | { do: "suggestLink" }
+  | { do: "suggestLink"; url?: string }
   | { do: "manual"; face: ManualFace | null };
 
 /** The debug knobs as Mote's window currently has them. */

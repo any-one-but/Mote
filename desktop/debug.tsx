@@ -25,6 +25,20 @@ import {
 } from "@/components/companion/mind";
 import { REACTION_GROUPS, REACTIONS, type Reaction } from "@/components/companion/reactions";
 import { LINES, type BubbleKind } from "@/components/companion/speech";
+import {
+  addLink,
+  clearLinks,
+  isVideo,
+  linkName,
+  loadLinks,
+  onLinksChanged,
+  removeLink,
+  renameLink,
+  resetLink,
+  weight,
+  type SavedLink,
+} from "@/components/companion/links";
+import { openLink } from "@/lib/companion/desktop";
 import { DEFAULT_SETTINGS, useSettings, type Settings } from "@/lib/companion/settings";
 import { Button, Page, Row, Section, Segmented, Slider, Toggle } from "./ui";
 
@@ -55,6 +69,7 @@ const TABS: Array<{ id: string; label: string; render: (ctx: Ctx) => ReactNode }
   { id: "speech", label: "Speech", render: (ctx) => <SpeechTab {...ctx} /> },
   { id: "pose", label: "Pose", render: (ctx) => <PoseTab {...ctx} /> },
   { id: "motion", label: "Motion", render: (ctx) => <MotionTab {...ctx} /> },
+  { id: "links", label: "Links", render: (ctx) => <LinksTab {...ctx} /> },
   { id: "log", label: "Log", render: (ctx) => <LogTab {...ctx} /> },
   { id: "data", label: "Data", render: (ctx) => <DataTab {...ctx} /> },
 ];
@@ -542,6 +557,216 @@ function GiveForm({ onGive }: { onGive: (paths: string[]) => void }) {
       />
       <Button onClick={() => path.trim() && onGive([path.trim()])}>Give</Button>
     </form>
+  );
+}
+
+/* Links */
+
+function LinksTab({ command }: Ctx) {
+  const [links, setLinks] = useState<SavedLink[]>([]);
+  const [url, setUrl] = useState("");
+  const [title, setTitle] = useState("");
+  const [now, setNow] = useState(() => Date.now());
+  const read = () => {
+    setLinks(loadLinks());
+    setNow(Date.now());
+  };
+  useEffect(() => {
+    read();
+    // Mote's window updates the counts as it suggests links; the clock
+    // ticks for "how long ago".
+    const t = window.setInterval(() => setNow(Date.now()), 30_000);
+    const stop = onLinksChanged(read);
+    return () => {
+      window.clearInterval(t);
+      stop();
+    };
+  }, []);
+  const total = links.reduce((sum, l) => sum + weight(l, now), 0);
+  const sorted = [...links].sort((a, b) => weight(b, now) - weight(a, now));
+  const valid = /^https?:\/\/\S+$/i.test(url.trim());
+  const save = () => {
+    if (!valid) return;
+    addLink(url.trim(), title.trim() || null);
+    setUrl("");
+    setTitle("");
+    read();
+  };
+
+  return (
+    <>
+      <Section title="Add a link">
+        <form
+          className="link-add"
+          onSubmit={(e) => {
+            e.preventDefault();
+            save();
+          }}
+        >
+          <input
+            className="text-input"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://…"
+            aria-label="Link"
+          />
+          <input
+            className="text-input"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Title (optional)"
+            aria-label="Title"
+          />
+          <Button onClick={save}>Save</Button>
+        </form>
+      </Section>
+
+      <Section title={`Saved links (${links.length})`}>
+        {links.length ? (
+          <>
+            <p className="links-note">
+              Most likely to come up next at the top. Weight favours links never suggested (×3),
+              ones you usually open, and ones not suggested in the last two days.
+            </p>
+            {sorted.map((l) => (
+              <LinkRow
+                key={l.url}
+                link={l}
+                chance={total ? weight(l, now) / total : 0}
+                weight={weight(l, now)}
+                now={now}
+                onSuggest={() => command({ do: "suggestLink", url: l.url })}
+                onChange={read}
+              />
+            ))}
+            <div className="button-row">
+              <Button onClick={() => command({ do: "suggestLink" })}>Let Mote pick one now</Button>
+              <Button
+                onClick={() => {
+                  if (window.confirm(`Remove all ${links.length} saved links?`)) {
+                    clearLinks();
+                    read();
+                  }
+                }}
+              >
+                Remove them all
+              </Button>
+            </div>
+          </>
+        ) : (
+          <p className="empty">No saved links yet. Drag one onto Mote, or add one above.</p>
+        )}
+      </Section>
+    </>
+  );
+}
+
+function LinkRow({
+  link,
+  chance,
+  weight,
+  now,
+  onSuggest,
+  onChange,
+}: {
+  link: SavedLink;
+  chance: number;
+  weight: number;
+  now: number;
+  onSuggest: () => void;
+  onChange: () => void;
+}) {
+  const [renaming, setRenaming] = useState(false);
+  const [title, setTitle] = useState(link.title ?? "");
+  const ago = (t: number) => {
+    const m = Math.round((now - t) / 60_000);
+    if (m < 1) return "just now";
+    if (m < 60) return `${m} min ago`;
+    const h = Math.round(m / 60);
+    if (h < 48) return `${h} h ago`;
+    return `${Math.round(h / 24)} days ago`;
+  };
+  return (
+    <div className="reaction">
+      <div className="reaction-title">
+        {renaming ? (
+          <form
+            className="link-add"
+            onSubmit={(e) => {
+              e.preventDefault();
+              renameLink(link.url, title);
+              setRenaming(false);
+              onChange();
+            }}
+          >
+            <input
+              autoFocus
+              className="text-input"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Title (empty for none)"
+              aria-label="Title"
+            />
+          </form>
+        ) : (
+          <span className="row-label">{linkName(link)}</span>
+        )}
+        <span className={`tag ${isVideo(link.url) ? "is-live" : "is-idea"}`}>
+          {isVideo(link.url) ? "Video" : "Page"}
+        </span>
+      </div>
+      <div className="reaction-rule mono link-url">{link.url}</div>
+      <div className="reaction-rule">
+        Saved {ago(link.savedAt)}
+        {" · "}
+        {link.suggested
+          ? `suggested ${link.suggested}×, last ${ago(link.lastSuggested ?? 0)}`
+          : "never suggested"}
+        {" · "}
+        {link.opened ? `opened ${link.opened}×` : "never opened"}
+      </div>
+      <div className="reaction-foot">
+        <span className="effect">{Math.round(chance * 100)}% chance next</span>
+        <span className="mono reaction-count">weight {weight.toFixed(2)}</span>
+        <button type="button" className="link" onClick={onSuggest}>
+          Suggest it now
+        </button>
+        <button type="button" className="link" onClick={() => openLink(link.url)}>
+          Open
+        </button>
+        <button
+          type="button"
+          className="link"
+          onClick={() => {
+            if (renaming) renameLink(link.url, title);
+            setRenaming(!renaming);
+            onChange();
+          }}
+        >
+          {renaming ? "Done" : "Rename"}
+        </button>
+        <button
+          type="button"
+          className="link"
+          onClick={() => {
+            resetLink(link.url);
+            onChange();
+          }}
+        >
+          Reset history
+        </button>
+        <button
+          type="button"
+          className="link"
+          onClick={() => {
+            removeLink(link.url);
+            onChange();
+          }}
+        >
+          Remove
+        </button>
+      </div>
+    </div>
   );
 }
 
