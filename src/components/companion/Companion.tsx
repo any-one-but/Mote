@@ -205,9 +205,6 @@ export function Companion() {
         type="button"
         className="window"
         aria-label="Mote"
-        // Mote is a ball: pressing grabs them (stopping any spin), dragging
-        // rolls them, letting go with a flick spins them, and rubbing back
-        // and forth pets them. A quick press without moving is a poke.
         onPointerDown={(e) => {
           if (!engineRef.current?.hitTest(e.clientX, e.clientY)) {
             engineRef.current?.react("empty-click");
@@ -220,33 +217,39 @@ export function Companion() {
             stroked: 0,
             at: performance.now(),
           };
-          engineRef.current.grab(e.clientX, e.clientY);
           e.currentTarget.setPointerCapture(e.pointerId);
         }}
         onPointerMove={(e) => {
           const p = press.current;
-          if (!p) return;
-          p.moved += Math.hypot(e.clientX - p.x, e.clientY - p.y);
+          const engine = engineRef.current;
+          if (!p || !engine) return;
+          const step = Math.hypot(e.clientX - p.x, e.clientY - p.y);
+          p.moved += step;
           p.x = e.clientX;
           p.y = e.clientY;
-          engineRef.current?.drag(e.clientX, e.clientY);
+          if (!engine.hitTest(e.clientX, e.clientY)) return;
+          // It only counts as petting after a proper stroke: well over a second
+          // of moving across the face, covering a good distance.
+          p.stroked += step;
+          const width = e.currentTarget.getBoundingClientRect().width || 300;
+          if (p.stroked > width * 1.6 && performance.now() - p.at > 1100) {
+            engine.pet(e.clientX, e.clientY);
+          }
         }}
         onPointerUp={() => {
           const p = press.current;
           press.current = null;
-          const was = engineRef.current?.release();
-          if (p && p.moved < 8 && !was?.caught) engineRef.current?.poke();
+          if (p && p.moved < 8) engineRef.current?.poke();
         }}
         onPointerCancel={() => {
           press.current = null;
-          engineRef.current?.release();
         }}
         onWheel={(e) => {
-          // Scrolling on Mote rolls them the way your fingers move.
-          // Line-based scrolling (some mice) counts ~16px a line.
+          // Scrolling on Mote spins them (scrolling down or right goes
+          // clockwise). Line-based scrolling (some mice) counts ~16px a line.
           if (!engineRef.current?.hitTest(e.clientX, e.clientY)) return;
           const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
-          engineRef.current.spin(e.deltaX * unit, e.deltaY * unit);
+          engineRef.current.spin((e.deltaY + e.deltaX) * unit);
         }}
         onClick={(e) => {
           // Enter or Space on the focused window counts as a poke too.

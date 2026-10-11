@@ -687,12 +687,10 @@
   fill: var(--color-face);
 }
 
-/* The eyes' blur when Mote spins very fast: a band along each eye's path. */
+/* The eyes' blur when Mote spins very fast. */
 .spin-blur {
   fill: none;
   stroke: var(--color-ink);
-  stroke-width: 14;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  filter: blur(2.5px);
+  stroke-width: 30;
+  filter: blur(3px);
 }

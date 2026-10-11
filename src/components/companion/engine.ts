@@ -243,14 +243,8 @@ export type FaceEngine = {
   jobDone: (ok: boolean) => void;
   /** An app dropped on Mote: a game gets played, anything else gets a reaction. */
   offerApp: (app: AppOffer) => void;
-  /** A scroll on Mote (how far across and down): rolls them like a ball. */
-  spin: (dx: number, dy: number) => void;
-  /** Pressing on Mote (screen point): grabs them, stopping any spin. */
-  grab: (clientX: number, clientY: number) => void;
-  /** Moving while pressing: rolls them under the pointer (rubbing pets). */
-  drag: (clientX: number, clientY: number) => void;
-  /** Letting go: a flick spins them. Was it a catch, or a drag (not a poke)? */
-  release: () => { caught: boolean; moved: boolean };
+  /** A scroll on Mote (scroll distance, positive is clockwise): spins them. */
+  spin: (delta: number) => void;
   /** A link dropped on Mote, to save for suggesting some day. */
   saveLink: (url: string, title: string | null) => void;
   /** Debug: suggest a saved link right now (this one, or Mote's pick). */
@@ -464,10 +458,7 @@ export type PoseExtras = {
   sincePet?: number;
   /** While spinning: how fast, 0 (barely) to 1 (as fast as it feels). */
   spin?: number;
-  /** Winding down from a spin: how woozy already (0..1). */
-  woozy?: number;
-  /** Dizzy from a spin they loved: giggly cheeks through the wobble, eyes
-   * already swirling from the start (it carries on from the spin). */
+  /** Dizzy from a spin they loved: giggly cheeks through the wobble. */
   giddy?: boolean;
 };
 
@@ -970,21 +961,9 @@ export function poseFor(
       sy: 0.93,
       lookMix: 1,
     };
-    // Winding down, the dizziness creeps in: a woozy, giggly face and
-    // swirling eyes, so it flows straight on into being dizzy.
-    const woozy = clamp(extras.woozy ?? 0, 0, 1);
-    const dazed: Pose = {
-      ...REST,
-      open: 0.88,
-      wide: 0.95,
-      cheek: 0.42,
-      cheekCurve: 0.16,
-      lookMix: 1,
-    };
     const blend = {} as Partial<Pose>;
-    for (const k of POSE_KEYS) blend[k] = lerp(lerp(enjoy[k], clench[k], c), dazed[k], woozy);
+    for (const k of POSE_KEYS) blend[k] = lerp(enjoy[k], clench[k], c);
     keys = [[0, blend]];
-    swirl = woozy;
     const shiver = c * c;
     shakeX = Math.sin((t / 1000) * Math.PI * 2 * 23) * 0.6 * shiver;
   } else if (mood === "dizzy") {
@@ -999,7 +978,7 @@ export function poseFor(
       [2300, { open: 1.02 }],
       [2700, {}],
     ];
-    const up = extras.giddy ? 1 : Math.min(1, Math.max(0, (t - 150) / 350));
+    const up = Math.min(1, Math.max(0, (t - 150) / 350));
     const down = Math.min(1, Math.max(0, (2300 - t) / 400));
     swirl = up * down;
     const w = t / 1000;
@@ -1172,86 +1151,6 @@ const SLEEP: Partial<Pose> = {
   lookMix: 1,
 };
 
-// ── Mote as a ball ─────────────────────────────────────────────────────
-// Spinning turns Mote round like a ball in space: their face (the eyes)
-// travels over the surface, round the back and back again. Orientation is a
-// quaternion [w, x, y, z]; x is right, y down, z out of the screen.
-
-type V3 = [number, number, number];
-type Quat = [number, number, number, number];
-
-/** The ball's radius (viewBox units): about the face's. */
-const BALL_R = 95;
-
-const dot3 = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-const len3 = (a: V3) => Math.sqrt(dot3(a, a));
-const scale3 = (a: V3, k: number): V3 => [a[0] * k, a[1] * k, a[2] * k];
-const sub3 = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-const cross3 = (a: V3, b: V3): V3 => [
-  a[1] * b[2] - a[2] * b[1],
-  a[2] * b[0] - a[0] * b[2],
-  a[0] * b[1] - a[1] * b[0],
-];
-const norm3 = (a: V3): V3 => {
-  const l = len3(a);
-  return l > 1e-9 ? scale3(a, 1 / l) : [0, 0, 0];
-};
-
-function qMul(a: Quat, b: Quat): Quat {
-  return [
-    a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
-    a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
-    a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
-    a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
-  ];
-}
-
-/** A turn of `angle` radians round `axis` (a unit vector). */
-function qTurn(axis: V3, angle: number): Quat {
-  const h = angle / 2;
-  const s = Math.sin(h);
-  return [Math.cos(h), axis[0] * s, axis[1] * s, axis[2] * s];
-}
-
-function qNorm(q: Quat): Quat {
-  const l = Math.hypot(q[0], q[1], q[2], q[3]) || 1;
-  return [q[0] / l, q[1] / l, q[2] / l, q[3] / l];
-}
-
-function qRotate(q: Quat, v: V3): V3 {
-  const r = qMul(qMul(q, [0, v[0], v[1], v[2]]), [q[0], -q[1], -q[2], -q[3]]);
-  return [r[1], r[2], r[3]];
-}
-
-/** How far a turn is from facing front: its axis, and angle (0..π). */
-function qAxisAngle(q: Quat): { axis: V3; angle: number } {
-  const w = q[0] < 0 ? -q[0] : q[0];
-  const sign = q[0] < 0 ? -1 : 1;
-  const angle = 2 * Math.acos(Math.min(1, w));
-  const s = Math.sqrt(Math.max(0, 1 - w * w));
-  if (s < 1e-6) return { axis: [0, 0, 0], angle: 0 };
-  return { axis: [(sign * q[1]) / s, (sign * q[2]) / s, (sign * q[3]) / s], angle };
-}
-
-/**
- * Where each eye sits on the ball, facing front: its middle, and the two
- * directions along the surface there (so an eye can be drawn turned and
- * squashed as it travels). The face is drawn flat, so each eye's mapping
- * is measured against how it looks facing front.
- */
-const EYE_ON_BALL = (["l", "r"] as const).map((side) => {
-  const x = (side === "l" ? GEO.eyeLX : GEO.eyeRX) - GEO.cx;
-  const y = GEO.eyeY - GEO.cy;
-  const p: V3 = [x, y, Math.sqrt(BALL_R * BALL_R - x * x - y * y)];
-  const n = norm3(p);
-  const u = norm3(sub3([1, 0, 0], scale3(n, n[0])));
-  const v = norm3(cross3(n, u));
-  // The flat drawing's own mapping (u, v as seen from the front), inverted.
-  const det = u[0] * v[1] - v[0] * u[1];
-  const inv = [v[1] / det, -v[0] / det, -u[1] / det, u[0] / det];
-  return { side, p, u, v, inv };
-});
-
 /** Blink curve: quick accelerating close, short hold, softer open with a tiny pop. */
 function blinkCurve(t: number, slow: boolean) {
   const close = slow ? 170 : 72;
@@ -1393,10 +1292,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     gCheekL: q<SVGPathElement>(svg, "guide-cheek-l"),
     gCheekR: q<SVGPathElement>(svg, "guide-cheek-r"),
     skin: q<SVGEllipseElement>(svg, "skin"),
-    eyeL: q<SVGGElement>(svg, "eye-l"),
-    eyeR: q<SVGGElement>(svg, "eye-r"),
-    blurL: q<SVGPathElement>(svg, "spin-blur-l"),
-    blurR: q<SVGPathElement>(svg, "spin-blur-r"),
+    blur: q<SVGCircleElement>(svg, "spin-blur"),
     pawn: q<SVGGElement>(svg, "pawn"),
     pad: q<SVGGElement>(svg, "pad"),
     block: q<SVGGElement>(svg, "block"),
@@ -1511,24 +1407,17 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   let dozeNext = false;
   let twitchStart = -1;
   let nextTwitch = 5000;
-  // Spinning: Mote as a ball. Which way they're facing, how fast they turn
-  // (radians a second, round an axis), whether you're holding them, and how
-  // this spin has gone so far (for the dizziness, and what Mote says).
-  const ball = {
-    q: [1, 0, 0, 0] as Quat,
-    w: [0, 0, 0] as V3,
-    held: false,
-    // Grabbed while spinning (a catch, not a poke), and dragged.
-    caught: false,
-    moved: 0,
-    last: { x: 0, y: 0, t: 0 },
-    flick: [0, 0, 0] as V3,
-    // Rubbing back and forth is petting: direction changes, and when.
-    lastDir: [0, 0] as [number, number],
-    travel: 0,
-    reversals: [] as number[],
-    rubbing: false,
+  // Spinning (scroll on Mote): how far round they are (degrees), how fast
+  // (degrees a second), whether they're rocking to a stop upright, and how
+  // this spin has gone so far (for what Mote says afterwards).
+  const spinner = {
+    angle: 0,
+    w: 0,
     active: false,
+    landing: false,
+    landV: 0,
+    target: 0,
+    lastWheel: Number.NEGATIVE_INFINITY,
     startAt: 0,
     peak: 0,
     turns: 0,
@@ -1623,7 +1512,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       else mention("dizzy-over", 0.5);
     }
     if (next !== "dizzy") dizzyStretch = 1;
-    if (next === "dizzy" && !ball.active && prev !== "spin") lastSpin = null;
+    if (next === "dizzy" && !spinner.active && prev !== "spin") lastSpin = null;
     if (prev === "purr" && next !== "purr") mention("petted", 0.35);
     if (game && next === game.mood) game.won = gameWon(game.mood, moodSeed);
     if (GAME_MOODS.includes(prev) && !GAME_MOODS.includes(next)) mention("played", 0.5);
@@ -2136,210 +2025,115 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
   };
 
-  /** How fast Mote is turning, in turns a second. */
-  const spinRate = () => len3(ball.w) / (Math.PI * 2);
-
-  /** How fast Mote spins, as 0..1 for the face (turns a second, on a log scale). */
-  const spinIntensity = () => (ball.active ? clamp(Math.log2(1 + spinRate()) / 3.3, 0, 1) : 0);
-
-  /**
-   * How woozy Mote already is as a spin winds down: grows with the number of
-   * turns, and shows more the slower they're going, so the dizziness takes
-   * over from the scrunched-up face smoothly as they slow.
-   */
-  const spinWoozy = () =>
-    ball.active ? clamp(Math.log2(1 + ball.turns) / 3, 0, 1) * (1 - spinIntensity()) ** 2 : 0;
-
-  /** The fastest Mote turns: a hundred times a second. */
-  const SPIN_MAX = 200 * Math.PI;
-
-  const beginSpin = () => {
-    if (ball.active) return;
-    ball.active = true;
-    ball.startAt = clock;
-    ball.peak = 0;
-    ball.turns = 0;
-    lastSpin = null;
-    if (bubble) showBubble(null);
-    react("spin");
-    start("spin", clock);
+  /** How fast Mote is spinning, as 0..1 for the face (turns a second, on a log scale). */
+  const spinIntensity = () => {
+    if (!spinner.active) return 0;
+    const turnsPerSecond = Math.abs(spinner.landing ? spinner.landV : spinner.w) / 360;
+    return clamp(Math.log2(1 + turnsPerSecond) / 3.3, 0, 1);
   };
 
+  /** The fastest Mote can go: a hundred turns a second. */
+  const SPIN_MAX = 36_000;
+
   /**
-   * A scroll on Mote: rolls the ball the way your fingers move (up and down
-   * round the side-to-side axis, sideways round the up-and-down one). The
-   * faster Mote already turns the more each scroll adds, so gentle
-   * scrolling is a gentle roll and keeping at it builds up to a blur.
-   * Scrolling against the spin brakes, harder.
+   * A scroll on Mote: a push round (positive is clockwise). The faster Mote
+   * already spins, the more each push adds, so gentle scrolling is a gentle
+   * twirl and keeping at it builds up to a blur. Scrolling the other way
+   * brakes, harder.
    */
-  const spin = (dx: number, dy: number) => {
-    if (debug.manual || ball.held || (dx === 0 && dy === 0)) return;
+  const spin = (delta: number) => {
+    if (debug.manual || delta === 0) return;
     touch();
     engage();
     noticeYou();
-    const push: V3 = [clamp(dy, -240, 240), clamp(-dx, -240, 240), 0];
-    const speed = len3(ball.w);
-    const braking = dot3(push, ball.w) < 0;
-    const gain = 0.014 + speed * (braking ? 0.0008 : 0.00036);
-    ball.w = [ball.w[0] + push[0] * gain, ball.w[1] + push[1] * gain, 0 + ball.w[2]];
-    const after = len3(ball.w);
-    if (after > SPIN_MAX) ball.w = scale3(ball.w, SPIN_MAX / after);
-    if (after > 0.5) beginSpin();
-  };
-
-  /** Pressing on Mote: grabs the ball, stopping any spin dead. */
-  const grab = (x: number, y: number) => {
-    touch();
-    ball.caught = len3(ball.w) > 1;
-    if (ball.caught) react("spin-caught");
-    ball.held = true;
-    ball.w = [0, 0, 0];
-    ball.flick = [0, 0, 0];
-    ball.moved = 0;
-    ball.travel = 0;
-    ball.reversals = [];
-    ball.rubbing = false;
-    ball.last = { x, y, t: performance.now() };
-  };
-
-  /**
-   * Dragging while holding Mote rolls the ball under your pointer, like a
-   * trackball. Rubbing back and forth is petting instead: Mote just rocks
-   * gently with it, and purrs.
-   */
-  const drag = (x: number, y: number) => {
-    if (!ball.held) return;
-    const t = performance.now();
-    const dx = x - ball.last.x;
-    const dy = y - ball.last.y;
-    const d = Math.hypot(dx, dy);
-    if (d < 0.5) return;
-    const dts = Math.max(0.004, (t - ball.last.t) / 1000);
-    ball.last = { x, y, t };
-    ball.moved += d;
-    touch();
-    // Rubbing: the pointer keeps turning back on itself.
-    ball.travel += d;
-    if (ball.travel > 6) {
-      const dir: [number, number] = [dx / d, dy / d];
-      if (dir[0] * ball.lastDir[0] + dir[1] * ball.lastDir[1] < -0.3) ball.reversals.push(clock);
-      ball.lastDir = dir;
-      ball.travel = 0;
+    if (mood === "sleep" || mood === "doze") react("wake-rested");
+    if (spinner.landing) {
+      spinner.landing = false;
+      spinner.w = spinner.landV;
     }
-    ball.reversals = ball.reversals.filter((r) => clock - r < 1600);
-    if (ball.reversals.length >= 3 && !ball.rubbing) {
-      ball.rubbing = true;
-      // It was petting all along, not a spin.
-      if (ball.active && ball.turns < 0.5) {
-        ball.active = false;
-        lastSpin = null;
-      }
-    }
-    if (ball.rubbing) api.pet(x, y);
-
-    const rect = svg.getBoundingClientRect();
-    const unit = GEO.vbW / (rect.width || GEO.vbW);
-    const angle = ((d * unit) / BALL_R) * (ball.rubbing ? 0.3 : 1);
-    const axis: V3 = [-dy / d, dx / d, 0];
-    ball.q = qNorm(qMul(qTurn(axis, angle), ball.q));
-    const now: V3 = scale3(axis, angle / dts);
-    ball.flick = [lerp(ball.flick[0], now[0], 0.5), lerp(ball.flick[1], now[1], 0.5), 0];
-    if (!ball.rubbing && ball.moved > 8) beginSpin();
-  };
-
-  /**
-   * Letting go: a flick sends Mote spinning; held still (or rubbed), they
-   * just turn back to face you. Says whether it was a catch or a drag, so a
-   * plain press can still count as a poke.
-   */
-  const release = () => {
-    const was = { caught: ball.caught, moved: ball.moved > 8 };
-    if (!ball.held) return was;
-    ball.held = false;
-    const fresh = performance.now() - ball.last.t < 80;
-    ball.w = !ball.rubbing && fresh ? ball.flick : [0, 0, 0];
-    const speed = len3(ball.w);
-    if (speed > SPIN_MAX) ball.w = scale3(ball.w, SPIN_MAX / speed);
-    if (speed > 0.5) beginSpin();
-    ball.rubbing = false;
-    return was;
-  };
-
-  /**
-   * The ball each frame: coasting and slowing down, and, once slow, turning
-   * back to face you like a weighted toy righting itself (a little past,
-   * and back). When it's still and facing front, the spin is over.
-   */
-  const ballStep = (dt: number) => {
-    if (ball.held) return;
-    const steps = Math.max(1, Math.ceil(dt / (1 / 240)));
-    const h = dt / steps;
-    for (let i = 0; i < steps; i++) {
-      let speed = len3(ball.w);
-      // Turning back to face you takes over once they've slowed right down.
-      const right = 1 - clamp((speed - 2.5) / 3.5, 0, 1);
-      // Until then, they slow by about a third every second, plus a little
-      // steady friction, so a huge spin takes a good while to wind down.
-      if (speed > 0) {
-        const steady = (0.6 * h * (1 - right)) / speed;
-        const k = Math.exp(-h / 1.8) * Math.max(0, 1 - steady);
-        ball.w = scale3(ball.w, k);
-        speed *= k;
-      }
-      if (right > 0) {
-        const { axis, angle } = qAxisAngle(ball.q);
-        const pull = scale3(axis, -22 * angle * right);
-        const drag3 = scale3(ball.w, -4.2 * right);
-        ball.w = [
-          ball.w[0] + (pull[0] + drag3[0]) * h,
-          ball.w[1] + (pull[1] + drag3[1]) * h,
-          ball.w[2] + (pull[2] + drag3[2]) * h,
-        ];
-      }
-      const sp = len3(ball.w);
-      if (sp > 1e-6) ball.q = qNorm(qMul(qTurn(scale3(ball.w, 1 / sp), sp * h), ball.q));
-      if (ball.active) {
-        ball.turns += (sp * h) / (Math.PI * 2);
-        ball.peak = Math.max(ball.peak, sp);
-      }
-    }
-    if (ball.active && len3(ball.w) < 0.3 && qAxisAngle(ball.q).angle < 0.05) finishSpin();
-    // Fully settled: exactly front-facing again (too small a step to see).
-    if (!ball.active && len3(ball.w) < 0.02 && qAxisAngle(ball.q).angle < 0.002) {
-      ball.q = [1, 0, 0, 0];
-      ball.w = [0, 0, 0];
+    // Each pixel of scrolling adds a little, plus a little more the faster
+    // Mote already goes: a flick of the trackpad is a turn or two a second,
+    // and only seconds of steady, hard scrolling get anywhere near the top.
+    const d = clamp(delta, -240, 240);
+    const braking = spinner.w !== 0 && Math.sign(d) !== Math.sign(spinner.w);
+    const gain = 0.8 + Math.abs(spinner.w) * (braking ? 0.0008 : 0.00036);
+    spinner.w = clamp(spinner.w + d * gain, -SPIN_MAX, SPIN_MAX);
+    spinner.lastWheel = clock;
+    if (!spinner.active && Math.abs(spinner.w) > 30) {
+      spinner.active = true;
+      spinner.startAt = clock;
+      spinner.peak = 0;
+      spinner.turns = 0;
+      lastSpin = null;
+      if (bubble) showBubble(null);
+      react("spin");
+      start("spin", clock);
     }
   };
 
-  /**
-   * The spin is over: facing front again, already woozy if it was a real
-   * spin, and the dizziness carries straight on from there.
-   */
+  /** Spinning, each frame: coast and slow down, then rock to a stop upright. */
+  const spinStep = (dt: number) => {
+    if (!spinner.active) return;
+    if (!spinner.landing) {
+      // Slows by about a third every second, plus a little steady friction,
+      // so a huge spin takes a good while to wind down.
+      const sgn = Math.sign(spinner.w);
+      spinner.w *= Math.exp(-dt / 1.6);
+      spinner.w -= sgn * Math.min(Math.abs(spinner.w), 60 * dt);
+      spinner.angle += spinner.w * dt;
+      spinner.turns += (Math.abs(spinner.w) * dt) / 360;
+      spinner.peak = Math.max(spinner.peak, Math.abs(spinner.w));
+      if (Math.abs(spinner.w) < 110 && clock - spinner.lastWheel > 250) {
+        // Settle upright wherever the last bit of momentum would carry
+        // Mote: tipping on over the top, or rocking back, with a wobble.
+        spinner.landing = true;
+        spinner.landV = spinner.w;
+        spinner.target = Math.round((spinner.angle + spinner.w * 0.35) / 360) * 360;
+      }
+    } else {
+      const steps = Math.max(1, Math.ceil(dt / (1 / 240)));
+      for (let i = 0; i < steps; i++) {
+        [spinner.angle, spinner.landV] = spring(
+          spinner.angle,
+          spinner.landV,
+          spinner.target,
+          70,
+          0.42,
+          dt / steps,
+        );
+      }
+      if (Math.abs(spinner.angle - spinner.target) < 0.3 && Math.abs(spinner.landV) < 4)
+        finishSpin();
+    }
+  };
+
+  /** Stopped: upright again, and (after a real spin) properly dizzy. */
   const finishSpin = () => {
-    const seconds = (clock - ball.startAt) / 1000;
-    const peak = ball.peak / (Math.PI * 2);
-    lastSpin = { peak, seconds, turns: ball.turns };
-    // (The last little bit of turning back to face you carries on.)
-    ball.active = false;
+    const seconds = (clock - spinner.startAt) / 1000;
+    const peak = spinner.peak / 360;
+    lastSpin = { peak, seconds, turns: spinner.turns };
+    spinner.active = false;
+    spinner.landing = false;
+    spinner.angle = 0;
+    spinner.w = 0;
+    spinner.landV = 0;
     log(
-      `spun ${ball.turns.toFixed(1)} times in ${seconds.toFixed(1)}s, top speed ${peak.toFixed(1)} a second`,
+      `spun ${spinner.turns.toFixed(1)} times in ${seconds.toFixed(1)}s, top speed ${peak.toFixed(1)} a second`,
     );
-    if (peak > 0.6 || ball.turns > 1.2) {
+    if (peak > 0.6 || seconds > 1.5) {
       // The bigger the spin, the longer the wobble.
       dizzyStretch = clamp(1 + Math.log2(1 + peak) / 3 + seconds / 25, 1, 2.6);
       react("spun-dizzy");
       start("dizzy", clock);
-      // Straight into the woozy part (the face is already there).
-      moodStart = clock - 260 * dizzyStretch;
     } else {
       react("spun-little");
-      start("cute", clock);
+      start("delight", clock);
       mention("spun", 0.5);
     }
   };
 
   const step = (dt: number, now: number) => {
-    ballStep(dt);
+    spinStep(dt);
     if (pokeQueued) {
       pokeQueued = false;
       handlePoke(now);
@@ -2462,8 +2256,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     } = poseFor(mood, mood === "dizzy" ? t / dizzyStretch : t, moodSeed, {
       sincePet: sincePet < 350 ? -1 : sincePet - 350,
       spin: spinIntensity(),
-      woozy: spinWoozy(),
-      giddy: lastSpin !== null || ball.active,
+      giddy: lastSpin !== null,
     });
     swirlNow = swirl;
     // Petting a sleeping Mote gets a sleepy little purr without waking them.
@@ -2695,79 +2488,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
 
   let shake = { x: 0, rot: 0 };
 
-  /**
-   * Draws Mote as a ball: each eye placed where the turn has carried it on
-   * the surface (turned, and squashed near the edge, hidden round the back);
-   * the outline a circle while they spin; and, very fast, each eye blurred
-   * into a band along its path.
-   */
-  const renderBall = (m: number) => {
-    const facing = qAxisAngle(ball.q).angle;
-    const turned = facing > 1e-4;
-    for (const eye of EYE_ON_BALL) {
-      const el = eye.side === "l" ? parts.eyeL : parts.eyeR;
-      if (!el) continue;
-      if (!turned) {
-        el.removeAttribute("transform");
-        el.style.display = "";
-        continue;
-      }
-      const p = qRotate(ball.q, eye.p);
-      const u = qRotate(ball.q, eye.u);
-      const v = qRotate(ball.q, eye.v);
-      // Round the back of the ball: out of sight.
-      el.style.display = p[2] > 0 ? "" : "none";
-      // Seen from the front, then undone for the flat drawing.
-      const [i0, i1, i2, i3] = eye.inv;
-      const a = u[0] * i0 + v[0] * i2;
-      const c = u[0] * i1 + v[0] * i3;
-      const b = u[1] * i0 + v[1] * i2;
-      const d = u[1] * i1 + v[1] * i3;
-      el.setAttribute(
-        "transform",
-        `translate(${f(GEO.cx + p[0])} ${f(GEO.cy + p[1])}) matrix(${a.toFixed(4)} ${b.toFixed(4)} ${c.toFixed(4)} ${d.toFixed(4)} 0 0) translate(${f(-(GEO.cx + eye.p[0]))} ${f(-(GEO.cy + eye.p[1]))})`,
-      );
-    }
-    // A ball's outline is round: Mote rounds out while turned.
-    const round = ball.active || turned ? clamp(facing / 0.3 + spinRate(), 0, 1) : 0;
-    parts.skin?.setAttribute("rx", f(GEO.faceRx - 3 * round));
-    parts.skin?.setAttribute("ry", f(GEO.faceRy + 3 * round));
-    // Very fast: each eye a soft band along the circle it travels.
-    const rate = spinRate();
-    const blur = reduced || m < 1 ? 0 : clamp((rate - 2.5) / 5, 0, 1);
-    const axis = norm3(ball.w);
-    for (const eye of EYE_ON_BALL) {
-      const el = eye.side === "l" ? parts.blurL : parts.blurR;
-      if (!el) continue;
-      if (blur < 0.01 || len3(axis) === 0) {
-        el.style.display = "none";
-        continue;
-      }
-      const p = qRotate(ball.q, eye.p);
-      const centre = scale3(axis, dot3(axis, p));
-      const r = sub3(p, centre);
-      const radius = len3(r);
-      const e1 = norm3(r);
-      const e2 = cross3(axis, e1);
-      let d = "";
-      let open = false;
-      for (let k = 0; k <= 48; k++) {
-        const t = (k / 48) * Math.PI * 2;
-        const q = [0, 1, 2].map(
-          (j) => centre[j] + radius * (Math.cos(t) * e1[j] + Math.sin(t) * e2[j]),
-        );
-        if (q[2] > 0) {
-          d += `${open ? "L" : "M"}${f(GEO.cx + q[0])} ${f(GEO.cy + q[1])}`;
-          open = true;
-        } else open = false;
-      }
-      el.style.display = d ? "" : "none";
-      el.setAttribute("d", d);
-      el.style.opacity = f(0.5 * blur);
-    }
-    if (parts.eyes) parts.eyes.style.opacity = blur > 0.01 ? f(1 - 0.85 * blur) : "";
-  };
-
   const render = (blink: number) => {
     const m = reduced ? 0.2 : 1;
     // A purr is a soft, fast rumble that skips the springs.
@@ -2777,11 +2497,25 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const br = (view.rot + shake.rot * m) * m;
     const bsx = 1 + (view.sx - 1) * m - rumble * 0.004;
     const bsy = 1 + (view.sy - 1) * m + rumble * 0.007;
+    // Spinning turns all of Mote round their middle.
+    const turn = spinner.active ? ((spinner.angle % 360) + 360) % 360 : 0;
     parts.body?.setAttribute(
       "transform",
-      `translate(${f(bx)} ${f(by)}) rotate(${f(br)} ${GEO.cx} ${GEO.pivotY}) translate(${GEO.cx} ${GEO.groundY}) scale(${bsx.toFixed(4)} ${bsy.toFixed(4)}) translate(${-GEO.cx} ${-GEO.groundY})`,
+      `translate(${f(bx)} ${f(by)}) rotate(${f(br)} ${GEO.cx} ${GEO.pivotY}) translate(${GEO.cx} ${GEO.groundY}) scale(${bsx.toFixed(4)} ${bsy.toFixed(4)}) translate(${-GEO.cx} ${-GEO.groundY}) rotate(${f(turn)} ${GEO.cx} ${GEO.cy})`,
     );
-    renderBall(m);
+    // While spinning Mote rounds out into a circle, so the body seems to
+    // hold still and only the squeezed-shut eyes go round; past a few turns
+    // a second they blur into a ring rather than flicker.
+    const speed = spinner.active ? Math.abs(spinner.landing ? spinner.landV : spinner.w) / 360 : 0;
+    const round = clamp(speed / 1.5, 0, 1);
+    parts.skin?.setAttribute("rx", f(GEO.faceRx - 3 * round));
+    parts.skin?.setAttribute("ry", f(GEO.faceRy + 3 * round));
+    const blur = reduced ? 0 : clamp((speed - 2.5) / 5, 0, 1);
+    if (parts.blur) {
+      parts.blur.style.display = blur > 0.01 ? "" : "none";
+      parts.blur.style.opacity = f(0.42 * blur);
+    }
+    if (parts.eyes) parts.eyes.style.opacity = blur > 0.01 ? f(1 - 0.88 * blur) : "";
     const ex = clamp((lag.x - view.x) * 0.35, -3, 3) * m;
     const ey = clamp((lag.y - view.y) * 0.35, -4, 4) * m;
     const eyeShift = `translate(${f(ex)} ${f(ey)})`;
@@ -3065,9 +2799,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     jobDone,
     offerApp,
     spin,
-    grab,
-    drag,
-    release,
     saveLink,
     suggestLink: (url) => {
       if (bubble) showBubble(null);
