@@ -1504,7 +1504,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   const noticeYou = () => {
     if (clock - lastYou > AWAY && lastYou > 0 && mood !== "sleep") {
       react("welcome-back");
-      mention("welcome-back", 0.6);
+      mention("welcome-back", 0.85);
     }
     lastYou = clock;
   };
@@ -1516,6 +1516,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   let bubbleSeq = 0;
   const lastSaid = new Map<string, number>();
   let pendingEvent: { event: SpeechEvent; at: number } | null = null;
+  // Chatting: 3 to 6 minutes apart at Normal energy, more often when lively.
+  const chatGap = () => (3 + Math.random() * 3) * 60_000 * ENERGY_GAP[options.energy];
+  let nextChatAt = 90_000;
   const movedSince = { x: 0, y: 0 };
   let pettedSince = false;
   let wanting: { need: string; line: string; at: number } | null = null;
@@ -1579,10 +1582,10 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (next === "checkin") blinkAt(now + 40);
     if (next === "tada") blinkAt(now + 1300);
     if (prev === "dizzy") dizzyReadyAt = now + 4000;
-    if (prev === "dizzy" && next !== "dizzy") mention("dizzy-over", 0.5);
-    if (prev === "purr" && next !== "purr") mention("petted", 0.35);
+    if (prev === "dizzy" && next !== "dizzy") mention("dizzy-over", 0.7);
+    if (prev === "purr" && next !== "purr") mention("petted", 0.6);
     if (game && next === game.mood) game.won = gameWon(game.mood, moodSeed);
-    if (GAME_MOODS.includes(prev) && !GAME_MOODS.includes(next)) mention("played", 0.5);
+    if (GAME_MOODS.includes(prev) && !GAME_MOODS.includes(next)) mention("played", 0.7);
   };
 
   /** Maybe bring up something that just happened, next time Mote can talk. */
@@ -1598,6 +1601,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     hour: new Date().getHours(),
     placement: options.placement,
     media: interest === "media",
+    typing: clock < typingUntil,
     offering: offered,
     game: game?.name ?? null,
     gameKind: game ? (game.mood === "gaming" ? "game" : game.mood) : null,
@@ -1712,7 +1716,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
 
   /**
    * Speech each frame: resolve the current bubble, mention something that
-   * just happened, or ask for something Mote needs. Never just to chat.
+   * just happened, or ask for something Mote needs. Now and then, just to chat.
    */
   const speak = (now: number) => {
     if (pendingEvent && now - pendingEvent.at > 6000) pendingEvent = null;
@@ -1730,6 +1734,20 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       pendingEvent = null;
       if (line) say(line, now);
       return;
+    }
+
+    // Every few minutes, if you're around, Mote says something just to chat.
+    if (now >= nextChatAt) {
+      nextChatAt = now + chatGap();
+      if (clock - lastYou < 2 * 60_000) {
+        pendingEvent = { event: "chat", at: now };
+        const line = chooseLine(speechContext(), lastSaid, now, 10 * 60_000, options.friendly);
+        pendingEvent = null;
+        if (line) {
+          say(line, now);
+          return;
+        }
+      }
     }
 
     // A need is noticed a little while before Mote says anything about it.
@@ -2100,12 +2118,18 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     pointer.has = true;
     touch();
     noticeYou();
-    if (options.followPointer && dist > 0) {
+    // Fast strokes while the button is held are petting, not shaking.
+    if (options.followPointer && dist > 0 && e.buttons === 0) {
       const size = svg.getBoundingClientRect().width || 300;
       shaken("pointer", dist, size * 4.5);
     }
   };
   window.addEventListener("pointermove", onMove, { passive: true });
+  // Wiggling just before a press doesn't add up with the stroke after it.
+  const onPress = () => {
+    shakes.pointer.length = 0;
+  };
+  window.addEventListener("pointerdown", onPress, { passive: true });
   const keepFeelings = () => MIND_ENABLED && saveMind(feel);
   window.addEventListener("pagehide", keepFeelings);
 
@@ -2150,7 +2174,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       // as soon as they dropped off, a bit groggy.
       const rested = mood === "sleep" && now - sleptAt > 3 * 60_000;
       react(rested ? "wake-rested" : "wake-groggy");
-      if (mood === "sleep") mention(rested ? "woke-rested" : "woke-groggy", 0.6);
+      if (mood === "sleep") mention(rested ? "woke-rested" : "woke-groggy", 0.8);
       start("wake", now);
     } else if (helping === "busy") {
       // Busy with a job: a quick happy look up, then back to work.
@@ -2268,7 +2292,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         react("startled-awake");
         start("startle", now);
         mention("startled", 0.8);
-      } else mention("media-start", 0.3);
+      } else mention("media-start", 0.5);
     }
     const watchingMedia = media && !you;
 
@@ -2767,6 +2791,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       running = false;
       if (raf) cancelAnimationFrame(raf);
       window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerdown", onPress);
       window.removeEventListener("pagehide", keepFeelings);
       keepFeelings();
       document.removeEventListener("visibilitychange", onVis);

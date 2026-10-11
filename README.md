@@ -82,9 +82,10 @@ surprised, and hops happily when poked (clicked right on the face). Four quick
 pokes in a row is too many, and Mote gets annoyed.
 
 - **Petting:** press and keep stroking across Mote's face for a second or so.
-  Mote melts into it and purrs.
-- **Dizzy:** shaking the pointer around wildly, or throwing the window around
-  the screen, makes Mote dizzy for a moment.
+  Mote melts into it and purrs. Stroke as fast as you like: moving with the
+  button held down never counts as shaking.
+- **Dizzy:** shaking the pointer around wildly (without holding the button),
+  or throwing the window around the screen, makes Mote dizzy for a moment.
 - **Naps:** left be for a few minutes (no poking, petting or moving the
   window) with nothing interesting going on, Mote yawns, dozes and falls
   asleep. A poke wakes them ("Five more minutes…" if they'd only just dropped
@@ -102,7 +103,9 @@ pokes in a row is too many, and Mote gets annoyed.
 Mote is always cheerful: interactions are momentary and nothing changes
 Mote over time. Mote only speaks up when something happens (after a pet,
 getting dizzy, something starting to play, you coming back after a while),
-plus the occasional saved link or word about today's calories.
+and every few minutes while you're around, just to chat: a hello, a passing
+thought, something about the time of day, or what you're up to. How often
+follows **Energy** in Settings (about every 3–6 minutes at Normal).
 
 (A whole system of feelings that drift over time, lasting moods and needs is
 still in the code, switched off: `MIND_ENABLED` in
@@ -140,7 +143,8 @@ next morning. Every line is in `src/components/companion/calorie-lines.ts`.
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. You can choose
 whether Mote follows your pointer, whether Mote naps, how lively Mote is, the pace
-for helping with files, and whether the window floats above others.
+for helping with files, whether Mote opens when you log in, and whether the
+window floats above others.
 
 Text in the app calls Mote "Mote", or "they/them" when a pronoun is needed.
 
@@ -166,7 +170,7 @@ The current Mac app is already built and kept in the project. Quit Mote if it
 is open, then drag the new one into Applications and replace the old one.
 
 - `src-tauri/target/release/bundle/macos/Mote.app`
-- `src-tauri/target/release/bundle/dmg/Mote_0.3.6_aarch64.dmg` (an installer you can share)
+- `src-tauri/target/release/bundle/dmg/Mote_0.3.7_aarch64.dmg` (an installer you can share)
 
 To build a fresh copy later:
 

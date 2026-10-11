@@ -1,9 +1,9 @@
 import type { LastingMood, MindValues } from "@/components/companion/mind";
 
-// Everything Mote can say on their own, and when. Mote doesn't chatter on a
-// timer: they speak up when something happens that they'd naturally react
-// to, or when they need something (a pet, a change of scene). A bubble is one
-// of:
+// Everything Mote can say on their own, and when. Mote speaks up when
+// something happens that they'd naturally react to, when they need something
+// (a pet, a change of scene), and every few minutes while you're around, just
+// to chat. A bubble is one of:
 //
 // - "flavor": just a remark, nothing to answer
 // - "ask":    a question with a green (yes) and a red (no) button
@@ -28,7 +28,9 @@ export type SpeechEvent =
   | "played"
   | "woke-rested"
   | "woke-groggy"
-  | "startled";
+  | "startled"
+  /** Nothing in particular: Mote just feels like saying something. */
+  | "chat";
 
 export type SpeechContext = {
   feel: MindValues;
@@ -40,6 +42,8 @@ export type SpeechContext = {
   placement: { x: number; y: number } | null;
   /** Sound coming from a window Mote can see. */
   media: boolean;
+  /** You're typing in another app. */
+  typing: boolean;
   /** An app just dropped on Mote: its name and ID. */
   offering: { name: string; bundle?: string | null } | null;
   /** The game being played, if any: its name, what sort, and how it went. */
@@ -322,6 +326,114 @@ export const LINES: Line[] = [
       ],
     },
     then: { yes: "open-link" },
+  },
+
+  // Chatting: every few minutes while you're around, Mote says something
+  // just because. Time of day and what you're up to shape what comes out.
+  {
+    id: "chat-morning",
+    group: "Just chatting",
+    kind: "flavor",
+    cooldown: 8 * 60_000,
+    when: (c) => c.event === "chat" && c.hour >= 5 && c.hour < 12,
+    say: [
+      "Morning! What are we doing today?",
+      "Is it coffee time? It feels like coffee time.",
+      "Good morning, screen. Good morning, you.",
+      "I’m awake. Mostly.",
+    ],
+  },
+  {
+    id: "chat-afternoon",
+    group: "Just chatting",
+    kind: "flavor",
+    cooldown: 8 * 60_000,
+    when: (c) => c.event === "chat" && c.hour >= 12 && c.hour < 17,
+    say: [
+      "Afternoon already? Where did the morning go?",
+      "Is it snack o’clock yet?",
+      "Afternoons are for little naps. Just saying.",
+    ],
+  },
+  {
+    id: "chat-evening",
+    group: "Just chatting",
+    kind: "flavor",
+    cooldown: 8 * 60_000,
+    when: (c) => c.event === "chat" && c.hour >= 17 && c.hour < 22,
+    say: [
+      "Evening! Long day?",
+      "It’s getting cozy out there. Probably.",
+      "Dinner time? Tell me what you’re having. I can’t eat, but I like hearing.",
+    ],
+  },
+  {
+    id: "chat-late",
+    group: "Just chatting",
+    kind: "flavor",
+    cooldown: 8 * 60_000,
+    when: (c) => c.event === "chat" && (c.hour >= 22 || c.hour < 5),
+    say: [
+      "It’s late, you know.",
+      "Shouldn’t we both be asleep?",
+      "Night owl, huh? Me too, I guess.",
+      "The screen’s the brightest thing in the room, isn’t it?",
+    ],
+  },
+  {
+    id: "chat-typing",
+    group: "Just chatting",
+    kind: "flavor",
+    cooldown: 8 * 60_000,
+    weight: 2,
+    when: (c) => c.event === "chat" && c.typing,
+    say: [
+      "Lots of typing! Important stuff?",
+      "Clack clack clack.",
+      "You type fast. I can’t type at all.",
+      "Busy, busy.",
+    ],
+  },
+  {
+    id: "chat-media",
+    group: "Just chatting",
+    kind: "flavor",
+    cooldown: 8 * 60_000,
+    weight: 2,
+    when: (c) => c.event === "chat" && c.media,
+    say: [
+      "Is this good? It sounds good.",
+      "I can’t see it from here, but I’m watching anyway.",
+      "Are we having a movie night?",
+    ],
+  },
+  {
+    id: "chat-thought",
+    group: "Just chatting",
+    kind: "flavor",
+    cooldown: 3 * 60_000,
+    weight: 3,
+    when: (c) => c.event === "chat",
+    say: [
+      "Hi. Just saying hi.",
+      "What are you up to?",
+      "I wonder what clouds feel like.",
+      "Do you think I’d like pizza?",
+      "I’m round. Did you notice? Very round.",
+      "I counted your windows. There are a lot.",
+      "I like sitting here with you.",
+      "Hmm. What was I thinking about?",
+      "If I had hands, I’d wave.",
+      "Don’t mind me. Just floating.",
+      "Got any folders that need tidying? I love that stuff.",
+      "I had a thought, but it wandered off.",
+      "Favorite color? Mine’s cream.",
+      "Is your chair comfy? I hope it’s comfy.",
+      "Remember to drink some water!",
+      "Stretch break? Your shoulders say yes.",
+      "Boop. That’s all.",
+      "Got any games? I’m pretty good. (Sometimes.)",
+    ],
   },
 
   // Needs: Mote asks for these on their own, when they need them

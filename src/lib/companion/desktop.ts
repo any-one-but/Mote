@@ -29,6 +29,22 @@ export function setHelpingSize(helping: boolean) {
   if (isDesktopApp()) void invoke("set_helping_size", { helping }).catch(() => {});
 }
 
+/** Whether Mote opens when you log in to your Mac. */
+export async function opensAtLogin(): Promise<boolean> {
+  if (!isDesktopApp()) return false;
+  return invoke<boolean>("login_item_enabled").catch(() => false);
+}
+
+export async function setOpensAtLogin(on: boolean): Promise<boolean> {
+  if (!isDesktopApp()) return false;
+  try {
+    await invoke("set_login_item", { on });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function setFloatOnTop(on: boolean) {
   if (isDesktopApp()) void invoke("set_float_on_top", { on }).catch(() => {});
 }

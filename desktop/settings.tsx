@@ -1,7 +1,14 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { Energy } from "@/components/companion/engine";
-import { isDesktopApp, openCaloriesWindow, openLink, showDebugWindow } from "@/lib/companion/desktop";
+import {
+  isDesktopApp,
+  openCaloriesWindow,
+  openLink,
+  opensAtLogin,
+  setOpensAtLogin,
+  showDebugWindow,
+} from "@/lib/companion/desktop";
 import { markCalorieCare } from "@/lib/companion/calorie-store";
 import { useSettings, type Pace, type Settings } from "@/lib/companion/settings";
 import {
@@ -119,7 +126,8 @@ function SettingsWindow() {
       </Section>
 
       {isDesktopApp() ? (
-        <Section title="Window">
+        <Section title="On your Mac">
+          <OpenAtLogin onChange={() => setHop((n) => n + 1)} />
           <Row label="Float above other windows" hint="Keeps Mote in sight while you work.">
             <Toggle
               label="Float above other windows"
@@ -212,6 +220,34 @@ function SavedLinks() {
         </li>
       ))}
     </ul>
+  );
+}
+
+/** Lives on the Mac rather than in Mote's settings, so it's asked for. */
+function OpenAtLogin({ onChange }: { onChange: () => void }) {
+  const [on, setOn] = useState(false);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    void opensAtLogin().then(setOn);
+  }, []);
+  return (
+    <Row
+      label="Open at login"
+      hint={failed ? "That didn’t work. Try again?" : "Mote starts up when you log in to your Mac."}
+    >
+      <Toggle
+        label="Open at login"
+        checked={on}
+        onChange={(next) => {
+          setOn(next);
+          void setOpensAtLogin(next).then((ok) => {
+            setFailed(!ok);
+            if (ok) onChange();
+            else setOn(!next);
+          });
+        }}
+      />
+    </Row>
   );
 }
 

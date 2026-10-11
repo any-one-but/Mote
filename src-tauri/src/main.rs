@@ -1,6 +1,7 @@
 // Mote for Mac: native windows around the pages in ../desktop.
 mod audio;
 mod links;
+mod login;
 mod senses;
 mod tidy;
 
@@ -256,6 +257,7 @@ fn main() {
             if !senses::start(handle.clone()) {
                 watch_audio(handle.clone());
             }
+            login::refresh();
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -276,6 +278,8 @@ fn main() {
             set_debug_window,
             set_float_on_top,
             set_helping_size,
+            login::login_item_enabled,
+            login::set_login_item,
             links::read_dropped_link,
             links::open_link,
             tidy::work_inspect,
