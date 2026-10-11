@@ -1795,7 +1795,6 @@ dependencies = [
  "core-foundation",
  "core-graphics",
  "libc",
- "plist",
  "serde",
  "serde_json",
  "tauri",

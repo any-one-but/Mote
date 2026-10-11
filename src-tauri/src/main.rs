@@ -1,7 +1,7 @@
 // Mote for Mac: native windows around the pages in ../desktop.
 mod audio;
-mod offer;
 mod senses;
+mod tidy;
 
 use std::time::Duration;
 
@@ -170,6 +170,7 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
 
 fn main() {
     tauri::Builder::default()
+        .manage(std::sync::Arc::new(tidy::WorkState::default()))
         .setup(|app| {
             let handle = app.handle();
             handle.set_menu(build_menu(handle)?)?;
@@ -200,7 +201,12 @@ fn main() {
             open_settings,
             set_debug_window,
             set_float_on_top,
-            offer::inspect_drop
+            tidy::work_inspect,
+            tidy::work_start,
+            tidy::work_cancel,
+            tidy::work_preview_delete,
+            tidy::work_missing,
+            tidy::work_install
         ])
         .run(tauri::generate_context!())
         .expect("Mote could not start");
