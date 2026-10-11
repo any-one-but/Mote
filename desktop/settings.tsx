@@ -1,7 +1,8 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { Energy } from "@/components/companion/engine";
-import { isDesktopApp, openLink, showDebugWindow } from "@/lib/companion/desktop";
+import { isDesktopApp, openCaloriesWindow, openLink, showDebugWindow } from "@/lib/companion/desktop";
+import { markCalorieCare } from "@/lib/companion/calorie-store";
 import { useSettings, type Pace, type Settings } from "@/lib/companion/settings";
 import {
   linkName,
@@ -76,6 +77,33 @@ function SettingsWindow() {
             onChange={(energy) => set({ energy })}
           />
         </Row>
+      </Section>
+
+      <Section title="Calories">
+        <Row
+          label="Daily goal"
+          hint="Stay under this. Mote is glad when you do, and sad if you go past it."
+        >
+          <GoalField
+            value={settings.calorieGoal}
+            onChange={(calorieGoal) => {
+              set({ calorieGoal });
+              markCalorieCare();
+            }}
+          />
+        </Row>
+        <div className="button-row">
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              markCalorieCare();
+              openCaloriesWindow();
+            }}
+          >
+            Show the days
+          </button>
+        </div>
       </Section>
 
       <Section title="Helping with files">
@@ -187,6 +215,29 @@ function SavedLinks() {
         </li>
       ))}
     </ul>
+  );
+}
+
+function GoalField({ value, onChange }: { value: number; onChange: (next: number) => void }) {
+  const [text, setText] = useState(String(value));
+  useEffect(() => setText(String(value)), [value]);
+  const commit = () => {
+    const n = Math.max(0, Math.min(20000, Math.round(Number(text) || 0)));
+    setText(String(n));
+    if (n !== value) onChange(n);
+  };
+  return (
+    <input
+      className="num-input"
+      inputMode="numeric"
+      aria-label="Daily calorie goal"
+      value={text}
+      onChange={(e) => setText(e.target.value.replace(/[^\d]/g, ""))}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur();
+      }}
+    />
   );
 }
 

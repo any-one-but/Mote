@@ -14,6 +14,8 @@ export type Settings = {
   pace: Pace;
   floatOnTop: boolean;
   debug: boolean;
+  /** Calories to stay under for the day. */
+  calorieGoal: number;
 };
 
 export type Pace = "normal" | "turbo" | "gentle";
@@ -25,12 +27,19 @@ export const DEFAULT_SETTINGS: Settings = {
   pace: "normal",
   floatOnTop: false,
   debug: false,
+  calorieGoal: 2000,
 };
 
 const KEY = "mote.settings";
 
 function pick<T>(value: unknown, allowed: readonly T[], fallback: T): T {
   return allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+function goalOf(value: unknown, fallback: number): number {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(0, Math.min(20000, n));
 }
 
 export function readSettings(): Settings {
@@ -49,6 +58,7 @@ export function readSettings(): Settings {
     pace: pick(raw.pace, ["normal", "turbo", "gentle"] as const, d.pace),
     floatOnTop: bool(raw.floatOnTop, d.floatOnTop),
     debug: bool(raw.debug, d.debug),
+    calorieGoal: goalOf(raw.calorieGoal, d.calorieGoal),
   };
 }
 

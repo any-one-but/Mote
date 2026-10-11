@@ -20,6 +20,10 @@ import {
   windowPlacement,
 } from "@/lib/companion/desktop";
 import { useSettings } from "@/lib/companion/settings";
+import { CaloriePad } from "@/components/companion/CaloriePad";
+import { applyToBook, dateKey, readBook } from "@/lib/companion/calories";
+import { useCalorieBook } from "@/lib/companion/calorie-store";
+import { openCaloriesWindow } from "@/lib/companion/desktop";
 
 type MediaInfo = EngineOptions["media"];
 
@@ -32,6 +36,9 @@ export function Companion() {
   const engineRef = useRef<FaceEngine | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [settings] = useSettings();
+  const [book, commitBook] = useCalorieBook();
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
+  const [logging, setLogging] = useState(false);
   const debugState = useRef<DebugState>({ ...DEBUG_DEFAULTS });
   const events = useRef<string[]>([]);
   const realMedia = useRef<MediaInfo>(null);
@@ -88,10 +95,10 @@ export function Companion() {
     });
   };
 
-  const { followPointer, naps, energy, debug, pace } = settings;
+  const { followPointer, naps, energy, debug, pace, calorieGoal } = settings;
   useEffect(() => {
-    engineRef.current?.configure({ followPointer, naps, energy });
-  }, [followPointer, naps, energy]);
+    engineRef.current?.configure({ followPointer, naps, energy, calorieGoal });
+  }, [followPointer, naps, energy, calorieGoal]);
 
   useEffect(
     () =>
@@ -196,16 +203,61 @@ export function Companion() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debug]);
 
+  useEffect(() => {
+    if (!menuAt) return;
+    const close = (e: PointerEvent) => {
+      const target = e.target;
+      if (target instanceof Element && target.closest(".mote-menu")) return;
+      setMenuAt(null);
+    };
+    window.addEventListener("pointerdown", close);
+    return () => window.removeEventListener("pointerdown", close);
+  }, [menuAt]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (menuAt) setMenuAt(null);
+      else if (logging) setLogging(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuAt, logging]);
+
+  const todayTotal = book.days[dateKey()]?.total ?? 0;
+  const changeCalories = (kind: "add" | "sub" | "set", amount: number) => {
+    const result = applyToBook(readBook(), calorieGoal, { kind, amount });
+    if (!result) return;
+    commitBook(result.book);
+    engineRef.current?.noteCalories(result.moment);
+  };
+
   // A quick press on Mote's body is a poke; pressing and dragging across it is
-  // petting. Presses on the empty window around Mote do nothing.
+  // petting. Presses on the empty window around Mote do nothing. A right-click
+  // opens Mote's menu.
   return (
-    <div className={`stage${helping ? " is-helping" : ""}`}>
+    <div
+      className={`stage${helping ? " is-helping" : ""}${logging ? " is-logging" : ""}`}
+      onContextMenu={(e) => {
+        const target = e.target;
+        if (target instanceof Element && target.closest("input, textarea")) return;
+        e.preventDefault();
+        if (target instanceof Element && target.closest(".cal-pad, .mote-menu")) return;
+        const width = 196;
+        const height = 52;
+        setMenuAt({
+          x: Math.max(8, Math.min(e.clientX, window.innerWidth - width - 8)),
+          y: Math.max(8, Math.min(e.clientY, window.innerHeight - height - 8)),
+        });
+      }}
+    >
       <button
         ref={buttonRef}
         type="button"
         className="window"
         aria-label="Mote"
         onPointerDown={(e) => {
+          if (e.button !== 0) return;
           if (!engineRef.current?.hitTest(e.clientX, e.clientY)) {
             engineRef.current?.react("empty-click");
             return;
@@ -252,7 +304,7 @@ export function Companion() {
         <Face
           onEngine={(engine) => {
             engineRef.current = engine;
-            engine?.configure({ followPointer, naps, energy });
+            engine?.configure({ followPointer, naps, energy, calorieGoal });
             applyAudio();
           }}
           onMood={(label) => {
@@ -273,7 +325,41 @@ export function Companion() {
           }}
         />
       </button>
-      <Helper engine={getEngine} pace={pace} gift={gift} onOpen={setHelping} />
+      <Helper
+        engine={getEngine}
+        pace={pace}
+        gift={gift}
+        onOpen={(open) => {
+          setHelping(open);
+          if (open) setLogging(false);
+        }}
+      />
+      {menuAt ? (
+        <div className="mote-menu" style={{ left: menuAt.x, top: menuAt.y }} role="menu">
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setMenuAt(null);
+              setLogging(true);
+              if (!readBook().care) commitBook({ ...readBook(), care: true });
+            }}
+          >
+            Edit calories
+          </button>
+        </div>
+      ) : null}
+      {logging ? (
+        <CaloriePad
+          total={todayTotal}
+          goal={calorieGoal}
+          onAdd={(amount) => changeCalories("add", amount)}
+          onSub={(amount) => changeCalories("sub", amount)}
+          onSet={(amount) => changeCalories("set", amount)}
+          onClose={() => setLogging(false)}
+          onShowDays={() => openCaloriesWindow()}
+        />
+      ) : null}
       <SpeechBubble
         bubble={bubble}
         anchor={anchor}

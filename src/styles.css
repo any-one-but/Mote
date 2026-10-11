@@ -110,6 +110,205 @@
   overflow: hidden;
 }
 
+.stage.is-logging {
+  display: flex;
+  flex-direction: column;
+}
+
+.stage.is-logging .window {
+  height: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.stage.is-logging .face {
+  width: min(72vw, 16rem, 100%);
+}
+
+.mote-menu {
+  position: fixed;
+  z-index: 30;
+  min-width: 180px;
+  padding: 6px;
+  border-radius: 16px;
+  background: #fffcf7;
+  box-shadow:
+    0 0 0 1px rgb(35 28 24 / 0.06),
+    0 12px 28px -10px rgb(35 28 24 / 0.28);
+}
+
+.mote-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--color-ink);
+  font-family: "Outfit", ui-rounded, system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.mote-menu button:hover,
+.mote-menu button:focus-visible {
+  background: #f3e6da;
+  outline: none;
+}
+
+.cal-pad {
+  position: relative;
+  z-index: 6;
+  flex: none;
+  margin: 0 12px 14px;
+  padding: 14px 14px 12px;
+  border-radius: 22px;
+  background: #fffcf7;
+  color: var(--color-ink);
+  font-family: "Outfit", ui-rounded, system-ui, sans-serif;
+  box-shadow:
+    0 0 0 1px rgb(35 28 24 / 0.06),
+    0 10px 24px -12px rgb(35 28 24 / 0.25);
+}
+
+.cal-pad-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cal-pad-kicker {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8b7d71;
+}
+
+.cal-pad-total {
+  margin: 2px 0 0;
+  font-size: 15px;
+  color: #8b7d71;
+}
+
+.cal-pad-total strong {
+  margin-right: 4px;
+  color: var(--color-ink);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.cal-pad-left {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: #8b7d71;
+}
+
+.cal-pad-x {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #ebe2d5;
+  color: var(--color-ink);
+}
+
+.cal-pad-x:hover {
+  background: #e4d9ca;
+}
+
+.cal-pad-x svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+  stroke-linecap: round;
+}
+
+.cal-pad-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.cal-pad input {
+  border: 0;
+  border-radius: 12px;
+  background: #ebe2d5;
+  color: var(--color-ink);
+  font: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-pad input:focus-visible {
+  outline: 3px solid color-mix(in oklab, #e3997a 55%, transparent);
+  outline-offset: 2px;
+}
+
+.cal-pad-amount {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+}
+
+.cal-pad-chip {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 14px;
+  background: #ebe2d5;
+  color: var(--color-ink);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.cal-pad-chip:hover:not(:disabled) {
+  background: #e4d9ca;
+}
+
+.cal-pad-chip:disabled {
+  opacity: 0.4;
+}
+
+.cal-pad-set {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  color: #8b7d71;
+  font-size: 13px;
+}
+
+.cal-pad-set input {
+  width: 96px;
+  height: 36px;
+  padding: 0 10px;
+  text-align: right;
+}
+
+.cal-pad-days {
+  margin-top: 8px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: #8b7d71;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.cal-pad-days:hover {
+  color: var(--color-ink);
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

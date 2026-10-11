@@ -155,6 +155,26 @@ input:focus-visible {
   flex: none;
 }
 
+.num-input {
+  width: 96px;
+  height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--sunk);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.num-input::-webkit-inner-spin-button,
+.num-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .row.is-stacked .row-control {
   flex: auto;
 }

@@ -119,6 +119,20 @@ npm run mac
 A Mote window opens. Any change you save to the code shows up in it right away.
 Drag the window by its top edge.
 
+## Calories
+
+Set a **daily goal** in Settings. **Show the days** opens a window of the
+month, colored the way the old diet tracker colored them: cool while you're
+under the goal, hot once you pass it.
+
+You don't type calories in that window. Right-click Mote and choose
+**Edit calories**. Add to today, take some away, or set the total yourself.
+Mote answers. Small amounts, while the day is still light, get a warm one.
+Closer to the goal, Mote gets plain and asks you not to cross it. Over the
+goal, Mote gets sad and asks you to stop. Now and then Mote mentions where
+today stands, or asks you to log it. At the end of a day under the goal — or
+the next time you're around — Mote says so.
+
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. You can choose

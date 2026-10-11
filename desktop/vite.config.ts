@@ -25,7 +25,12 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     rollupOptions: {
-      input: { main: page("index"), settings: page("settings"), debug: page("debug") },
+      input: {
+        main: page("index"),
+        settings: page("settings"),
+        debug: page("debug"),
+        calories: page("calories"),
+      },
     },
   },
   clearScreen: false,

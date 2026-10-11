@@ -67,6 +67,23 @@ fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
+fn open_calories_window(app: &AppHandle) -> tauri::Result<()> {
+    if let Some(window) = app.get_webview_window("calories") {
+        window.show()?;
+        return window.set_focus();
+    }
+    WebviewWindowBuilder::new(app, "calories", WebviewUrl::App("calories.html".into()))
+        .title("Days")
+        .inner_size(760.0, 840.0)
+        .min_inner_size(520.0, 480.0)
+        .center()
+        .title_bar_style(TitleBarStyle::Overlay)
+        .hidden_title(true)
+        .background_color(PAPER)
+        .build()?;
+    Ok(())
+}
+
 fn open_debug_window(app: &AppHandle) -> tauri::Result<()> {
     if let Some(window) = app.get_webview_window("debug") {
         window.show()?;
@@ -97,6 +114,11 @@ fn open_debug_window(app: &AppHandle) -> tauri::Result<()> {
 #[tauri::command]
 fn open_settings(app: AppHandle) -> Result<(), String> {
     open_settings_window(&app).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn open_calories(app: AppHandle) -> Result<(), String> {
+    open_calories_window(&app).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -250,6 +272,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             open_settings,
+            open_calories,
             set_debug_window,
             set_float_on_top,
             set_helping_size,

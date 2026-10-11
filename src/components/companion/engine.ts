@@ -38,6 +38,22 @@ import {
   type SpeechEvent,
 } from "@/components/companion/speech";
 import { GEO } from "@/lib/companion/theme";
+import {
+  pickCalorieAside,
+  pickCalorieReaction,
+  type CalorieMood,
+  type CaloriePick,
+  type DaySnap,
+} from "@/components/companion/calorie-lines";
+import { commitBook } from "@/lib/companion/calorie-store";
+import {
+  addDays,
+  dateKey,
+  partOf,
+  readBook,
+  streakUnder,
+  type CalorieMoment,
+} from "@/lib/companion/calories";
 
 export type Mood =
   | "settle"
@@ -70,7 +86,12 @@ export type Mood =
   | "present"
   | "work"
   | "tada"
-  | "uhoh";
+  | "uhoh"
+  // Eating: pleased, thinking it over, worried near the line, sad once over.
+  | "beam"
+  | "reckon"
+  | "worry"
+  | "plead";
 
 /**
  * Everything Mote can do with their face. The eyes are pills; expression comes
@@ -142,6 +163,8 @@ export type EngineOptions = {
   placement: { x: number; y: number } | null;
   /** Friendly mode: Mote never gets cross or hurt. */
   friendly: boolean;
+  /** Daily calorie goal. 0 means Mote isn't keeping track. */
+  calorieGoal: number;
 };
 
 /** An app dropped on Mote: its name, its ID (com.apple.safari…), and
@@ -245,6 +268,8 @@ export type FaceEngine = {
   saveLink: (url: string, title: string | null) => void;
   /** Debug: suggest a saved link right now (this one, or Mote's pick). */
   suggestLink: (url?: string) => void;
+  /** You just changed today's calories. Mote says something that fits. */
+  noteCalories: (moment: CalorieMoment) => void;
   snapshot: () => EngineSnapshot;
 };
 
@@ -275,6 +300,10 @@ export const MOOD_LIST: Mood[] = [
   "work",
   "tada",
   "uhoh",
+  "beam",
+  "reckon",
+  "worry",
+  "plead",
 ];
 
 export const REST: Pose = {
@@ -351,6 +380,10 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   minecraft: { dur: 5400, tempo: 1 },
   gaming: { dur: 5600, tempo: 1.2 },
   uhoh: { dur: 2400, tempo: 1 },
+  beam: { dur: 8400, tempo: 1 },
+  reckon: { dur: 8400, tempo: 0.85 },
+  worry: { dur: 8400, tempo: 0.85 },
+  plead: { dur: 9000, tempo: 0.75 },
   // Purring lasts as long as the petting does; see `PURR_AFTER`. Looking at
   // the options and working last as long as they do (see `setHelping`).
   purr: { dur: Number.POSITIVE_INFINITY, tempo: 0.8 },
@@ -374,6 +407,10 @@ const BUSY: Mood[] = [
   "work",
   "tada",
   "uhoh",
+  "beam",
+  "reckon",
+  "worry",
+  "plead",
   "chess",
   "minecraft",
   "gaming",
@@ -416,6 +453,10 @@ const LABELS: Partial<Record<Mood, string>> = {
   fidget: "Mote is fidgeting.",
   hum: "Mote is humming happily.",
   checkin: "Mote checks in on you.",
+  beam: "Mote is pleased.",
+  reckon: "Mote is thinking it over.",
+  worry: "Mote is worried.",
+  plead: "Mote is upset.",
   chess: "Mote is playing chess.",
   minecraft: "Mote is playing Minecraft.",
   gaming: "Mote is gaming.",
@@ -951,6 +992,97 @@ export function poseFor(
       shakeX = shake * 3 * decay;
       shakeRot = shake * 2 * decay;
     }
+  } else if (mood === "beam") {
+    // Pleased about a careful day: a little hop, then a held, bashful smile.
+    const glad: Partial<Pose> = {
+      cheek: 0.64,
+      cheekCurve: 0.2,
+      open: 1.08,
+      wide: 1.05,
+      lookY: -0.08,
+      lookMix: 0.4,
+    };
+    keys = [
+      [0, { sy: 0.94, sx: 1.05, y: 2 }],
+      [160, { ...glad, y: -8, sy: 1.04, sx: 0.97, rot: dir * 4 }],
+      [420, glad],
+    ];
+    const w = t / 1000;
+    wobble = { rot: Math.sin(w * 2.1) * 3, x: Math.sin(w * 2.1) * 1.2 };
+  } else if (mood === "reckon") {
+    // Thinking the day through. Calm, not a celebration.
+    const face: Partial<Pose> = {
+      lookY: -0.55,
+      lookX: dir * 0.32,
+      lookMix: 1,
+      lid: 0.1,
+      lidTilt: 0.2,
+      lidBias: dir * 0.08,
+      openBias: dir * 0.1,
+      open: 1.02,
+      rot: dir * 5,
+      y: -1,
+      cheek: 0.14,
+      cheekCurve: 0.04,
+    };
+    keys = [
+      [0, { ...face, open: 1.08 }],
+      [360, face],
+    ];
+    wobble = { lookX: Math.sin((t / 1000) * 0.8) * 0.1 };
+  } else if (mood === "worry") {
+    // Near the line: worried brows, a small shrink, eyes that won't settle.
+    const face: Partial<Pose> = {
+      lid: 0.14,
+      lidTilt: -0.5,
+      lidCurve: 0.02,
+      open: 1.08,
+      wide: 0.98,
+      lookY: -0.12,
+      lookMix: 0.85,
+      y: 2,
+      sy: 0.98,
+      cheek: 0.1,
+    };
+    keys = [
+      [0, { open: 1.16, y: -3, sy: 1.03 }],
+      [240, { ...face, rot: dir * 3 }],
+      [800, face],
+    ];
+    const w = t / 1000;
+    wobble = { lookX: Math.sin(w * 1.3) * 0.22, rot: Math.sin(w * 1.3) * 1.4 };
+  } else if (mood === "plead") {
+    // Over the line. Either a look up and a little whine, or a sad turn away.
+    const droop: Partial<Pose> = {
+      sy: 0.9,
+      sx: 1.06,
+      y: 6,
+      lid: 0.34,
+      lidTilt: -0.42,
+      lidCurve: 0.12,
+      cheek: 0.06,
+      cheekCurve: -0.04,
+      open: 0.92,
+      lookY: -0.55,
+      lookMix: 1,
+    };
+    const away: Partial<Pose> = {
+      ...droop,
+      lookX: dir * 0.85,
+      lookY: 0.4,
+      rot: dir * 8,
+      x: dir * 3,
+    };
+    const face = variant < 0.55 ? droop : away;
+    keys = [
+      [0, { open: 1.04, y: -1 }],
+      [280, face],
+    ];
+    if (variant < 0.55 && t > 400) {
+      const whimper = Math.sin((t / 1000) * Math.PI * 2 * 2.2);
+      shakeRot = whimper * 1.1;
+      wobble = { y: Math.abs(whimper) * 0.5 };
+    }
   } else if (mood === "purr") {
     // Melts into the petting: blissful arcs, sinking and leaning in, a soft rumble.
     const bliss: Partial<Pose> = {
@@ -1264,6 +1396,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     placement: null,
     // Always gentle: no sharp replies, nothing that hurts.
     friendly: true,
+    calorieGoal: 0,
   };
   const debug = {
     timeScale: 1,
@@ -1397,6 +1530,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   let talkingLink: SavedLink | null = null;
   let nextLinkCheck = 3 * 60_000;
   let lastLinkAt = Number.NEGATIVE_INFINITY;
+  let nextCalorieCheck = 8_000;
+  let lastCalorieAt = Number.NEGATIVE_INFINITY;
+  let recentCalorie: string[] = [];
   let game: { name: string; mood: GameMood; won: boolean } | null = null;
 
   const log = (text: string) => hooks.onEvent?.(text);
@@ -1628,6 +1764,153 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         suggestLink(now);
       }
     }
+
+    if (now >= nextCalorieCheck) {
+      nextCalorieCheck = now + 60_000;
+      considerCalories(now);
+    }
+  };
+
+  const aroundNow = () => clock - lastYou < 2 * 60_000;
+
+  const calorieFace = (moodName: CalorieMood) => {
+    if (helping === "busy" || GAME_MOODS.includes(mood) || debug.manual) return;
+    start(moodName, clock);
+  };
+
+  /** A line about food: the words, then a face that holds while they're up. */
+  const sayCalorie = (pick: CaloriePick, reaction: string) => {
+    recentCalorie = [...recentCalorie, pick.id].slice(-8);
+    const book = readBook();
+    commitBook({ ...book, lastAsideAt: Date.now() });
+    showBubble({
+      id: ++bubbleSeq,
+      lineId: `cal:${pick.id}`,
+      kind: "flavor",
+      text: pick.text,
+      born: clock,
+      ttl: lifetime("flavor", pick.text),
+    });
+    react(reaction);
+    calorieFace(pick.mood);
+    log(`says “${pick.text}”`);
+  };
+
+  const reactionFor = (moodName: CalorieMood, saved = false) => {
+    if (saved) return "calorie-relief";
+    if (moodName === "plead") return "calorie-over";
+    if (moodName === "worry") return "calorie-worry";
+    if (moodName === "reckon") return "calorie-steady";
+    return "calorie-sweet";
+  };
+
+  /**
+   * Now and then, if you've started keeping track: where today stands, a
+   * nudge to log, and one real congratulations when a day stays under.
+   */
+  const considerCalories = (now: number) => {
+    const goal = options.calorieGoal;
+    if (!(goal > 0)) return;
+    const book = readBook();
+    if (!book.care) return;
+    if (helping || debug.manual) return;
+    const around = aroundNow();
+    const today = dateKey();
+    const hour = new Date().getHours();
+    let next = book;
+    let dirty = false;
+
+    if (next.praisedMorning !== today) {
+      const yKey = addDays(today, -1);
+      const y = next.days[yKey];
+      if (y && y.total > 0) {
+        if (!around) return;
+        const snap: DaySnap = {
+          kind: "morning",
+          goal,
+          eaten: y.total,
+          fill: y.total / goal,
+          hour,
+          part: partOf(hour),
+          streak: streakUnder(next, goal, today),
+          over: y.total > goal,
+        };
+        const line = pickCalorieAside(snap, recentCalorie);
+        next = { ...next, praisedMorning: today };
+        dirty = true;
+        if (line) {
+          commitBook(next);
+          sayCalorie(line, y.total > goal ? "calorie-worry" : "calorie-sweet");
+          return;
+        }
+      } else if (around) {
+        next = { ...next, praisedMorning: today };
+        dirty = true;
+      } else return;
+    }
+
+    if (hour >= 20 && next.praisedEvening !== today) {
+      const entry = next.days[today];
+      if (entry && entry.total > 0) {
+        if (!around) {
+          if (dirty) commitBook(next);
+          return;
+        }
+        const snap: DaySnap = {
+          kind: "evening",
+          goal,
+          eaten: entry.total,
+          fill: entry.total / goal,
+          hour,
+          part: partOf(hour),
+          streak: streakUnder(next, goal, today) + (entry.total <= goal ? 1 : 0),
+          over: entry.total > goal,
+        };
+        const line = pickCalorieAside(snap, recentCalorie);
+        next = { ...next, praisedEvening: today };
+        if (line) {
+          commitBook(next);
+          sayCalorie(line, entry.total > goal ? "calorie-over" : "calorie-sweet");
+          return;
+        }
+        dirty = true;
+      }
+    }
+
+    if (dirty) commitBook(next);
+    if (!around) return;
+    if (now - lastCalorieAt < 2 * 60_000) return;
+    if (Date.now() - (next.lastAsideAt ?? 0) < 18 * 60_000) return;
+    if (Math.random() > 0.12) return;
+
+    const entry = next.days[today];
+    const logged = !!entry && entry.total > 0;
+    const kind = logged ? "status" : hour >= 11 ? "nudge" : null;
+    if (!kind) return;
+    const eaten = entry?.total ?? 0;
+    const snap: DaySnap = {
+      kind,
+      goal,
+      eaten,
+      fill: eaten / goal,
+      hour,
+      part: partOf(hour),
+      streak: streakUnder(next, goal, today),
+      over: eaten > goal,
+    };
+    const line = pickCalorieAside(snap, recentCalorie);
+    if (!line) return;
+    sayCalorie(line, kind === "nudge" ? "calorie-aside" : reactionFor(line.mood, false));
+  };
+
+  /** You changed today's calories. */
+  const noteCalories = (moment: CalorieMoment) => {
+    rouse();
+    pendingEvent = null;
+    wanting = null;
+    lastCalorieAt = clock;
+    const pick = pickCalorieReaction(moment, recentCalorie);
+    sayCalorie(pick, reactionFor(pick.mood, moment.saved));
   };
 
   /** Brings up one of your saved links, asking if you'd like to go there. */
@@ -2599,6 +2882,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       if (bubble) showBubble(null);
       suggestLink(clock, url);
     },
+    noteCalories,
     say: (lineId) => {
       if (bubble) showBubble(null);
       const line = lineId ? lineById.get(lineId) : chooseLine(speechContext(), new Map(), clock);

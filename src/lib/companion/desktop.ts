@@ -14,6 +14,11 @@ export function openSettingsWindow() {
   else window.open("settings.html", "mote-settings", "popup,width=440,height=680");
 }
 
+export function openCaloriesWindow() {
+  if (isDesktopApp()) void invoke("open_calories").catch(() => {});
+  else window.open("calories.html", "mote-calories", "popup,width=760,height=840");
+}
+
 export function showDebugWindow(open: boolean) {
   if (isDesktopApp()) void invoke("set_debug_window", { open }).catch(() => {});
   else if (open) window.open("debug.html", "mote-debug", "popup,width=600,height=780");

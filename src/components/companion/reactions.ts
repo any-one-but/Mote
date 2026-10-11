@@ -12,6 +12,7 @@ export type ReactionGroup =
   | "Interest"
   | "Helping you"
   | "Speech"
+  | "Eating"
   | "Time"
   | "Lasting moods"
   | "Ideas";
@@ -343,12 +344,62 @@ export const REACTIONS: Reaction[] = [
     status: "live",
   },
 
+  // Eating
+  {
+    id: "calorie-sweet",
+    group: "Eating",
+    name: "A careful bite",
+    when: "You log a small amount while the day is still well under the goal",
+    then: "Beams, and says something warm",
+    status: "live",
+  },
+  {
+    id: "calorie-steady",
+    group: "Eating",
+    name: "Halfway there",
+    when: "The day is under the goal, but no longer a trifle",
+    then: "Thinks it over, and talks about what's left",
+    status: "live",
+  },
+  {
+    id: "calorie-worry",
+    group: "Eating",
+    name: "Close to the line",
+    when: "You're near the goal, or a single bite was huge",
+    then: "Looks worried, and asks you not to cross it",
+    status: "live",
+  },
+  {
+    id: "calorie-over",
+    group: "Eating",
+    name: "Over the goal",
+    when: "Today goes past the goal",
+    then: "Droops, and asks you to stop",
+    status: "live",
+  },
+  {
+    id: "calorie-relief",
+    group: "Eating",
+    name: "Back under",
+    when: "You take the day back under the goal",
+    then: "Lights up, relieved",
+    status: "live",
+  },
+  {
+    id: "calorie-aside",
+    group: "Eating",
+    name: "A reminder",
+    when: "Now and then, once you've started tracking: the count so far, or a nudge to log it",
+    then: "Says where the day stands, without being asked",
+    status: "live",
+  },
+
   // Speech
   {
     id: "speak",
     group: "Speech",
     name: "Speaking up",
-    when: "Right after something happens (a pet, waking up, a meal, a game…), or when Mote needs something. Never just on a timer",
+    when: "Right after something happens (a pet, waking up, a game…), or when Mote needs something. Food gets its own lines.",
     then: "Says something that fits in a speech bubble",
     status: "live",
   },

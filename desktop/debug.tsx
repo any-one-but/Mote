@@ -101,6 +101,10 @@ const MOOD_NAMES: Record<Mood, string> = {
   work: "Working",
   tada: "Job done",
   uhoh: "Job trouble",
+  beam: "Pleased",
+  reckon: "Thinking it over",
+  worry: "Worried",
+  plead: "Upset",
 };
 
 /**
