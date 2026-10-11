@@ -29,6 +29,8 @@ export type Choice = {
   depth: number;
   /** Mote went with something other than their best move on purpose. */
   slip: boolean;
+  /** How much worse that was than the best move (0 if it was the best). */
+  loss: number;
 };
 
 const WIN = 100_000;
@@ -159,7 +161,7 @@ export function chooseMove(
   if (!moves.length) return null;
   const cfg = SETTINGS[level];
   if (moves.length === 1) {
-    return { move: moves[0], score: evaluate(applyToBoard(board, moves[0]).board, side), depth: 0, slip: false };
+    return { move: moves[0], score: evaluate(applyToBoard(board, moves[0]).board, side), depth: 0, slip: false, loss: 0 };
   }
   const s: Search = { deadline: performance.now() + cfg.ms, nodes: 0, stopped: false };
   let scored: Array<{ move: Move; score: number }> | null = null;
@@ -172,13 +174,13 @@ export function chooseMove(
     // A forced win or loss is found; looking further won't change it.
     if (Math.abs(result[0].score) > WIN / 2) break;
   }
-  if (!scored) return { move: moves[0], score: 0, depth: 0, slip: false };
+  if (!scored) return { move: moves[0], score: 0, depth: 0, slip: false, loss: 0 };
   const best = scored[0];
   // Slipping: pick among the moves that look roughly as good.
   if (cfg.slip > 0 && rand() < cfg.slip) {
     const near = scored.filter((r) => best.score - r.score <= cfg.spread && r.score > -WIN / 2);
     const pick = near[Math.floor(rand() * near.length)] ?? best;
-    return { move: pick.move, score: pick.score, depth: reached, slip: pick !== best };
+    return { move: pick.move, score: pick.score, depth: reached, slip: pick !== best, loss: best.score - pick.score };
   }
-  return { move: best.move, score: best.score, depth: reached, slip: false };
+  return { move: best.move, score: best.score, depth: reached, slip: false, loss: 0 };
 }

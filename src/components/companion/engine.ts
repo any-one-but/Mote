@@ -52,9 +52,15 @@ import {
   pickCheckersLine,
   type CheckersEvent,
 } from "@/components/companion/checkers-lines";
+import {
+  CHESS_CHANCE,
+  CHESS_FACE,
+  pickChessLine,
+  type ChessEvent,
+} from "@/components/companion/chess-lines";
 import type { Level } from "@/lib/checkers/ai";
 
-export type CheckersState = "you" | "mote" | "idle" | null;
+export type BoardGameState = "you" | "mote" | "idle" | null;
 import {
   addDays,
   dateKey,
@@ -108,7 +114,10 @@ export type Mood =
   | "ck-ouch"
   | "ck-crown"
   | "ck-win"
-  | "ck-lose";
+  | "ck-lose"
+  // Chess: putting you in check, and being in check.
+  | "ch-check"
+  | "ch-checked";
 
 /**
  * Everything Mote can do with their face. The eyes are pills; expression comes
@@ -287,11 +296,12 @@ export type FaceEngine = {
   suggestLink: (url?: string) => void;
   /** You just changed today's calories. Mote says something that fits. */
   noteCalories: (moment: CalorieMoment) => void;
-  /** A game of checkers: whose turn it is ("idle" between games, null when
-   * the board is put away). */
-  setCheckers: (state: CheckersState) => void;
-  /** Something happened in the game. Mote reacts, and maybe says something. */
+  /** A game of checkers or chess: whose turn it is ("idle" between games,
+   * null when the board is put away). */
+  setBoardGame: (state: BoardGameState) => void;
+  /** Something happened in a game. Mote reacts, and maybe says something. */
   checkers: (event: CheckersEvent, level: Level) => void;
+  chess: (event: ChessEvent, level: Level, words?: { piece?: string; yours?: string }) => void;
   snapshot: () => EngineSnapshot;
 };
 
@@ -333,6 +343,8 @@ export const MOOD_LIST: Mood[] = [
   "ck-crown",
   "ck-win",
   "ck-lose",
+  "ch-check",
+  "ch-checked",
 ];
 
 export const REST: Pose = {
@@ -418,12 +430,14 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   "ck-crown": { dur: 3000, tempo: 1 },
   "ck-win": { dur: 3600, tempo: 1.05 },
   "ck-lose": { dur: 3800, tempo: 0.85 },
+  "ch-check": { dur: 2200, tempo: 1 },
+  "ch-checked": { dur: 2400, tempo: 1.1 },
   // Purring lasts as long as the petting does; see `PURR_AFTER`. Looking at
   // the options and working last as long as they do (see `setHelping`).
   purr: { dur: Number.POSITIVE_INFINITY, tempo: 0.8 },
   present: { dur: Number.POSITIVE_INFINITY, tempo: 1 },
   work: { dur: Number.POSITIVE_INFINITY, tempo: 1 },
-  // Held for as long as it's your turn, or Mote's (see `setCheckers`).
+  // Held for as long as it's your turn, or Mote's (see `setBoardGame`).
   "ck-watch": { dur: Number.POSITIVE_INFINITY, tempo: 1 },
   "ck-think": { dur: Number.POSITIVE_INFINITY, tempo: 0.85 },
 };
@@ -457,6 +471,8 @@ const BUSY: Mood[] = [
   "ck-crown",
   "ck-win",
   "ck-lose",
+  "ch-check",
+  "ch-checked",
 ];
 
 type GameMood = "chess" | "minecraft" | "gaming";
@@ -507,6 +523,8 @@ const LABELS: Partial<Record<Mood, string>> = {
   "ck-crown": "Mote got a king!",
   "ck-win": "Mote won the game!",
   "ck-lose": "Mote lost the game.",
+  "ch-check": "Mote puts your king in check.",
+  "ch-checked": "Mote's king is in check!",
   chess: "Mote is playing chess.",
   minecraft: "Mote is playing Minecraft.",
   gaming: "Mote is gaming.",
@@ -1233,6 +1251,42 @@ export function poseFor(
       const sigh = Math.sin(((t - 300) / 1000) * Math.PI * 2 * 0.6);
       wobble = { y: sigh * 1.2, sy: sigh * 0.01 };
     }
+  } else if (mood === "ch-check") {
+    // Check!: a sly look straight at you, eyes narrowed, a little lean and a
+    // pointed nod.
+    const sly: Partial<Pose> = {
+      lid: 0.3,
+      lidCurve: -0.1,
+      lidTilt: 0.12,
+      cheek: 0.34,
+      cheekCurve: 0.12,
+      lookX: 0,
+      lookY: 0,
+      lookMix: 1,
+      rot: dir * 6,
+      x: dir * 2,
+    };
+    keys = [
+      [0, { open: 1.08, y: -2 }],
+      [200, { ...sly, y: 3, sy: 0.96, sx: 1.03 }],
+      [420, { ...sly, y: -1 }],
+      [620, { ...sly, y: 2, sy: 0.98 }],
+      [820, sly],
+      [1800, {}],
+    ];
+  } else if (mood === "ch-checked") {
+    // In check: eyes wide, brows up in alarm, darting around the board for a
+    // way out, with a little shiver.
+    keys = [
+      [0, { open: 1.3, wide: 0.92, y: -5, sy: 1.05, sx: 0.96 }],
+      [220, { open: 1.18, wide: 0.95, lidTilt: -0.45, lid: 0.06, lookY: 0.6, lookMix: 1, y: 0 }],
+      [1900, {}],
+    ];
+    if (t > 220 && t < 1800) {
+      const w = (t - 220) / 1000;
+      wobble = { lookX: Math.sign(Math.sin(w * Math.PI * 2 * 1.6)) * 0.55 };
+      shakeX = Math.sin(w * Math.PI * 2 * 11) * 0.7;
+    }
   } else if (mood === "purr") {
     // Melts into the petting: blissful arcs, sinking and leaning in, a soft rumble.
     const bliss: Partial<Pose> = {
@@ -1676,8 +1730,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   let lastYou = Number.NEGATIVE_INFINITY;
   // Helping you with files: talking it over, or busy with a job.
   let helping: "busy" | "talking" | null = null;
-  let playing: CheckersState = null;
-  let recentCheckers: string[] = [];
+  let playing: BoardGameState = null;
+  let recentGameLines: string[] = [];
   // The app just dropped on Mote, and the game being played (and how it went).
   let offered: SpeechContext["offering"] = null;
   // Saved links: the one being talked about, and when Mote next considers
@@ -2077,10 +2131,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   };
 
   /**
-   * Checkers. While a game is on, Mote's face follows it: watching your move,
-   * thinking over theirs. Their usual chatter waits until the board is put away.
+   * Checkers and chess. While a game is on, Mote's face follows it: watching
+   * your move, thinking over theirs. Their usual chatter waits until the
+   * board is put away.
    */
-  const setCheckers = (state: CheckersState) => {
+  const setBoardGame = (state: BoardGameState) => {
     if (state) rouse();
     if (state === playing) return;
     const was = playing;
@@ -2091,28 +2146,43 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const held = (m: Mood) => m === "ck-watch" || m === "ck-think" || m === "settle";
     if (state && held(mood)) start(state === "mote" ? "ck-think" : "ck-watch", clock);
     else if (!state && was && (mood === "ck-watch" || mood === "ck-think")) start("settle", clock);
-    log(state ? `checkers: ${state}` : "put the checkers away");
+    log(state ? `board game: ${state}` : "put the board away");
   };
 
-  const checkersEvent = (event: CheckersEvent, level: Level) => {
+  /** Something happened in a game: a face, and maybe a line to go with it. */
+  const gameMoment = (
+    reaction: string,
+    face: string | undefined,
+    chance: number,
+    line: () => { id: string; text: string },
+  ) => {
     rouse();
     engage();
-    const face = CHECKERS_FACE[event] as Mood | undefined;
-    if (face && !debug.manual) start(face, clock);
-    react(`checkers-${event}`);
-    if (Math.random() > CHECKERS_CHANCE[event]) return;
-    const line = pickCheckersLine(event, level, recentCheckers);
-    recentCheckers = [...recentCheckers, line.id].slice(-10);
+    if (face && !debug.manual) start(face as Mood, clock);
+    react(reaction);
+    if (Math.random() > chance) return;
+    const said = line();
+    recentGameLines = [...recentGameLines, said.id].slice(-12);
     showBubble({
       id: ++bubbleSeq,
-      lineId: `ck:${line.id}`,
+      lineId: `game:${said.id}`,
       kind: "flavor",
-      text: line.text,
+      text: said.text,
       born: clock,
-      ttl: Math.min(4500, lifetime("flavor", line.text)),
+      ttl: Math.min(4500, lifetime("flavor", said.text)),
     });
-    log(`says “${line.text}”`);
+    log(`says “${said.text}”`);
   };
+
+  const checkersEvent = (event: CheckersEvent, level: Level) =>
+    gameMoment(`checkers-${event}`, CHECKERS_FACE[event], CHECKERS_CHANCE[event], () =>
+      pickCheckersLine(event, level, recentGameLines),
+    );
+
+  const chessEvent = (event: ChessEvent, level: Level, words?: { piece?: string; yours?: string }) =>
+    gameMoment(`chess-${event}`, CHESS_FACE[event], CHESS_CHANCE[event], () =>
+      pickChessLine(event, level, recentGameLines, words),
+    );
 
   /** You changed today's calories. */
   const noteCalories = (moment: CalorieMoment) => {
@@ -3104,8 +3174,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       suggestLink(clock, url);
     },
     noteCalories,
-    setCheckers,
+    setBoardGame,
     checkers: checkersEvent,
+    chess: chessEvent,
     say: (lineId) => {
       if (bubble) showBubble(null);
       const line = lineId ? lineById.get(lineId) : chooseLine(speechContext(), new Map(), clock);

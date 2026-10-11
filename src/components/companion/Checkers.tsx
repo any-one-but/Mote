@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CheckersEvent } from "@/components/companion/checkers-lines";
 import type { FaceEngine } from "@/components/companion/engine";
-import { LEVELS, type Level } from "@/lib/checkers/ai";
+import type { Level } from "@/lib/checkers/ai";
 import {
   colOf,
   isKing,
@@ -15,10 +15,20 @@ import {
   type Cell,
   type Game,
   type Move,
-  type Side,
 } from "@/lib/checkers/rules";
 import { think } from "@/lib/checkers/think";
-import "./checkers.css";
+import { BoardHead, EndPanel, LevelPick } from "./board-ui";
+import {
+  addToStats,
+  load,
+  readStats,
+  savedLevel,
+  sleep,
+  store,
+  type Phase,
+  type Stats,
+  type Winner,
+} from "./board-store";
 
 type Props = {
   engine: () => FaceEngine | null;
@@ -26,45 +36,10 @@ type Props = {
 };
 
 type Piece = { id: number; sq: number; cell: Cell; gone?: boolean; lifted?: boolean };
-type Record3 = { you: number; mote: number; draw: number };
-type Stats = Record<Level, Record3>;
-type Phase = "pick" | "playing" | "over";
-
-const LEVEL_NAME: Record<Level, string> = { easy: "Easy", normal: "Normal", hard: "Hard" };
-const LEVEL_HINT: Record<Level, string> = {
-  easy: "Mote is still learning.",
-  normal: "A fair game.",
-  hard: "Mote plays to win.",
-};
 
 const SAVE = "mote.checkers";
 const STATS = "mote.checkers.stats";
 const STEP_MS = 280;
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-function load<T>(key: string): T | null {
-  try {
-    return JSON.parse(localStorage.getItem(key) ?? "null") as T | null;
-  } catch {
-    return null;
-  }
-}
-
-function store(key: string, value: unknown) {
-  try {
-    if (value === null) localStorage.removeItem(key);
-    else localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // Not saved; the game still plays.
-  }
-}
-
-function readStats(): Stats {
-  const raw = load<Partial<Stats>>(STATS) ?? {};
-  const blank = (): Record3 => ({ you: 0, mote: 0, draw: 0 });
-  return { easy: raw.easy ?? blank(), normal: raw.normal ?? blank(), hard: raw.hard ?? blank() };
-}
 
 let nextId = 1;
 const piecesOf = (board: Cell[]): Piece[] =>
@@ -74,9 +49,7 @@ const piecesOf = (board: Cell[]): Piece[] =>
 export function Checkers({ engine, onClose }: Props) {
   const saved = useRef(load<{ game: unknown; level: Level }>(SAVE));
   const resumed = useRef(reviveGame(saved.current?.game));
-  const [level, setLevel] = useState<Level>(
-    LEVELS.includes(saved.current?.level as Level) ? (saved.current!.level as Level) : "normal",
-  );
+  const [level, setLevel] = useState<Level>(savedLevel(saved.current?.level));
   const [phase, setPhase] = useState<Phase>(resumed.current ? "playing" : "pick");
   const [game, setGame] = useState<Game>(resumed.current ?? newGame());
   const [pieces, setPieces] = useState<Piece[]>(() => piecesOf(game.board));
@@ -86,9 +59,8 @@ export function Checkers({ engine, onClose }: Props) {
   const [busy, setBusy] = useState(false);
   const [last, setLast] = useState<number[]>([]);
   const [note, setNote] = useState<string | null>(null);
-  const [result, setResult] = useState<Side | "draw" | null>(null);
-  const [stats, setStats] = useState<Stats>(readStats);
-  const [sure, setSure] = useState(false);
+  const [result, setResult] = useState<Winner | null>(null);
+  const [stats, setStats] = useState<Stats>(() => readStats(STATS));
 
   const alive = useRef(true);
   const gameRef = useRef(game);
@@ -108,8 +80,8 @@ export function Checkers({ engine, onClose }: Props) {
   // Whose turn it is shows on Mote's face; putting the board away ends that.
   useEffect(() => {
     const e = engine();
-    if (phase !== "playing") e?.setCheckers("idle");
-    else e?.setCheckers(game.turn === "mote" || busy ? "mote" : "you");
+    if (phase !== "playing") e?.setBoardGame("idle");
+    else e?.setBoardGame(game.turn === "mote" || busy ? "mote" : "you");
   }, [engine, phase, game.turn, busy]);
 
   const kicked = useRef(false);
@@ -124,7 +96,7 @@ export function Checkers({ engine, onClose }: Props) {
     }
     return () => {
       alive.current = false;
-      engine()?.setCheckers(null);
+      engine()?.setBoardGame(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -164,10 +136,7 @@ export function Checkers({ engine, onClose }: Props) {
     setResult(winner);
     setPhase("over");
     store(SAVE, null);
-    const next = readStats();
-    next[levelRef.current][winner] += 1;
-    store(STATS, next);
-    setStats(next);
+    setStats(addToStats(STATS, levelRef.current, winner));
     tell(winner === "mote" ? "mote-win" : winner === "you" ? "you-win" : "draw");
     return true;
   };
@@ -201,7 +170,8 @@ export function Checkers({ engine, onClose }: Props) {
     const n = choice.move.captures.length;
     if (crowned) tell("mote-crown");
     else if (n > 1) tell("mote-multi");
-    else if (choice.slip && lvl === "easy" && Math.random() < 0.5) tell("slip");
+    // Only owning up to slips that actually cost something.
+    else if (choice.slip && lvl === "easy" && choice.loss >= 80 && Math.random() < 0.6) tell("slip");
     else if (standing.current !== was && standing.current !== "even") {
       tell(standing.current === "ahead" ? "mote-ahead" : "mote-behind");
     } else if (n === 1) tell("mote-capture");
@@ -303,19 +273,10 @@ export function Checkers({ engine, onClose }: Props) {
   };
 
   const resign = () => {
-    if (!sure) {
-      setSure(true);
-      setTimeout(() => alive.current && setSure(false), 3000);
-      return;
-    }
-    setSure(false);
     setResult("mote");
     setPhase("over");
     store(SAVE, null);
-    const next = readStats();
-    next[level].mote += 1;
-    store(STATS, next);
-    setStats(next);
+    setStats(addToStats(STATS, level, "mote"));
     tell("resign");
   };
 
@@ -337,31 +298,14 @@ export function Checkers({ engine, onClose }: Props) {
 
   if (phase === "pick") {
     return (
-      <div className="ck ck-pick">
-        <div className="ck-head">
-          <h2>Checkers</h2>
-          <CloseButton onClick={close} />
-        </div>
-        <p className="ck-lede">You’re dark and go first.</p>
-        <div className="ck-levels" role="radiogroup" aria-label="Level">
-          {LEVELS.map((l) => (
-            <button
-              key={l}
-              type="button"
-              role="radio"
-              aria-checked={level === l}
-              className={level === l ? "is-on" : ""}
-              onClick={() => setLevel(l)}
-            >
-              {LEVEL_NAME[l]}
-            </button>
-          ))}
-        </div>
-        <p className="ck-hint">{LEVEL_HINT[level]}</p>
-        <button type="button" className="ck-primary" onClick={begin} autoFocus>
-          Play
-        </button>
-      </div>
+      <LevelPick
+        title="Checkers"
+        lede="You’re dark and go first."
+        level={level}
+        onLevel={setLevel}
+        onPlay={begin}
+        onClose={close}
+      />
     );
   }
 
@@ -370,22 +314,7 @@ export function Checkers({ engine, onClose }: Props) {
 
   return (
     <div className="ck">
-      <div className="ck-head">
-        <p className="ck-meta">
-          <strong>{LEVEL_NAME[level]}</strong>
-          {record.you + record.mote + record.draw > 0 ? (
-            <span>
-              You {record.you} · Mote {record.mote}
-            </span>
-          ) : null}
-        </p>
-        {phase === "playing" ? (
-          <button type="button" className={`ck-quiet${sure ? " is-sure" : ""}`} onClick={resign}>
-            {sure ? "Resign?" : "Resign"}
-          </button>
-        ) : null}
-        <CloseButton onClick={close} />
-      </div>
+      <BoardHead level={level} record={record} playing={phase === "playing"} onResign={resign} onClose={close} />
 
       <div className="ck-board" role="grid" aria-label="Checkers board">
         {Array.from({ length: 64 }, (_, i) => {
@@ -425,35 +354,15 @@ export function Checkers({ engine, onClose }: Props) {
       </div>
 
       {phase === "over" ? (
-        <div className="ck-end">
-          <p className="ck-result">
-            {result === "you" ? "You win!" : result === "mote" ? "Mote wins." : "A draw."}
-          </p>
-          <div className="ck-buttons">
-            <button type="button" className="ck-primary" onClick={() => setPhase("pick")}>
-              Play again
-            </button>
-            <button type="button" className="ck-secondary" onClick={onClose}>
-              Done
-            </button>
-          </div>
-        </div>
+        <EndPanel onAgain={() => setPhase("pick")} onDone={onClose}>
+          {result === "you" ? "You win!" : result === "mote" ? "Mote wins." : "A draw."}
+        </EndPanel>
       ) : (
         <p className={`ck-status${note ? " is-note" : ""}`} aria-live="polite">
           {note ?? (yourTurn ? (mustJump ? "Your move. You have a jump." : "Your move") : "Mote is thinking…")}
         </p>
       )}
     </div>
-  );
-}
-
-function CloseButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button type="button" className="ck-x" aria-label="Put the board away" onClick={onClick}>
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M7 7l10 10M17 7L7 17" />
-      </svg>
-    </button>
   );
 }
 

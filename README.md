@@ -159,6 +159,28 @@ at the end. They comment on the big moments (and once in a while on a slip of
 their own). Close the board mid-game and it's saved for next time. Your
 record against Mote at each level sits at the top of the board.
 
+## Chess
+
+Right-click Mote and choose **Play chess**. Same board, same levels, same
+record-keeping and saving as checkers. You're white and go first: click a
+piece and the dots show where it can go (rings mean a capture). All the rules
+are there: castling (move the king two squares), en passant, promotion (you
+pick what the pawn becomes), check (the king glows red), checkmate,
+stalemate, and draws by threefold repetition, fifty quiet moves, or too
+little left to mate.
+
+Mote's pieces are cream with little eyes (the knight, side-on, has one).
+**Easy** looks one move ahead and often goes with something that only looks
+about right; **Normal** looks three moves ahead and follows trades through;
+**Hard** looks as far as it can in about a second and a half and knows how to
+finish off a won endgame.
+
+Mote has their own chess lines and faces: a sly, narrow-eyed nod when they put
+you in check, wide darting eyes when you check them, a pout (naming the
+piece) when you take one of theirs, real dismay over their queen, proud
+stretching when a pawn of theirs promotes, and the victory dance or
+good-sport smile at the end.
+
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. You can choose
@@ -190,7 +212,7 @@ The current Mac app is already built and kept in the project. Quit Mote if it
 is open, then drag the new one into Applications and replace the old one.
 
 - `src-tauri/target/release/bundle/macos/Mote.app`
-- `src-tauri/target/release/bundle/dmg/Mote_0.4.0_aarch64.dmg` (an installer you can share)
+- `src-tauri/target/release/bundle/dmg/Mote_0.5.0_aarch64.dmg` (an installer you can share)
 
 To build a fresh copy later:
 
@@ -221,6 +243,9 @@ Each face there is one expression frozen in place, handy for tweaking how they l
 - `src/components/companion/Checkers.tsx` and `checkers.css` — the checkers board
 - `src/components/companion/checkers-lines.ts` — what Mote says over a game
 - `src/lib/checkers/rules.ts` — the rules; `ai.ts` — how Mote picks a move
+- `src/components/companion/Chess.tsx`, `chess-pieces.tsx` and `chess-lines.ts` — the chess board, its pieces, and what Mote says
+- `src/lib/chess/rules.ts` — every chess rule; `ai.ts` — how Mote picks a chess move
+- `src/components/companion/board-ui.tsx` and `board.css` — what both games share (level picker, header, end panel, the board's look)
 - `src/components/companion/links.ts` — saved links, their history, and how Mote picks one to suggest
 - `src-tauri/src/links.rs` — reading a dragged link, and opening one in your browser
 - `src-tauri/src/tidy/` — the jobs themselves, one file per step (rebuilt from the `clean.sh` cleaner)

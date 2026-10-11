@@ -433,6 +433,8 @@ export const LINES: Line[] = [
       "Stretch break? Your shoulders say yes.",
       "Boop. That’s all.",
       "Got any games? I’m pretty good. (Sometimes.)",
+      "Chess? Checkers? Right-click me. I’m ready.",
+      "I’ve been practicing my checkers. Just saying.",
     ],
   },
 

@@ -23,6 +23,7 @@ import {
 import { useSettings } from "@/lib/companion/settings";
 import { CaloriePad } from "@/components/companion/CaloriePad";
 import { Checkers } from "@/components/companion/Checkers";
+import { Chess } from "@/components/companion/Chess";
 import { applyToBook, dateKey, readBook } from "@/lib/companion/calories";
 import { markCalorieCare, useCalorieBook } from "@/lib/companion/calorie-store";
 
@@ -40,7 +41,7 @@ export function Companion() {
   const [book, commitBook] = useCalorieBook();
   const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
   const [logging, setLogging] = useState(false);
-  const [playing, setPlaying] = useState(false);
+  const [playing, setPlaying] = useState<"checkers" | "chess" | null>(null);
   const debugState = useRef<DebugState>({ ...DEBUG_DEFAULTS });
   const events = useRef<string[]>([]);
   const realMedia = useRef<MediaInfo>(null);
@@ -56,7 +57,7 @@ export function Companion() {
   useEffect(() => {
     ownMoveUntil.current = performance.now() + 800;
     // The board needs a taller window than the file options do.
-    setHelpingSize(helping || playing, playing ? { width: 430, height: 740 } : undefined);
+    setHelpingSize(helping || !!playing, playing ? { width: 430, height: 740 } : undefined);
   }, [helping, playing]);
   const [anchor, setAnchor] = useState({ x: 0, y: 0 });
 
@@ -257,7 +258,7 @@ export function Companion() {
         if (helping) return;
         if (target instanceof Element && target.closest(".cal-pad, .mote-menu, .ck")) return;
         const width = 196;
-        const height = 144;
+        const height = 188;
         setMenuAt({
           x: Math.max(8, Math.min(e.clientX, window.innerWidth - width - 8)),
           y: Math.max(8, Math.min(e.clientY, window.innerHeight - height - 8)),
@@ -347,7 +348,7 @@ export function Companion() {
           if (open) {
             setLogging(false);
             // The game is saved; it'll be there when you open the board again.
-            setPlaying(false);
+            setPlaying(null);
           }
         }}
       />
@@ -358,7 +359,7 @@ export function Companion() {
             role="menuitem"
             onClick={() => {
               setMenuAt(null);
-              setPlaying(false);
+              setPlaying(null);
               setLogging(true);
               markCalorieCare();
             }}
@@ -371,10 +372,21 @@ export function Companion() {
             onClick={() => {
               setMenuAt(null);
               setLogging(false);
-              setPlaying(true);
+              setPlaying("checkers");
             }}
           >
             Play checkers
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setMenuAt(null);
+              setLogging(false);
+              setPlaying("chess");
+            }}
+          >
+            Play chess
           </button>
           <button
             type="button"
@@ -389,7 +401,8 @@ export function Companion() {
           </button>
         </div>
       ) : null}
-      {playing && !helping ? <Checkers engine={getEngine} onClose={() => setPlaying(false)} /> : null}
+      {playing === "checkers" && !helping ? <Checkers engine={getEngine} onClose={() => setPlaying(null)} /> : null}
+      {playing === "chess" && !helping ? <Chess engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {logging ? (
         <CaloriePad
           total={todayTotal}
