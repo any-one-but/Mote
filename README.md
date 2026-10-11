@@ -83,6 +83,13 @@ pokes in a row is too many, and Mote gets annoyed.
 
 - **Petting:** press and keep stroking across Mote's face for a second or so.
   Mote melts into it and purrs.
+- **Spinning:** scroll on Mote to spin them (down or right is clockwise; the
+  other way brakes). The faster they're already going the more each scroll
+  adds, so it ranges from a gentle twirl to a blur at about a hundred turns a
+  second. Mote loves it: blissful at a slow spin, squeezing up tighter the
+  faster it goes, until their eyes blur into a ring. They coast to a stop,
+  rock upright, get happily dizzy (for longer the bigger the spin), and then
+  say something about it, different for how fast, how long and how many turns.
 - **Dizzy:** shaking the pointer around wildly, or throwing the window around
   the screen, makes Mote dizzy for a moment.
 - **Naps:** left be for a few minutes (no poking, petting or moving the

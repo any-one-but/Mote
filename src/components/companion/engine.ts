@@ -55,6 +55,8 @@ export type Mood =
   | "yawn"
   | "dizzy"
   | "purr"
+  // Spun round and round by scrolling on them.
+  | "spin"
   // Idles that come from lasting moods.
   | "huff"
   | "sulk"
@@ -241,6 +243,8 @@ export type FaceEngine = {
   jobDone: (ok: boolean) => void;
   /** An app dropped on Mote: a game gets played, anything else gets a reaction. */
   offerApp: (app: AppOffer) => void;
+  /** A scroll on Mote (scroll distance, positive is clockwise): spins them. */
+  spin: (delta: number) => void;
   /** A link dropped on Mote, to save for suggesting some day. */
   saveLink: (url: string, title: string | null) => void;
   /** Debug: suggest a saved link right now (this one, or Mote's pick). */
@@ -263,6 +267,7 @@ export const MOOD_LIST: Mood[] = [
   "yawn",
   "dizzy",
   "purr",
+  "spin",
   "huff",
   "sulk",
   "fidget",
@@ -354,6 +359,8 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   // Purring lasts as long as the petting does; see `PURR_AFTER`. Looking at
   // the options and working last as long as they do (see `setHelping`).
   purr: { dur: Number.POSITIVE_INFINITY, tempo: 0.8 },
+  // Spinning lasts until Mote comes to a stop (see `spinner`).
+  spin: { dur: Number.POSITIVE_INFINITY, tempo: 1.5 },
   present: { dur: Number.POSITIVE_INFINITY, tempo: 1 },
   work: { dur: Number.POSITIVE_INFINITY, tempo: 1 },
 };
@@ -363,6 +370,7 @@ const PURR_AFTER = 1300;
 
 /** Moods Mote is too caught up in to talk through. */
 const BUSY: Mood[] = [
+  "spin",
   "doze",
   "sleep",
   "wake",
@@ -411,6 +419,7 @@ const LABELS: Partial<Record<Mood, string>> = {
   cute: "Mote is feeling cute.",
   surprise: "Mote is surprised.",
   dizzy: "Mote is dizzy.",
+  spin: "Mote is spinning! Wheee!",
   huff: "Mote huffs.",
   sulk: "Mote is sulking.",
   fidget: "Mote is fidgeting.",
@@ -447,6 +456,10 @@ function keyed(t: number, keys: Keys): Partial<Pose> {
 export type PoseExtras = {
   /** ms since the last petting stroke (negative while still petting). */
   sincePet?: number;
+  /** While spinning: how fast, 0 (barely) to 1 (as fast as it feels). */
+  spin?: number;
+  /** Dizzy from a spin they loved: giggly cheeks through the wobble. */
+  giddy?: boolean;
 };
 
 /**
@@ -926,9 +939,39 @@ export function poseFor(
       [0, { lookX: 0, lookY: -0.05, lookMix: 1, open: 1.05, wide: 1.02, rot: dir * 2.5, y: -1 }],
       [1150, {}],
     ];
+  } else if (mood === "spin") {
+    // Being spun: blissed out at a gentle twirl, and the faster it goes the
+    // tighter they scrunch up, eyes squeezed into thin happy arcs, the whole
+    // of them tensed. At top speed, a happy shiver.
+    const c = clamp(extras.spin ?? 0, 0, 1);
+    const enjoy: Pose = {
+      ...REST,
+      cheek: 0.62,
+      cheekCurve: 0.22,
+      lookMix: 1,
+    };
+    const clench: Pose = {
+      ...REST,
+      cheek: 0.8,
+      cheekCurve: 0.38,
+      cheekTilt: 0.08,
+      open: 0.84,
+      wide: 1.16,
+      sx: 0.93,
+      sy: 0.93,
+      lookMix: 1,
+    };
+    const blend = {} as Partial<Pose>;
+    for (const k of POSE_KEYS) blend[k] = lerp(enjoy[k], clench[k], c);
+    keys = [[0, blend]];
+    const shiver = c * c;
+    shakeX = Math.sin((t / 1000) * Math.PI * 2 * 23) * 0.6 * shiver;
   } else if (mood === "dizzy") {
     // Whoa — eyes swirl, Mote wobbles in little circles, then shakes it off.
-    const woozy: Partial<Pose> = { open: 0.88, wide: 0.95, lookMix: 1 };
+    // (After a spin they loved, with giggly cheeks the whole way through.)
+    const woozy: Partial<Pose> = extras.giddy
+      ? { open: 0.88, wide: 0.95, lookMix: 1, cheek: 0.42, cheekCurve: 0.16 }
+      : { open: 0.88, wide: 0.95, lookMix: 1 };
     keys = [
       [0, { open: 1.15, wide: 0.95, y: -3, sy: 1.04, sx: 0.97 }],
       [220, woozy],
@@ -1248,6 +1291,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     gLidR: q<SVGPathElement>(svg, "guide-lid-r"),
     gCheekL: q<SVGPathElement>(svg, "guide-cheek-l"),
     gCheekR: q<SVGPathElement>(svg, "guide-cheek-r"),
+    skin: q<SVGEllipseElement>(svg, "skin"),
+    blur: q<SVGCircleElement>(svg, "spin-blur"),
     pawn: q<SVGGElement>(svg, "pawn"),
     pad: q<SVGGElement>(svg, "pad"),
     block: q<SVGGElement>(svg, "block"),
@@ -1362,6 +1407,25 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   let dozeNext = false;
   let twitchStart = -1;
   let nextTwitch = 5000;
+  // Spinning (scroll on Mote): how far round they are (degrees), how fast
+  // (degrees a second), whether they're rocking to a stop upright, and how
+  // this spin has gone so far (for what Mote says afterwards).
+  const spinner = {
+    angle: 0,
+    w: 0,
+    active: false,
+    landing: false,
+    landV: 0,
+    target: 0,
+    lastWheel: Number.NEGATIVE_INFINITY,
+    startAt: 0,
+    peak: 0,
+    turns: 0,
+  };
+  let lastSpin: { peak: number; seconds: number; turns: number } | null = null;
+  // How drawn-out the dizziness after a spin is (1 = the usual).
+  let dizzyStretch = 1;
+
   /** You did something with Mote: no nodding off for a while. */
   const touch = () => {
     touchedAt = clock;
@@ -1443,7 +1507,12 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (next === "checkin") blinkAt(now + 40);
     if (next === "tada") blinkAt(now + 1300);
     if (prev === "dizzy") dizzyReadyAt = now + 4000;
-    if (prev === "dizzy" && next !== "dizzy") mention("dizzy-over", 0.5);
+    if (prev === "dizzy" && next !== "dizzy") {
+      if (lastSpin) mention("spun", 0.85);
+      else mention("dizzy-over", 0.5);
+    }
+    if (next !== "dizzy") dizzyStretch = 1;
+    if (next === "dizzy" && !spinner.active && prev !== "spin") lastSpin = null;
     if (prev === "purr" && next !== "purr") mention("petted", 0.35);
     if (game && next === game.mood) game.won = gameWon(game.mood, moodSeed);
     if (GAME_MOODS.includes(prev) && !GAME_MOODS.includes(next)) mention("played", 0.5);
@@ -1466,6 +1535,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     game: game?.name ?? null,
     gameKind: game ? (game.mood === "gaming" ? "game" : game.mood) : null,
     gameWon: game?.won ?? false,
+    spin: lastSpin,
     link: talkingLink
       ? {
           name: linkName(talkingLink),
@@ -1955,7 +2025,115 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
   };
 
+  /** How fast Mote is spinning, as 0..1 for the face (turns a second, on a log scale). */
+  const spinIntensity = () => {
+    if (!spinner.active) return 0;
+    const turnsPerSecond = Math.abs(spinner.landing ? spinner.landV : spinner.w) / 360;
+    return clamp(Math.log2(1 + turnsPerSecond) / 3.3, 0, 1);
+  };
+
+  /** The fastest Mote can go: a hundred turns a second. */
+  const SPIN_MAX = 36_000;
+
+  /**
+   * A scroll on Mote: a push round (positive is clockwise). The faster Mote
+   * already spins, the more each push adds, so gentle scrolling is a gentle
+   * twirl and keeping at it builds up to a blur. Scrolling the other way
+   * brakes, harder.
+   */
+  const spin = (delta: number) => {
+    if (debug.manual || delta === 0) return;
+    touch();
+    engage();
+    noticeYou();
+    if (mood === "sleep" || mood === "doze") react("wake-rested");
+    if (spinner.landing) {
+      spinner.landing = false;
+      spinner.w = spinner.landV;
+    }
+    // Each pixel of scrolling adds a little, plus a little more the faster
+    // Mote already goes: a flick of the trackpad is a turn or two a second,
+    // and only seconds of steady, hard scrolling get anywhere near the top.
+    const d = clamp(delta, -240, 240);
+    const braking = spinner.w !== 0 && Math.sign(d) !== Math.sign(spinner.w);
+    const gain = 0.8 + Math.abs(spinner.w) * (braking ? 0.0008 : 0.00036);
+    spinner.w = clamp(spinner.w + d * gain, -SPIN_MAX, SPIN_MAX);
+    spinner.lastWheel = clock;
+    if (!spinner.active && Math.abs(spinner.w) > 30) {
+      spinner.active = true;
+      spinner.startAt = clock;
+      spinner.peak = 0;
+      spinner.turns = 0;
+      lastSpin = null;
+      if (bubble) showBubble(null);
+      react("spin");
+      start("spin", clock);
+    }
+  };
+
+  /** Spinning, each frame: coast and slow down, then rock to a stop upright. */
+  const spinStep = (dt: number) => {
+    if (!spinner.active) return;
+    if (!spinner.landing) {
+      // Slows by about a third every second, plus a little steady friction,
+      // so a huge spin takes a good while to wind down.
+      const sgn = Math.sign(spinner.w);
+      spinner.w *= Math.exp(-dt / 1.6);
+      spinner.w -= sgn * Math.min(Math.abs(spinner.w), 60 * dt);
+      spinner.angle += spinner.w * dt;
+      spinner.turns += (Math.abs(spinner.w) * dt) / 360;
+      spinner.peak = Math.max(spinner.peak, Math.abs(spinner.w));
+      if (Math.abs(spinner.w) < 110 && clock - spinner.lastWheel > 250) {
+        // Settle upright wherever the last bit of momentum would carry
+        // Mote: tipping on over the top, or rocking back, with a wobble.
+        spinner.landing = true;
+        spinner.landV = spinner.w;
+        spinner.target = Math.round((spinner.angle + spinner.w * 0.35) / 360) * 360;
+      }
+    } else {
+      const steps = Math.max(1, Math.ceil(dt / (1 / 240)));
+      for (let i = 0; i < steps; i++) {
+        [spinner.angle, spinner.landV] = spring(
+          spinner.angle,
+          spinner.landV,
+          spinner.target,
+          70,
+          0.42,
+          dt / steps,
+        );
+      }
+      if (Math.abs(spinner.angle - spinner.target) < 0.3 && Math.abs(spinner.landV) < 4)
+        finishSpin();
+    }
+  };
+
+  /** Stopped: upright again, and (after a real spin) properly dizzy. */
+  const finishSpin = () => {
+    const seconds = (clock - spinner.startAt) / 1000;
+    const peak = spinner.peak / 360;
+    lastSpin = { peak, seconds, turns: spinner.turns };
+    spinner.active = false;
+    spinner.landing = false;
+    spinner.angle = 0;
+    spinner.w = 0;
+    spinner.landV = 0;
+    log(
+      `spun ${spinner.turns.toFixed(1)} times in ${seconds.toFixed(1)}s, top speed ${peak.toFixed(1)} a second`,
+    );
+    if (peak > 0.6 || seconds > 1.5) {
+      // The bigger the spin, the longer the wobble.
+      dizzyStretch = clamp(1 + Math.log2(1 + peak) / 3 + seconds / 25, 1, 2.6);
+      react("spun-dizzy");
+      start("dizzy", clock);
+    } else {
+      react("spun-little");
+      start("delight", clock);
+      mention("spun", 0.5);
+    }
+  };
+
   const step = (dt: number, now: number) => {
+    spinStep(dt);
     if (pokeQueued) {
       pokeQueued = false;
       handlePoke(now);
@@ -2026,7 +2204,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         ? false
         : mood === "purr"
           ? sincePet > PURR_AFTER
-          : now >= moodStart + MOODS[mood].dur;
+          : now >= moodStart + MOODS[mood].dur * (mood === "dizzy" ? dizzyStretch : 1);
     if (over) {
       // Nodding off: a doze becomes real sleep, unless something happened in
       // the meantime and they catch themself.
@@ -2075,8 +2253,10 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       shakeRot,
       swirl,
       purr,
-    } = poseFor(mood, t, moodSeed, {
+    } = poseFor(mood, mood === "dizzy" ? t / dizzyStretch : t, moodSeed, {
       sincePet: sincePet < 350 ? -1 : sincePet - 350,
+      spin: spinIntensity(),
+      giddy: lastSpin !== null,
     });
     swirlNow = swirl;
     // Petting a sleeping Mote gets a sleepy little purr without waking them.
@@ -2242,7 +2422,16 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
 
     // Natural blinks.
-    const blinkFree = !["sleep", "wake", "delight", "cute", "dizzy", "purr", "tada"].includes(mood);
+    const blinkFree = ![
+      "sleep",
+      "wake",
+      "delight",
+      "cute",
+      "dizzy",
+      "purr",
+      "tada",
+      "spin",
+    ].includes(mood);
     const fb = feelings(feel);
     if (blinkFree && now >= nextBlink) {
       blinkAt(now, Math.random() < 0.16);
@@ -2308,10 +2497,25 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const br = (view.rot + shake.rot * m) * m;
     const bsx = 1 + (view.sx - 1) * m - rumble * 0.004;
     const bsy = 1 + (view.sy - 1) * m + rumble * 0.007;
+    // Spinning turns all of Mote round their middle.
+    const turn = spinner.active ? ((spinner.angle % 360) + 360) % 360 : 0;
     parts.body?.setAttribute(
       "transform",
-      `translate(${f(bx)} ${f(by)}) rotate(${f(br)} ${GEO.cx} ${GEO.pivotY}) translate(${GEO.cx} ${GEO.groundY}) scale(${bsx.toFixed(4)} ${bsy.toFixed(4)}) translate(${-GEO.cx} ${-GEO.groundY})`,
+      `translate(${f(bx)} ${f(by)}) rotate(${f(br)} ${GEO.cx} ${GEO.pivotY}) translate(${GEO.cx} ${GEO.groundY}) scale(${bsx.toFixed(4)} ${bsy.toFixed(4)}) translate(${-GEO.cx} ${-GEO.groundY}) rotate(${f(turn)} ${GEO.cx} ${GEO.cy})`,
     );
+    // While spinning Mote rounds out into a circle, so the body seems to
+    // hold still and only the squeezed-shut eyes go round; past a few turns
+    // a second they blur into a ring rather than flicker.
+    const speed = spinner.active ? Math.abs(spinner.landing ? spinner.landV : spinner.w) / 360 : 0;
+    const round = clamp(speed / 1.5, 0, 1);
+    parts.skin?.setAttribute("rx", f(GEO.faceRx - 3 * round));
+    parts.skin?.setAttribute("ry", f(GEO.faceRy + 3 * round));
+    const blur = reduced ? 0 : clamp((speed - 2.5) / 5, 0, 1);
+    if (parts.blur) {
+      parts.blur.style.display = blur > 0.01 ? "" : "none";
+      parts.blur.style.opacity = f(0.42 * blur);
+    }
+    if (parts.eyes) parts.eyes.style.opacity = blur > 0.01 ? f(1 - 0.88 * blur) : "";
     const ex = clamp((lag.x - view.x) * 0.35, -3, 3) * m;
     const ey = clamp((lag.y - view.y) * 0.35, -4, 4) * m;
     const eyeShift = `translate(${f(ex)} ${f(ey)})`;
@@ -2594,6 +2798,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     setHelping,
     jobDone,
     offerApp,
+    spin,
     saveLink,
     suggestLink: (url) => {
       if (bubble) showBubble(null);

@@ -686,3 +686,11 @@
 .prop-dot {
   fill: var(--color-face);
 }
+
+/* The eyes' blur when Mote spins very fast. */
+.spin-blur {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 30;
+  filter: blur(3px);
+}
