@@ -80,10 +80,7 @@ function SettingsWindow() {
       </Section>
 
       <Section title="Calories">
-        <Row
-          label="Daily goal"
-          hint="Stay under this. Mote is glad when you do, and sad if you go past it."
-        >
+        <Row label="Daily goal" hint="Set it to 0 to stop tracking.">
           <GoalField
             value={settings.calorieGoal}
             onChange={(calorieGoal) => {

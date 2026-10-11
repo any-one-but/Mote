@@ -168,7 +168,7 @@
   z-index: 6;
   flex: none;
   margin: 0 12px 14px;
-  padding: 14px 14px 12px;
+  padding: 14px 14px 14px 18px;
   border-radius: 22px;
   background: #fffcf7;
   color: var(--color-ink);
@@ -185,33 +185,61 @@
   gap: 12px;
 }
 
-.cal-pad-kicker {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #8b7d71;
-}
-
-.cal-pad-total {
-  margin: 2px 0 0;
+.cal-pad-empty {
+  margin: 6px 0;
   font-size: 15px;
   color: #8b7d71;
 }
 
-.cal-pad-total strong {
-  margin-right: 4px;
+.cal-pad input {
+  border: 0;
+  border-radius: 12px;
+  background: #ebe2d5;
   color: var(--color-ink);
-  font-size: 28px;
+  font: inherit;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-pad input::placeholder {
+  color: #a39488;
+  font-weight: 500;
+}
+
+.cal-pad input:focus-visible {
+  outline: 2px solid color-mix(in oklab, #e3997a 70%, transparent);
+  outline-offset: 1px;
+}
+
+/* The big number. It reads as plain text until you hover or click it. */
+.cal-pad .cal-pad-total {
+  display: block;
+  max-width: 100%;
+  margin: 0 0 0 -6px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 34px;
   letter-spacing: -0.03em;
+  line-height: 1.2;
+  cursor: text;
+  transition: background 0.15s ease;
+}
+
+.cal-pad .cal-pad-total:hover,
+.cal-pad .cal-pad-total:focus {
+  background: #f3ebe0;
 }
 
 .cal-pad-left {
-  margin: 2px 0 0;
+  margin: 0;
   font-size: 13px;
   color: #8b7d71;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-pad-left.is-over {
+  color: #b5553b;
 }
 
 .cal-pad-x {
@@ -226,6 +254,7 @@
   background: #ebe2d5;
   color: var(--color-ink);
   line-height: 0;
+  transition: background 0.15s ease;
 }
 
 .cal-pad-x:hover {
@@ -257,26 +286,6 @@
   margin-top: 12px;
 }
 
-.cal-pad input {
-  border: 0;
-  border-radius: 12px;
-  background: #ebe2d5;
-  color: var(--color-ink);
-  font: inherit;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.cal-pad input::placeholder {
-  color: #a39488;
-  font-weight: 500;
-}
-
-.cal-pad input:focus-visible {
-  outline: 2px solid color-mix(in oklab, #e3997a 70%, transparent);
-  outline-offset: 1px;
-}
-
 .cal-pad-amount {
   flex: 1;
   min-width: 0;
@@ -296,46 +305,30 @@
   background: #ebe2d5;
   color: var(--color-ink);
   line-height: 0;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
 }
 
 .cal-pad-chip:hover:not(:disabled) {
   background: #e4d9ca;
 }
 
+.cal-pad-chip.is-add {
+  background: #e3997a;
+  color: #fffcf7;
+}
+
+.cal-pad-chip.is-add:hover:not(:disabled) {
+  background: #d5866a;
+}
+
+.cal-pad-chip:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
 .cal-pad-chip:disabled {
   opacity: 0.4;
-}
-
-.cal-pad-set {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 10px;
-  color: #8b7d71;
-  font-size: 13px;
-}
-
-.cal-pad-set input {
-  width: 96px;
-  height: 36px;
-  padding: 0 10px;
-  text-align: right;
-}
-
-.cal-pad-days {
-  margin-top: 8px;
-  padding: 4px 0;
-  border: 0;
-  background: transparent;
-  color: #8b7d71;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.cal-pad-days:hover {
-  color: var(--color-ink);
 }
 
 .sr-only {

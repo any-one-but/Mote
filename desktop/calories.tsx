@@ -1,10 +1,5 @@
 import { createRoot } from "react-dom/client";
-import {
-  averageIntake,
-  colorFor,
-  dateKey,
-  type CalorieBook,
-} from "@/lib/companion/calories";
+import { averageIntake, colorFor, dateKey, type CalorieBook } from "@/lib/companion/calories";
 import { useCalorieBook } from "@/lib/companion/calorie-store";
 import { useSettings } from "@/lib/companion/settings";
 import { Page } from "./ui";
@@ -58,45 +53,33 @@ function Days() {
   const [book] = useCalorieBook();
   const goal = settings.calorieGoal;
   const now = new Date();
-  const today = dateKey(now);
-  const todayTotal = book.days[today]?.total ?? 0;
   const months = monthsOf(book.startMonth, now);
-  const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
-  const sevenStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+  // Today isn't over yet, so the average is of the seven days before it.
+  const average = averageIntake(
+    book,
+    new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7),
+    new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1),
+  );
 
   return (
     <Page wide>
       <header className="days-head">
         <div>
           <h1>Days</h1>
-          <p>
-            {goal > 0
-              ? `Goal ${goal.toLocaleString()}. Change it in Settings.`
-              : "Set a daily goal in Settings and the colors will show how close you came."}
-          </p>
-          <p className="days-now">
-            Today · <strong>{todayTotal.toLocaleString()}</strong>
-            {goal > 0 ? <span> of {goal.toLocaleString()}</span> : null}
-          </p>
+          <p>{goal > 0 ? `Goal ${goal.toLocaleString()} a day` : "Set a daily goal in Settings to color the days."}</p>
         </div>
-        <div className="days-stats">
-          <Stat label="This week" value={averageIntake(book, weekStart, now)} />
-          <Stat label="Last 7 days" value={averageIntake(book, sevenStart, now)} />
-        </div>
+        {average !== null ? (
+          <div className="days-stat">
+            <span>Last 7 days</span>
+            <strong>{average.toLocaleString()}</strong>
+            <small>a day</small>
+          </div>
+        ) : null}
       </header>
       {months.map((month) => (
         <Month key={`${month.y}-${month.m}`} y={month.y} m={month.m} book={book} goal={goal} now={now} />
       ))}
     </Page>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number | null }) {
-  return (
-    <div className="days-stat">
-      <span>{label}</span>
-      <strong>{value === null ? "—" : value.toLocaleString()}</strong>
-    </div>
   );
 }
 
@@ -146,12 +129,7 @@ function Month({
               style={colored ? { background: colorFor(total, goal) } : undefined}
             >
               <div className="day-num">{cell.d}</div>
-              {show && when !== "future" ? (
-                <div className="day-cal">
-                  {total.toLocaleString()}
-                  <small>cal</small>
-                </div>
-              ) : null}
+              {show ? <div className="day-cal">{total.toLocaleString()}</div> : null}
             </div>
           );
         })}

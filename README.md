@@ -101,7 +101,8 @@ pokes in a row is too many, and Mote gets annoyed.
 
 Mote is always cheerful: interactions are momentary and nothing changes
 Mote over time. Mote only speaks up when something happens (after a pet,
-getting dizzy, something starting to play, you coming back after a while).
+getting dizzy, something starting to play, you coming back after a while),
+plus the occasional saved link or word about today's calories.
 
 (A whole system of feelings that drift over time, lasting moods and needs is
 still in the code, switched off: `MIND_ENABLED` in
@@ -121,17 +122,19 @@ Drag the window by its top edge.
 
 ## Calories
 
-Set a **daily goal** in Settings. **Show the days** opens a window of the
-month, colored the way the old diet tracker colored them: cool while you're
-under the goal, hot once you pass it.
+Set a **daily goal** in Settings (0 turns this off). Right-click Mote and
+choose **Log calories**: type an amount and press **+** (or Return) to add it,
+or **−** to take it away. Click the big number to type today's total outright.
 
-You don't type calories in that window. Right-click Mote and choose
-**Edit calories**. Add to today, take some away, or set the total yourself.
-Mote answers. Small amounts, while the day is still light, get a warm one.
-Closer to the goal, Mote gets plain and asks you not to cross it. Over the
-goal, Mote gets sad and asks you to stop. Now and then Mote mentions where
-today stands, or asks you to log it. At the end of a day under the goal — or
-the next time you're around — Mote says so.
+**See the days** (in the same menu, or in Settings) opens a calendar of every
+day you've logged, colored the way the old Diet Tracker did: cool while you're
+under the goal, hot once you pass it, nearly black when you're well past.
+
+Mote reacts to each entry: cheerful while the day is light, matter-of-fact in
+the middle, a little worried near the goal, and sad once you're over. Now and
+then Mote mentions where today stands, asks once a day if you haven't logged
+anything, says goodnight about the day after 9pm, and mentions yesterday the
+next morning. Every line is in `src/components/companion/calorie-lines.ts`.
 
 ## Settings and debug mode
 
@@ -163,7 +166,7 @@ The current Mac app is already built and kept in the project. Quit Mote if it
 is open, then drag the new one into Applications and replace the old one.
 
 - `src-tauri/target/release/bundle/macos/Mote.app`
-- `src-tauri/target/release/bundle/dmg/Mote_0.3.5_aarch64.dmg` (an installer you can share)
+- `src-tauri/target/release/bundle/dmg/Mote_0.3.6_aarch64.dmg` (an installer you can share)
 
 To build a fresh copy later:
 

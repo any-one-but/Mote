@@ -85,10 +85,10 @@ describe("calorie speeches", () => {
 
     const over = applyToBook(logged(1900, 2), 2000, { kind: "add", amount: 400 }, at(19));
     assert.equal(rankCalorieLines(over!.moment)[0]?.mood, "plead");
-    assert.match(pickCalorieReaction(over!.moment, [], () => 0).text, /over|stop|Please|sad/i);
+    assert.match(pickCalorieReaction(over!.moment, [], () => 0).text, /over|stop|sad|enough/i);
   });
 
-  it("gets plain in the middle, worried near the line, and warm when you come back", () => {
+  it("gets plain in the middle or after a big meal, worried near the line, and glad when you come back", () => {
     const mid = applyToBook(logged(900, 1), 2000, { kind: "add", amount: 400 }, at(14));
     assert.equal(rankCalorieLines(mid!.moment)[0]?.mood, "reckon");
 
@@ -96,7 +96,7 @@ describe("calorie speeches", () => {
     assert.equal(rankCalorieLines(close!.moment)[0]?.mood, "worry");
 
     const big = applyToBook(logged(100, 1), 2000, { kind: "add", amount: 700 }, at(12));
-    assert.equal(rankCalorieLines(big!.moment)[0]?.mood, "worry");
+    assert.equal(rankCalorieLines(big!.moment)[0]?.mood, "reckon");
 
     const saved = applyToBook(logged(2200, 3), 2000, { kind: "sub", amount: 400 }, at(18));
     assert.equal(rankCalorieLines(saved!.moment)[0]?.mood, "beam");

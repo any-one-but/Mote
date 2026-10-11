@@ -1,10 +1,10 @@
 import type { CalorieMoment, Part } from "../../lib/companion/calories.ts";
 
-// What Mote says about food. Staying under the goal is the good outcome.
-// Small amounts, while the day is still light, get warmth. Getting close
-// gets plain and firm. Going over gets sad. The weight of each line is
-// pushed around by how big the bite was, how full the day already is, whether
-// this is the first thing logged, and whether a streak is on the line.
+// What Mote says about food. Staying under the goal is the good outcome:
+// light amounts get a cheerful line, the middle of the day gets plain ones,
+// getting close gets a little worried, and going over gets sad. How likely
+// each line is depends on how big the bite was, how full the day already is,
+// whether it's the first thing logged, and whether a streak is going.
 
 export type CalorieMood = "beam" | "reckon" | "worry" | "plead" | "tada";
 
@@ -110,14 +110,13 @@ export function fillIn(
   template: string,
   n: { goal: number; eaten: number; delta: number; streak: number },
 ): string {
-  const left = Math.max(0, Math.round(n.goal - n.eaten));
-  const over = Math.max(0, Math.round(n.eaten - n.goal));
+  const num = (x: number) => Math.round(x).toLocaleString();
   return template
-    .replaceAll("{left}", String(left))
-    .replaceAll("{eaten}", String(Math.round(n.eaten)))
-    .replaceAll("{delta}", String(Math.round(Math.abs(n.delta))))
-    .replaceAll("{goal}", String(Math.round(n.goal)))
-    .replaceAll("{over}", String(over))
+    .replaceAll("{left}", num(Math.max(0, n.goal - n.eaten)))
+    .replaceAll("{eaten}", num(n.eaten))
+    .replaceAll("{delta}", num(Math.abs(n.delta)))
+    .replaceAll("{goal}", num(n.goal))
+    .replaceAll("{over}", num(Math.max(0, n.eaten - n.goal)))
     .replaceAll("{streak}", String(n.streak));
 }
 
@@ -159,16 +158,14 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 3,
     when: { dir: "up", meal: "first", part: "morning", fill: [0, 0.55], jump: [0, 0.22], over: false },
     say: [
-      "Breakfast, and only {delta}? I'm *so* proud of you.",
-      "A small breakfast. You have no idea how happy that makes me.",
-      "{delta} for breakfast. That's gentle. That's kind. I love it.",
-      "You logged breakfast. {eaten} so far. The whole day is still ours.",
-      "Tiny breakfast. Real willpower. I'm keeping this feeling.",
-      "You could have had more. You didn't. I'm proud of you.",
-      "Morning, and you chose a little. I feel lucky to be here with you.",
-      "{delta}. That's a kind way to start. I'll remember it.",
-      "Breakfast is in, and we're nowhere near the line. I'm beaming.",
-      "You started the day on my side. {left} left. Stay this sweet.",
+      "Breakfast! {delta}. Nice and light.",
+      "A light breakfast. Good start.",
+      "Morning! {delta} down, {left} to go.",
+      "Ooh, breakfast. That’s a gentle start.",
+      "Breakfast logged. Lots of day left.",
+      "{delta} for breakfast? Easy.",
+      "Good morning! Small breakfast, big day ahead.",
+      "Breakfast’s in. {left} left for the rest.",
     ],
   },
   {
@@ -177,9 +174,9 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 3,
     when: { dir: "up", meal: "first", part: "afternoon", fill: [0, 0.5], jump: [0, 0.22], over: false },
     say: [
-      "First thing you've logged, and it's only {delta}. What a way to check in.",
-      "There you are. {delta} to start. I'm glad you told me, and gladder it's small.",
-      "First entry of the day is a small one. You just made me like today.",
+      "First one today! {delta}. Nice.",
+      "There’s the first one. Light!",
+      "{delta} to start. Plenty of room.",
     ],
   },
   {
@@ -188,18 +185,18 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 3,
     when: { dir: "up", meal: "later", fill: [0, 0.5], jump: [0, 0.18], over: false },
     say: [
-      "Another little one. {delta}. You're still being so good to me.",
-      "You came back, and it's still small. I trust you. I really do.",
-      "{eaten} now. You keep choosing the smaller thing. I see you.",
-      "You didn't have to stay this careful. You did. Thank you.",
-      "{delta} more. That's nothing. I'm so fond of you right now.",
-      "Still light. {left} left. I'm happy.",
-      "Look at that. {left} left, and you only added {delta}.",
-      "I was a little nervous you'd come back hungry. {delta} is perfect.",
-      "You logged it. Small. Honest. I like you so much.",
-      "Still so safe. I could purr.",
-      "Every time you pick a small one, I get more attached. Fair warning.",
-      "You checked in again with almost nothing. I'm keeping you.",
+      "Another small one. Nice.",
+      "{delta} more. Still light.",
+      "{eaten} so far. Easy going.",
+      "Little snack? Fine by me.",
+      "{left} left. Plenty.",
+      "Ooh, a nibble.",
+      "Still nice and light today.",
+      "Small one! Good.",
+      "Noted! {eaten} so far.",
+      "That barely counts. (It counts.)",
+      "Another little one. You’re pacing it well.",
+      "{delta}. Easy.",
     ],
   },
   {
@@ -208,14 +205,14 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 2,
     when: { dir: "up", fill: [0, 0.55], jump: [0, 0.2], over: false },
     say: [
-      "{delta} is such a small thing to add. {left} left. I'm fond of this.",
-      "Small one. {eaten} today. You make staying under look gentle.",
-      "I like this number. {eaten}. Lots of room, if we keep this size.",
-      "{delta} logged. Honest and little. That's my favorite kind.",
-      "You could go over so easily. You added {delta} instead. I'm glowing.",
-      "Still so far under. {left} left. I'm happy you're telling me.",
-      "{eaten}, and the goal is {goal}. We're comfortable. I'm comfortable.",
-      "A little bite. A lot of care. Thank you for the little bite.",
+      "{delta}, got it. {left} left.",
+      "Small one. {eaten} today.",
+      "Plenty of room still.",
+      "Logged! Still light.",
+      "{eaten} so far. Comfy.",
+      "Got it. Lots left.",
+      "Nice and small.",
+      "Easy one.",
     ],
   },
   {
@@ -224,18 +221,18 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 3,
     when: { dir: "up", fill: [0.48, 0.84], over: false },
     say: [
-      "{eaten} of {goal}. {left} left. That's a real amount, if we stay honest.",
-      "You've got {left} left. I'd keep the next one small.",
-      "We're fine. Not floating, not stuck. {left} left. I can live with this.",
-      "{delta} more puts us at {eaten}. Room enough. Not a reason to relax.",
-      "Still under. I like under. Let's not get cute with the rest.",
-      "You've used a good share. {left} left. I'm watching, not cheering the next bite.",
-      "OK. {eaten}. That's a normal day so far. Normal is allowed. Extra isn't.",
-      "I did the math. {left} left. A snack fits. A feast doesn't.",
-      "Not worried yet. I'd like to stay that way. {left} is the budget now.",
-      "You're on track. That's different from having room to play. {left} left.",
-      "Noted. {delta} in. {eaten} total. This part is serious, and we're still fine.",
-      "Still on the safe side of {goal}. The safe side is the whole point.",
+      "{eaten} of {goal}. {left} left.",
+      "{left} left. Keep the next one smallish?",
+      "About halfway. Steady.",
+      "{eaten} so far. Still fine.",
+      "Okay, {left} left. A snack fits, a feast doesn’t.",
+      "Halfway-ish. Let’s keep it steady.",
+      "Noted. {left} to go.",
+      "On track. {left} left.",
+      "{eaten}. A normal day so far.",
+      "Still under. Let’s pace the rest.",
+      "Got it. {left} left for later.",
+      "Fine so far. Let’s keep it that way.",
     ],
   },
   {
@@ -244,20 +241,20 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 3,
     when: { dir: "up", fill: [0.84, 1], over: false },
     say: [
-      "{left} left. That's not very much. Please don't spend it all.",
-      "We're close. Too close for me to smile about food. {left} left.",
-      "I need you to hear me. {left} until the line. I'd rather you stopped.",
-      "{eaten}. The goal is {goal}. Please treat what's left like it's precious.",
-      "This is the part where I get scared. {left} left. Don't cross it.",
-      "I'm not mad. I'm worried. {left} is all we have.",
-      "If the next thing isn't tiny, we'll go over. I don't want that.",
-      "You can stop here. {left} left. Stopping would make me so relieved.",
-      "We're right under it. One careless bite and I'm going to be sad.",
-      "Please be done, or almost done. {left} isn't a meal.",
-      "{delta} was a lot to add this close. {left} left. Nothing else big.",
-      "I can see the line from here. Stay on this side of it. Please.",
-      "My face is doing the worried thing because {left} is all that's left.",
-      "Don't bargain with the last {left}. I've seen how that goes.",
+      "{left} left. Getting close…",
+      "Ooh, close. Only {left} left.",
+      "{left} left. Maybe that’s it for today?",
+      "We’re near the line. Small things only.",
+      "Careful… {left} left.",
+      "Close one! {left} to spare.",
+      "That’s most of it. {left} left.",
+      "Hmm. {left} left. Let’s not cross it.",
+      "Almost at {goal}. Can we stop here?",
+      "{left} isn’t much. Tiny things only.",
+      "Getting tight. {left} left.",
+      "Right up near the line now.",
+      "{eaten} of {goal}. Close!",
+      "Okay… {left} left. I’m a little nervous.",
     ],
   },
   {
@@ -266,18 +263,18 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 3,
     when: { dir: "up", over: true, fill: [1, 1.12] },
     say: [
-      "We're over. {over} over. Please stop. I don't want any more.",
-      "You crossed it. I feel awful. Please don't add anything else.",
-      "I was really hoping we wouldn't. We're {over} past. Can we be done?",
-      "Please. Stop here. I'm not having fun anymore.",
-      "{eaten}. That's more than {goal}. I don't know how to be cheerful about that.",
-      "I don't want to nag. I want you to stop. We're already over.",
-      "That one did it. We're past the goal. Please, no more today.",
-      "I'm sad. Not to punish you. I'm just sad. Please don't keep going.",
-      "We had a line and we're {over} past it. Stay with me and stop.",
-      "Over by {over}. If you stop now, tomorrow is still ours.",
-      "Please don't make it worse. I'm asking nicely. We're already over.",
-      "I don't want the next bite. I want you to be done. Please.",
+      "Oh no. {over} over.",
+      "That tipped it. {over} over. Can we stop there?",
+      "Over by {over}. Call it a day?",
+      "Aw. We went over.",
+      "{over} over. No more today, okay?",
+      "Hmm. Just over. Let’s stop here.",
+      "Over the line by {over}. That’s enough for today.",
+      "Oops. {over} over. Done for today?",
+      "Past {goal}. Let’s leave it there.",
+      "That’s over. I’m a little sad.",
+      "{over} over. Tomorrow’s a fresh start.",
+      "Over… let’s not add more, okay?",
     ],
   },
   {
@@ -286,34 +283,34 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 3,
     when: { dir: "up", over: true, fill: [1.12, 20] },
     say: [
-      "{over} over. That's a lot. I'm a bit of a mess about it. Please stop.",
-      "I don't like this number. {eaten}. Please, that's enough for one day.",
-      "I'm not angry. I'm drooping. Please don't keep going tonight.",
-      "We blew past it. {over} past. I still like you. I just need you to stop.",
-      "Every extra bite makes me quieter. Please don't make me quieter.",
-      "I know you can put it down. I'm asking you to. We're way over.",
-      "This is the sad version of me. You can stop adding to it.",
-      "{goal} was the promise. We're at {eaten}. I don't want one more.",
-      "I'll sit here and be sad with you. I won't cheer this on. No more.",
-      "It's too much. I'm not going to pretend it isn't. Please be done.",
-      "I miss when we were under. We can have it again tomorrow. Stop tonight.",
-      "I'm whining. I'm doing it anyway. Please stop.",
+      "{over} over. That’s a lot.",
+      "{eaten}… that’s way past {goal}. Please stop for today.",
+      "Way over. No more today, please.",
+      "Oof. {over} over.",
+      "That’s a lot over. Let’s be done.",
+      "{over} past the goal. I’m drooping.",
+      "Way past it. Fresh start tomorrow.",
+      "Please, no more today.",
+      "{eaten}. Too much. Let’s stop.",
+      "I’m sad about this one. {over} over.",
+      "Let’s put the food down for today.",
+      "Over by {over}. Enough for one day.",
     ],
   },
   {
     id: "big-bite",
-    mood: "worry",
+    mood: "reckon",
     weight: 3,
-    when: { dir: "up", jump: [0.28, 20], fill: [0, 1] },
+    when: { dir: "up", jump: [0.28, 20], fill: [0, 0.84] },
     say: [
-      "{delta} in one go. That's a big piece of the day. I'm not clapping.",
-      "That's a lot at once. {eaten} now. We can still be fine, if that was the meal.",
-      "{delta} is not a little bite. I like you. I don't like that size.",
-      "One big entry. Then we're careful after. {left} left, and I mean it.",
-      "I saw the size. {delta}. My smile stayed in its pocket.",
-      "That's a meal, not a nibble. {left} left. Don't follow it with another.",
-      "Big one. I'm still on your side. The side is: don't do that twice.",
-      "Logged {delta}. I'll be plain. That used a lot. What's left has to be small.",
+      "{delta} in one go! That’s a meal.",
+      "Big one. {left} left.",
+      "That was a proper meal. {left} left for later.",
+      "{delta}, got it. Lighter after this?",
+      "A real meal. Let’s keep the rest small.",
+      "Big plate! {left} left.",
+      "Okay, that’s a meal. {eaten} so far.",
+      "{delta}! Good thing that’s logged.",
     ],
   },
   {
@@ -322,14 +319,14 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 3,
     when: { dir: "down", saved: true },
     say: [
-      "You took {delta} back. We're under again. I could cry. Thank you.",
-      "You came back under the line. I'm so relieved.",
-      "We're safe again. You did that. I'm proud of you in a shaky way.",
-      "{eaten}. Under. I was sad, and now I'm not. Stay here.",
-      "You fixed it. I won't forget that you fixed it.",
-      "Under again. Please let's stay under. I just got you back.",
-      "Oh. We're under. I feel like myself again. Thank you.",
-      "You found your way back. {left} left. I'm holding onto this.",
+      "Back under! Phew.",
+      "Under again. Thank you.",
+      "Phew. {left} to spare now.",
+      "We’re back under. Yay!",
+      "Fixed! Under the line.",
+      "Oh good, under again.",
+      "Back on the right side. Phew.",
+      "Under {goal} again. Much better.",
     ],
   },
   {
@@ -338,12 +335,12 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 3,
     when: { dir: "down", over: true, wasOver: true },
     say: [
-      "Thank you for taking {delta} off. We're still {over} over. Please don't put it back.",
-      "That helped. I'm still sad. We're still over. But I saw you try.",
-      "You went down. Good. We're not safe yet. {over} still over.",
-      "I appreciate that. I do. We're still past the goal. Keep going down, or stop.",
-      "{delta} less. I'm grateful. I'm not OK yet. {eaten} is still too many.",
-      "You listened a little. Please listen the rest of the way. Still over.",
+      "Better. Still {over} over though.",
+      "{delta} less. Still over.",
+      "That helps. {over} to go.",
+      "Down a bit. Still {over} over.",
+      "Closer! Still over by {over}.",
+      "Thanks. Still over, though.",
     ],
   },
   {
@@ -352,14 +349,14 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 2.5,
     when: { dir: "down", wasOver: false, over: false, fill: [0.4, 1] },
     say: [
-      "You gave some back. {left} left now. That was a gift. Thank you.",
-      "{delta} off. I feel the room come back. I like you for that.",
-      "Taking some away counts too. {eaten} now. I'm softer already.",
-      "You didn't have to undo that. You did. I'm proud.",
-      "Less is my favorite direction. {left} left.",
-      "That minus made my whole afternoon. {eaten} now.",
-      "You trimmed it. {delta} gone. We have room again. I needed that.",
-      "See? You can come down. {left} left. I'm smiling for real.",
+      "{delta} off. {left} left now.",
+      "Less! Good.",
+      "Taken off. {eaten} now.",
+      "More room now. {left} left.",
+      "Down to {eaten}. Nice.",
+      "Fixed it. {left} left.",
+      "Ooh, going down. I like that direction.",
+      "{delta} back. Got it.",
     ],
   },
   {
@@ -368,12 +365,12 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 2.5,
     when: { dir: "down", wasOver: false, fill: [0, 0.45] },
     say: [
-      "You were already being so good, and you took more off. I'm undone.",
-      "{eaten}. That's so little. You make it look easy. I'm smitten.",
-      "Even less. I don't know what I did to deserve a day this light.",
-      "You lowered it again. {left} left. I'm going to be sweet about it.",
-      "{delta} gone, and we were already safe. I'm bragging about you.",
-      "A minus, on a day this light? I'm keeping you.",
+      "Down to {eaten}. Got it.",
+      "Even lighter. Nice.",
+      "{delta} off. Fixed.",
+      "Corrected! {eaten} now.",
+      "Got it, {eaten}.",
+      "Less is fine by me.",
     ],
   },
   {
@@ -382,10 +379,10 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 1.6,
     when: { kind: ["set"], dir: "up", over: false, fill: [0.45, 1] },
     say: [
-      "You set the day to {eaten}. I'll trust the number. {left} left.",
-      "OK. The total is {eaten}. That's the truth now. I'll go by it.",
-      "You changed it to {eaten}. I see it. {left} left to protect.",
-      "The number is {eaten} because you said so. I'm holding you to the line.",
+      "Okay, {eaten} today. {left} left.",
+      "Total’s {eaten} now. Got it.",
+      "Set to {eaten}. {left} left.",
+      "{eaten} it is.",
     ],
   },
   {
@@ -394,8 +391,8 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 1.6,
     when: { kind: ["set"], dir: "up", over: false, fill: [0, 0.45] },
     say: [
-      "You set it to {eaten}. That's a kind number. I'm pleased.",
-      "New total, {eaten}. Still so much room. Thank you for the honest one.",
+      "{eaten} today. Lots of room.",
+      "Set to {eaten}. Nice and light.",
     ],
   },
   {
@@ -404,8 +401,8 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 2,
     when: { kind: ["set"], dir: "up", over: true },
     say: [
-      "You set it to {eaten}. That's over. I wish the number were smaller.",
-      "So the real total is {eaten}. {over} past the goal. Let that be the last time it goes up.",
+      "{eaten}. That’s {over} over.",
+      "Set to {eaten}. Over, so let’s stop there.",
     ],
   },
   {
@@ -414,8 +411,8 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 1.8,
     when: { kind: ["set"], dir: "down", over: false },
     say: [
-      "You corrected it down to {eaten}. Thank you for the smaller number.",
-      "New total, {eaten}. Lower. I like this edit.",
+      "Down to {eaten}. Got it.",
+      "Fixed. {eaten} now.",
     ],
   },
   {
@@ -424,12 +421,12 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 2.6,
     when: { dir: "up", streakMin: 2, fill: [0, 0.8], over: false },
     say: [
-      "{streak} days under, and today still has {left} left. I'm so invested.",
-      "That's {streak} days of you keeping the promise. Today's still good.",
-      "{streak} days. I care about the next one just as much.",
-      "We're on a little streak. {streak} days under. Please don't snap it.",
-      "I count the days. {streak} of them, under. This one can join them.",
-      "{streak} days of staying under. I get attached to a run like that.",
+      "{streak} days under in a row! Keep it going.",
+      "A {streak}-day streak, and today’s looking good.",
+      "Streak’s at {streak}. Today’s on track.",
+      "{streak} days in a row! Nice.",
+      "Still on the streak. {left} left today.",
+      "{streak} good days so far. Let’s make it one more.",
     ],
   },
   {
@@ -438,8 +435,8 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 2.4,
     when: { dir: "up", part: "night", fill: [0.55, 1], over: false },
     say: [
-      "It's late to be adding. {left} left. I'd rather you were done for the night.",
-      "The day's almost over and you added {delta}. {left} left. Please let that be it.",
+      "Late snack? {left} left.",
+      "It’s late. Maybe that’s the last one?",
     ],
   },
   {
@@ -448,8 +445,8 @@ export const CALORIE_LINES: CalorieLine[] = expand([
     weight: 2.2,
     when: { dir: "up", part: "evening", fill: [0.7, 1], over: false },
     say: [
-      "Evening, and we're at {eaten}. {left} left. I'd love it if you were done.",
-      "It's getting late for a big add. {left} left. Please keep the rest tiny.",
+      "Evening, {eaten} so far. Light from here?",
+      "{left} left for the evening. Keep it small?",
     ],
   },
 ]);
@@ -457,15 +454,14 @@ export const CALORIE_LINES: CalorieLine[] = expand([
 export type CaloriePick = { id: string; mood: CalorieMood; text: string };
 
 function fallback(m: CalorieMoment): CaloriePick {
-  if (m.saved) return { id: "fallback-saved", mood: "beam", text: sayOf("We're under again. Thank you.", m) };
-  if (m.over && m.dir === "down") {
-    return { id: "fallback-still", mood: "plead", text: sayOf("Still {over} over. Please don't put it back.", m) };
-  }
-  if (m.over) return { id: "fallback-over", mood: "plead", text: sayOf("We're over by {over}. Please stop.", m) };
-  if (m.dir === "down") return { id: "fallback-down", mood: "beam", text: sayOf("{delta} less. {eaten} now. Thank you.", m) };
-  if (m.fill > 0.84) return { id: "fallback-close", mood: "worry", text: sayOf("{left} left. Please don't cross it.", m) };
-  if (m.fill > 0.5) return { id: "fallback-mid", mood: "reckon", text: sayOf("{eaten} of {goal}. {left} left.", m) };
-  return { id: "fallback-sweet", mood: "beam", text: sayOf("{eaten} so far. {left} left. I'm glad.", m) };
+  const pick = (id: string, mood: CalorieMood, text: string) => ({ id, mood, text: sayOf(text, m) });
+  if (m.saved) return pick("fallback-saved", "beam", "Back under. Phew.");
+  if (m.over && m.dir === "down") return pick("fallback-still", "plead", "Still {over} over.");
+  if (m.over) return pick("fallback-over", "plead", "{over} over. Let’s stop there.");
+  if (m.dir === "down") return pick("fallback-down", "beam", "Down to {eaten}. Got it.");
+  if (m.fill > 0.84) return pick("fallback-close", "worry", "{left} left. Careful.");
+  if (m.fill > 0.5) return pick("fallback-mid", "reckon", "{eaten} of {goal}. {left} left.");
+  return pick("fallback-sweet", "beam", "{eaten} so far. {left} left.");
 }
 
 export function rankCalorieLines(m: CalorieMoment, recent: string[] = []) {
@@ -524,11 +520,11 @@ const ASIDES: Aside[] = expandAside([
     over: false,
     fill: [0, 0.5],
     say: [
-      "Just so you know, you're at {eaten}. {left} left. I'm happy about it.",
-      "Checking in. {eaten} so far. Still so much room. I'm proud of where this is.",
-      "You're at {eaten} today. Light. I keep thinking about it, in a good way.",
-      "{left} left today. You're doing the thing. I see you.",
-      "No reason. I just wanted to say {eaten} is a lovely place to be.",
+      "{eaten} so far today. Nice and light.",
+      "Quick update: {left} left.",
+      "Light day so far. Just saying.",
+      "{eaten} today. Lots of room.",
+      "Doing well today. {left} left.",
     ],
   },
   {
@@ -538,10 +534,10 @@ const ASIDES: Aside[] = expandAside([
     over: false,
     fill: [0.45, 0.84],
     say: [
-      "You're at {eaten} of {goal}. {left} left. I'm keeping an eye on it with you.",
-      "{eaten} so far. The rest of the day has to be quieter than this.",
-      "{left} left. That's the update. I'm not celebrating. I'm staying close.",
-      "Today is {eaten} so far. Fine. Let's keep it fine.",
+      "{eaten} of {goal} so far.",
+      "{left} left today. Pace it.",
+      "Halfway-ish. {left} left.",
+      "Just so you know: {left} left.",
     ],
   },
   {
@@ -551,10 +547,10 @@ const ASIDES: Aside[] = expandAside([
     over: false,
     fill: [0.84, 1],
     say: [
-      "You've got {left} left today. That's the whole warning.",
-      "I'm thinking about your number. {eaten}. Please don't push it.",
-      "{left} until the goal. I'd love it if you were done.",
-      "Still under, barely. {left} left. I'm nervous, and I'm telling you.",
+      "{left} left today. Not much.",
+      "Close to the line today. {left} left.",
+      "Just {left} left. Careful.",
+      "Nearly at {goal}. Small things only.",
     ],
   },
   {
@@ -563,10 +559,10 @@ const ASIDES: Aside[] = expandAside([
     kind: "status",
     over: true,
     say: [
-      "You're {over} over today. I haven't forgotten. Please don't add more.",
-      "Still over. {eaten}. I'm still sad about it. Stopping is still allowed.",
-      "I keep the number. {over} past {goal}. No more, OK?",
-      "The day's already over the line. I'm asking you to leave it there.",
+      "Still {over} over today. No more, okay?",
+      "Today’s over the line. Let’s leave it.",
+      "{over} over today. Tomorrow’s fresh.",
+      "We’re over for today. That’s enough.",
     ],
   },
   {
@@ -575,11 +571,11 @@ const ASIDES: Aside[] = expandAside([
     kind: "nudge",
     parts: ["afternoon"],
     say: [
-      "You haven't logged anything today. I'm not mad. I just want to know.",
-      "Did you eat? Tell me the number. I like knowing where we are.",
-      "Nothing logged yet. If you've eaten, I want the truth, even if it's small.",
-      "I'm wondering about today. A number would calm me down.",
-      "Log it when you can. Even a late breakfast. I want to root for you.",
+      "Eaten anything yet? Tell me!",
+      "Nothing logged today. Right-click me when you have.",
+      "Hungry? Or did you forget to tell me?",
+      "No calories logged yet today.",
+      "What’s today looking like? Right-click me to log it.",
     ],
   },
   {
@@ -588,10 +584,10 @@ const ASIDES: Aside[] = expandAside([
     kind: "nudge",
     parts: ["evening", "night"],
     say: [
-      "The day's getting late and I still don't have a number. Tell me?",
-      "I can't cheer or worry if I don't know. What did today add up to?",
-      "Before the day ends — did you stay under? Log it, so I can be proud or sit with you.",
-      "Nothing written down yet. I'm imagining the best, and I'd rather know.",
+      "Nothing logged today. What did you eat?",
+      "Day’s almost over and I’ve got nothing. Log it?",
+      "Did today go under? Log it so I know.",
+      "No calories today yet. Did you forget?",
     ],
   },
   {
@@ -600,14 +596,14 @@ const ASIDES: Aside[] = expandAside([
     kind: "evening",
     over: false,
     say: [
-      "You did it. {eaten} today, under {goal}. I'm so proud of you.",
-      "The day held. {left} to spare. Thank you for staying with me.",
-      "Under, all day. I hope you feel how much that means to me.",
-      "That's a whole day under the line. I'm going to remember this one.",
-      "You kept the promise. {eaten} of {goal}. I'm happy.",
-      "{left} left at the end of the day. You didn't spend it. I adore that.",
-      "We made it. Under. I'm soft and proud and a little smug about you.",
-      "End of the day, and you're still under. This is my favorite version of us.",
+      "Day’s nearly done and you’re under! Nice.",
+      "{eaten} of {goal}. Good day!",
+      "Under all day. Well done.",
+      "That’s a day under the goal!",
+      "{left} to spare tonight. Nice work.",
+      "Under {goal} today. Yay!",
+      "Good day! {eaten} total.",
+      "Nearly bedtime, and still under. Nice.",
     ],
   },
   {
@@ -617,8 +613,8 @@ const ASIDES: Aside[] = expandAside([
     over: false,
     streakMin: 2,
     say: [
-      "{streak} days under, counting today. I'm ridiculously proud.",
-      "A streak. {streak} days on the right side of the line. I noticed.",
+      "{streak} days under in a row!",
+      "That’s {streak} days running. Yay!",
     ],
   },
   {
@@ -627,10 +623,10 @@ const ASIDES: Aside[] = expandAside([
     kind: "evening",
     over: true,
     say: [
-      "Today went over. {over} over. I'm sad. Tomorrow we start kind again.",
-      "The day ended past the line. I still like you. I wish we'd stopped.",
-      "We didn't make it today. {eaten}. I'm not going to pretend. Tomorrow, though.",
-      "Over, and the day's done. No more tonight. I'll be here in the morning.",
+      "Today went over. Tomorrow’s a fresh start.",
+      "{over} over today. That’s okay. New day tomorrow.",
+      "Over today. Let’s try again tomorrow.",
+      "Today’s done. Tomorrow we start fresh.",
     ],
   },
   {
@@ -640,12 +636,12 @@ const ASIDES: Aside[] = expandAside([
     over: false,
     parts: ["morning"],
     say: [
-      "Yesterday you stayed under. {eaten}. I thought about it. I'm proud of you.",
-      "Good morning. You kept the goal yesterday. I saved you a smile.",
-      "You did it yesterday. Under {goal}. I wanted that to be the first thing I said.",
-      "I checked yesterday before I said hello. You were under. Hello. I'm happy.",
-      "Yesterday held. {left} to spare. I'm glad I get another day with you.",
-      "You stuck with it yesterday. I don't take that lightly. Good morning.",
+      "Morning! You stayed under yesterday.",
+      "Good morning! Yesterday was a good one.",
+      "Yesterday: {eaten}, under {goal}. Nice.",
+      "Morning! Yesterday went well.",
+      "You were under yesterday! Good start.",
+      "Hi! Yesterday ended under. Nice.",
     ],
   },
   {
@@ -654,9 +650,9 @@ const ASIDES: Aside[] = expandAside([
     kind: "morning",
     over: false,
     say: [
-      "I never got to say it. Yesterday you stayed under. I'm still proud.",
-      "Yesterday was a good food day. {eaten}, under the line. I kept it.",
-      "Before anything else: yesterday you did it. Under. Thank you.",
+      "Oh, yesterday went well. Under!",
+      "Forgot to say: yesterday was under. Nice.",
+      "Yesterday came in under {goal}. Nice.",
     ],
   },
   {
@@ -665,10 +661,10 @@ const ASIDES: Aside[] = expandAside([
     kind: "morning",
     over: true,
     say: [
-      "Yesterday went over. That's done. Today is empty, and I'm on your side.",
-      "We went past it yesterday. I was sad. Today hasn't cost us anything yet.",
-      "Yesterday was {over} over. I still want today with you. We'll be careful.",
-      "I'm not bringing yesterday up to hurt you. We went over. Today we don't.",
+      "Yesterday went over. Fresh start today.",
+      "New day! Yesterday’s done.",
+      "Yesterday was {over} over. Today’s a clean slate.",
+      "Yesterday went over. Today we try again.",
     ],
   },
 ]);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 type Props = {
   total: number;
@@ -7,7 +7,6 @@ type Props = {
   onSub: (amount: number) => void;
   onSet: (total: number) => void;
   onClose: () => void;
-  onShowDays: () => void;
 };
 
 function Mark({ d }: { d: string }) {
@@ -18,19 +17,18 @@ function Mark({ d }: { d: string }) {
   );
 }
 
-/** Today's calories, edited here. The days window only shows them. */
-export function CaloriePad({ total, goal, onAdd, onSub, onSet, onClose, onShowDays }: Props) {
+const digits = (text: string) => text.replace(/[^\d]/g, "");
+
+/** Today's calories. Type an amount and add or take it away; click the big
+ * number to set the total outright. */
+export function CaloriePad({ total, goal, onAdd, onSub, onSet, onClose }: Props) {
   const [amount, setAmount] = useState("");
-  const [draft, setDraft] = useState(String(total));
+  // While the total is being typed over, this holds the typing.
+  const [draft, setDraft] = useState<string | null>(null);
 
-  useEffect(() => {
-    setDraft(String(total));
-  }, [total]);
-
-  const parsed = Math.round(Number(amount));
-  const ready = goal > 0 && Number.isFinite(parsed) && parsed > 0;
-  const left = Math.max(0, goal - total);
-  const over = Math.max(0, total - goal);
+  const parsed = Number(amount);
+  const ready = goal > 0 && parsed > 0;
+  const left = goal - total;
 
   const apply = (dir: "add" | "sub") => {
     if (!ready) return;
@@ -40,10 +38,24 @@ export function CaloriePad({ total, goal, onAdd, onSub, onSet, onClose, onShowDa
   };
 
   const commitDraft = () => {
-    const n = Math.max(0, Math.round(Number(draft) || 0));
-    setDraft(String(n));
+    if (draft === null) return;
+    const n = Number(draft || 0);
+    setDraft(null);
     if (n !== total) onSet(n);
   };
+
+  if (goal <= 0) {
+    return (
+      <div className="cal-pad">
+        <div className="cal-pad-top">
+          <p className="cal-pad-empty">Set a daily goal in Settings first.</p>
+          <button type="button" className="cal-pad-x" aria-label="Close" onClick={onClose}>
+            <Mark d="M7 7l10 10M17 7L7 17" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form
@@ -55,20 +67,35 @@ export function CaloriePad({ total, goal, onAdd, onSub, onSet, onClose, onShowDa
     >
       <div className="cal-pad-top">
         <div>
-          <p className="cal-pad-kicker">Today</p>
-          <p className="cal-pad-total">
-            {goal > 0 ? (
-              <>
-                <strong>{total.toLocaleString()}</strong>
-                <span> of {goal.toLocaleString()}</span>
-              </>
-            ) : (
-              <span>Set a daily goal in Settings</span>
-            )}
+          <input
+            className="cal-pad-total"
+            inputMode="numeric"
+            aria-label="Today’s total"
+            title="Click to change today’s total"
+            value={draft ?? total.toLocaleString()}
+            style={{ width: `${Math.max(1, (draft ?? total.toLocaleString()).length) + 0.6}ch` }}
+            onFocus={(e) => {
+              setDraft(String(total));
+              e.currentTarget.select();
+            }}
+            onChange={(e) => setDraft(digits(e.target.value))}
+            onBlur={commitDraft}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.currentTarget.blur();
+              } else if (e.key === "Escape") {
+                e.stopPropagation();
+                setDraft(null);
+                e.currentTarget.blur();
+              }
+            }}
+          />
+          <p className={`cal-pad-left${left < 0 ? " is-over" : ""}`}>
+            {left >= 0
+              ? `${left.toLocaleString()} left of ${goal.toLocaleString()}`
+              : `${(-left).toLocaleString()} over ${goal.toLocaleString()}`}
           </p>
-          {goal > 0 ? (
-            <p className="cal-pad-left">{over > 0 ? `${over.toLocaleString()} over` : `${left.toLocaleString()} left`}</p>
-          ) : null}
         </div>
         <button type="button" className="cal-pad-x" aria-label="Close" onClick={onClose}>
           <Mark d="M7 7l10 10M17 7L7 17" />
@@ -81,9 +108,9 @@ export function CaloriePad({ total, goal, onAdd, onSub, onSet, onClose, onShowDa
           inputMode="numeric"
           aria-label="Calories to add or take away"
           placeholder="Calories"
+          autoFocus
           value={amount}
-          disabled={goal <= 0}
-          onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ""))}
+          onChange={(e) => setAmount(digits(e.target.value))}
         />
         <button
           type="button"
@@ -97,7 +124,7 @@ export function CaloriePad({ total, goal, onAdd, onSub, onSet, onClose, onShowDa
         </button>
         <button
           type="submit"
-          className="cal-pad-chip"
+          className="cal-pad-chip is-add"
           disabled={!ready}
           aria-label="Add"
           onMouseDown={(e) => e.preventDefault()}
@@ -105,28 +132,6 @@ export function CaloriePad({ total, goal, onAdd, onSub, onSet, onClose, onShowDa
           <Mark d="M12 6v12M6 12h12" />
         </button>
       </div>
-
-      <label className="cal-pad-set">
-        <span>Set today’s total</span>
-        <input
-          inputMode="numeric"
-          aria-label="Today’s total"
-          value={draft}
-          disabled={goal <= 0}
-          onChange={(e) => setDraft(e.target.value.replace(/[^\d]/g, ""))}
-          onBlur={commitDraft}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              commitDraft();
-            }
-          }}
-        />
-      </label>
-
-      <button type="button" className="cal-pad-days" onClick={onShowDays}>
-        Show the days
-      </button>
     </form>
   );
 }

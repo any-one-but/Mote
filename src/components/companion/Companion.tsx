@@ -11,6 +11,7 @@ import type { EngineOptions, FaceEngine } from "@/components/companion/engine";
 import { DEBUG_DEFAULTS, listenBus, send, type DebugState } from "@/lib/companion/bus";
 import {
   onDropped,
+  openCaloriesWindow,
   openLink,
   onMediaElsewhere,
   onPointerElsewhere,
@@ -22,8 +23,7 @@ import {
 import { useSettings } from "@/lib/companion/settings";
 import { CaloriePad } from "@/components/companion/CaloriePad";
 import { applyToBook, dateKey, readBook } from "@/lib/companion/calories";
-import { useCalorieBook } from "@/lib/companion/calorie-store";
-import { openCaloriesWindow } from "@/lib/companion/desktop";
+import { markCalorieCare, useCalorieBook } from "@/lib/companion/calorie-store";
 
 type MediaInfo = EngineOptions["media"];
 
@@ -242,9 +242,11 @@ export function Companion() {
         const target = e.target;
         if (target instanceof Element && target.closest("input, textarea")) return;
         e.preventDefault();
+        // Not while Mote is helping with files: that conversation has the window.
+        if (helping) return;
         if (target instanceof Element && target.closest(".cal-pad, .mote-menu")) return;
         const width = 196;
-        const height = 52;
+        const height = 100;
         setMenuAt({
           x: Math.max(8, Math.min(e.clientX, window.innerWidth - width - 8)),
           y: Math.max(8, Math.min(e.clientY, window.innerHeight - height - 8)),
@@ -342,10 +344,21 @@ export function Companion() {
             onClick={() => {
               setMenuAt(null);
               setLogging(true);
-              if (!readBook().care) commitBook({ ...readBook(), care: true });
+              markCalorieCare();
             }}
           >
-            Edit calories
+            Log calories
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setMenuAt(null);
+              markCalorieCare();
+              openCaloriesWindow();
+            }}
+          >
+            See the days
           </button>
         </div>
       ) : null}
@@ -357,7 +370,6 @@ export function Companion() {
           onSub={(amount) => changeCalories("sub", amount)}
           onSet={(amount) => changeCalories("set", amount)}
           onClose={() => setLogging(false)}
-          onShowDays={() => openCaloriesWindow()}
         />
       ) : null}
       <SpeechBubble

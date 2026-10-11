@@ -1823,7 +1823,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (next.praisedMorning !== today) {
       const yKey = addDays(today, -1);
       const y = next.days[yKey];
-      if (y && y.total > 0) {
+      // Yesterday already got its goodnight, so the morning doesn't repeat it.
+      if (y && y.total > 0 && next.praisedEvening !== yKey) {
         if (!around) return;
         const snap: DaySnap = {
           kind: "morning",
@@ -1849,7 +1850,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       } else return;
     }
 
-    if (hour >= 20 && next.praisedEvening !== today) {
+    if (hour >= 21 && next.praisedEvening !== today) {
       const entry = next.days[today];
       if (entry && entry.total > 0) {
         if (!around) {
@@ -1880,13 +1881,15 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (dirty) commitBook(next);
     if (!around) return;
     if (now - lastCalorieAt < 2 * 60_000) return;
-    if (Date.now() - (next.lastAsideAt ?? 0) < 18 * 60_000) return;
+    if (Date.now() - (next.lastAsideAt ?? 0) < 40 * 60_000) return;
     if (Math.random() > 0.12) return;
 
     const entry = next.days[today];
     const logged = !!entry && entry.total > 0;
-    const kind = logged ? "status" : hour >= 11 ? "nudge" : null;
+    // Asking you to log it happens once a day at most.
+    const kind = logged ? "status" : hour >= 11 && next.nudgedOn !== today ? "nudge" : null;
     if (!kind) return;
+    if (kind === "nudge") commitBook({ ...next, nudgedOn: today });
     const eaten = entry?.total ?? 0;
     const snap: DaySnap = {
       kind,

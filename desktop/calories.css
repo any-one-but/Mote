@@ -18,30 +18,13 @@
   color: var(--ink-soft);
 }
 
-.days-now {
-  margin: 8px 0 0;
-  font-size: 15px;
-}
-
-.days-now strong {
-  font-weight: 600;
-}
-
-.days-stats {
-  display: flex;
-  gap: var(--unit);
-}
-
 .days-stat {
-  min-width: 108px;
-  padding: 10px 14px;
-  border-radius: 16px;
-  background: var(--card);
+  text-align: right;
 }
 
 .days-stat span {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -49,11 +32,15 @@
 }
 
 .days-stat strong {
-  display: block;
-  margin-top: 2px;
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+.days-stat small {
+  margin-left: 4px;
+  font-size: 13px;
+  color: var(--ink-soft);
 }
 
 .month {
@@ -109,7 +96,8 @@
 }
 
 .day.is-future {
-  opacity: 0.55;
+  background: transparent;
+  opacity: 0.6;
 }
 
 .day.has-color {
@@ -127,13 +115,6 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
-}
-
-.day-cal small {
-  display: block;
-  font-size: 10px;
-  font-weight: 500;
-  opacity: 0.8;
 }
 
 .day.is-today {

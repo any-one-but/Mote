@@ -21,6 +21,8 @@ export type CalorieBook = {
   praisedEvening?: string;
   /** Wall-clock time of the last reminder, so a restart doesn't nag at once. */
   lastAsideAt?: number;
+  /** The day Mote last asked you to log something, so it's only once a day. */
+  nudgedOn?: string;
 };
 
 export type Part = "morning" | "afternoon" | "evening" | "night";
@@ -110,6 +112,7 @@ export function readBook(now = new Date()): CalorieBook {
       praisedMorning: typeof raw.praisedMorning === "string" ? raw.praisedMorning : undefined,
       praisedEvening: typeof raw.praisedEvening === "string" ? raw.praisedEvening : undefined,
       lastAsideAt: typeof raw.lastAsideAt === "number" ? raw.lastAsideAt : undefined,
+      nudgedOn: typeof raw.nudgedOn === "string" ? raw.nudgedOn : undefined,
     };
   } catch {
     return blank;
