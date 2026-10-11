@@ -116,13 +116,19 @@
 }
 
 .stage.is-logging .window {
+  position: relative;
   height: auto;
   flex: 1;
   min-height: 0;
 }
 
 .stage.is-logging .face {
-  width: min(72vw, 16rem, 100%);
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: auto;
+  height: calc(100% - 6px);
+  transform: translateX(-50%);
 }
 
 .mote-menu {
@@ -174,6 +180,7 @@
 
 .cal-pad-top {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
@@ -208,6 +215,9 @@
 }
 
 .cal-pad-x {
+  display: grid;
+  place-items: center;
+  flex: none;
   width: 32px;
   height: 32px;
   padding: 0;
@@ -215,19 +225,30 @@
   border-radius: 999px;
   background: #ebe2d5;
   color: var(--color-ink);
+  line-height: 0;
 }
 
 .cal-pad-x:hover {
   background: #e4d9ca;
 }
 
-.cal-pad-x svg {
-  width: 16px;
-  height: 16px;
+.cal-pad-x svg,
+.cal-pad-chip svg {
+  display: block;
   stroke: currentColor;
   stroke-width: 2.2;
   fill: none;
   stroke-linecap: round;
+}
+
+.cal-pad-x svg {
+  width: 16px;
+  height: 16px;
+}
+
+.cal-pad-chip svg {
+  width: 18px;
+  height: 18px;
 }
 
 .cal-pad-row {
@@ -246,9 +267,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+.cal-pad input::placeholder {
+  color: #a39488;
+  font-weight: 500;
+}
+
 .cal-pad input:focus-visible {
-  outline: 3px solid color-mix(in oklab, #e3997a 55%, transparent);
-  outline-offset: 2px;
+  outline: 2px solid color-mix(in oklab, #e3997a 70%, transparent);
+  outline-offset: 1px;
 }
 
 .cal-pad-amount {
@@ -259,14 +285,17 @@
 }
 
 .cal-pad-chip {
+  display: grid;
+  place-items: center;
+  flex: none;
   width: 44px;
   height: 44px;
+  padding: 0;
   border: 0;
   border-radius: 14px;
   background: #ebe2d5;
   color: var(--color-ink);
-  font-size: 22px;
-  line-height: 1;
+  line-height: 0;
 }
 
 .cal-pad-chip:hover:not(:disabled) {

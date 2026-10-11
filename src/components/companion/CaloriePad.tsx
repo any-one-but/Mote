@@ -10,6 +10,14 @@ type Props = {
   onShowDays: () => void;
 };
 
+function Mark({ d }: { d: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d={d} />
+    </svg>
+  );
+}
+
 /** Today's calories, edited here. The days window only shows them. */
 export function CaloriePad({ total, goal, onAdd, onSub, onSet, onClose, onShowDays }: Props) {
   const [amount, setAmount] = useState("");
@@ -63,9 +71,7 @@ export function CaloriePad({ total, goal, onAdd, onSub, onSet, onClose, onShowDa
           ) : null}
         </div>
         <button type="button" className="cal-pad-x" aria-label="Close" onClick={onClose}>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M7 7l10 10M17 7L7 17" />
-          </svg>
+          <Mark d="M7 7l10 10M17 7L7 17" />
         </button>
       </div>
 
@@ -87,7 +93,7 @@ export function CaloriePad({ total, goal, onAdd, onSub, onSet, onClose, onShowDa
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => apply("sub")}
         >
-          −
+          <Mark d="M6 12h12" />
         </button>
         <button
           type="submit"
@@ -96,7 +102,7 @@ export function CaloriePad({ total, goal, onAdd, onSub, onSet, onClose, onShowDa
           aria-label="Add"
           onMouseDown={(e) => e.preventDefault()}
         >
-          +
+          <Mark d="M12 6v12M6 12h12" />
         </button>
       </div>
 
