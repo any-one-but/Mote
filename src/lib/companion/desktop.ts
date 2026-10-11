@@ -131,12 +131,27 @@ export async function windowPlacement(): Promise<{ x: number; y: number } | null
   }
 }
 
+export type DroppedLink = { url: string; title: string | null };
+
+/** Opens a saved link in your browser. */
+export function openLink(url: string) {
+  if (isDesktopApp()) void invoke("open_link", { url }).catch(() => {});
+  else window.open(url, "_blank", "noopener");
+}
+
+const LINK_FILE = /\.(webloc|inetloc)$/i;
+
 /**
- * Things dragged over and dropped on Mote's window: where they are on disk,
- * for Mote to help with. (A plain browser can't say where files are, so
- * there it passes just their names, and Mote only pretends.)
+ * Things dragged over and dropped on Mote's window: files and folders (where
+ * they are on disk, for Mote to help with), or a link (from a browser, or a
+ * link file from Finder), for Mote to save. A plain browser can't say where
+ * files are, so there it passes just their names, and Mote only pretends.
  */
-export function onDropped(hover: (over: boolean) => void, drop: (paths: string[]) => void) {
+export function onDropped(
+  hover: (over: boolean) => void,
+  drop: (paths: string[]) => void,
+  link: (link: DroppedLink) => void,
+) {
   if (isDesktopApp()) {
     let stop: (() => void) | null = null;
     let dead = false;
@@ -146,7 +161,14 @@ export function onDropped(hover: (over: boolean) => void, drop: (paths: string[]
         else if (payload.type === "leave") hover(false);
         else if (payload.type === "drop") {
           hover(false);
-          if (payload.paths.length) drop(payload.paths);
+          const paths = payload.paths;
+          // A link isn't a file, so a dragged link arrives with no paths;
+          // the app reads it from the drag itself.
+          if (!paths.length || (paths.length === 1 && LINK_FILE.test(paths[0]))) {
+            void invoke<DroppedLink | null>("read_dropped_link", { paths })
+              .then((l) => l && link(l))
+              .catch(() => {});
+          } else drop(paths);
         }
       })
       .then((un) => (dead ? un() : (stop = un)))
@@ -158,7 +180,8 @@ export function onDropped(hover: (over: boolean) => void, drop: (paths: string[]
   }
 
   const over = (e: DragEvent) => {
-    if (!e.dataTransfer?.types.includes("Files")) return;
+    const types = e.dataTransfer?.types ?? [];
+    if (!types.includes("Files") && !types.includes("text/uri-list")) return;
     e.preventDefault();
     hover(true);
   };
@@ -168,6 +191,14 @@ export function onDropped(hover: (over: boolean) => void, drop: (paths: string[]
   const dropped = (e: DragEvent) => {
     e.preventDefault();
     hover(false);
+    const url = e.dataTransfer
+      ?.getData("text/uri-list")
+      ?.split("\n")
+      .find((l) => /^https?:/i.test(l.trim()));
+    if (url && !e.dataTransfer?.files.length) {
+      link({ url: url.trim(), title: null });
+      return;
+    }
     const items = Array.from(e.dataTransfer?.items ?? []);
     const names = Array.from(e.dataTransfer?.files ?? []).map((file, i) =>
       items[i]?.webkitGetAsEntry?.()?.isDirectory ? `${file.name}/` : file.name,

@@ -11,6 +11,7 @@ import type { EngineOptions, FaceEngine } from "@/components/companion/engine";
 import { DEBUG_DEFAULTS, listenBus, send, type DebugState } from "@/lib/companion/bus";
 import {
   onDropped,
+  openLink,
   onMediaElsewhere,
   onPointerElsewhere,
   onTypingElsewhere,
@@ -87,10 +88,10 @@ export function Companion() {
     });
   };
 
-  const { followPointer, energy, debug, pace } = settings;
+  const { followPointer, naps, energy, debug, pace } = settings;
   useEffect(() => {
-    engineRef.current?.configure({ followPointer, energy });
-  }, [followPointer, energy]);
+    engineRef.current?.configure({ followPointer, naps, energy });
+  }, [followPointer, naps, energy]);
 
   useEffect(
     () =>
@@ -128,6 +129,7 @@ export function Companion() {
       onDropped(
         (over) => engineRef.current?.dragHover(over),
         (paths) => give(paths),
+        (link) => engineRef.current?.saveLink(link.url, link.title),
       ),
     [give],
   );
@@ -167,6 +169,8 @@ export function Companion() {
       else if (cmd.do === "react") e.react(cmd.id);
       else if (cmd.do === "say") e.say(cmd.id);
       else if (cmd.do === "give") give(cmd.paths);
+      else if (cmd.do === "saveLink") e.saveLink(cmd.url, cmd.title);
+      else if (cmd.do === "suggestLink") e.suggestLink();
       else if (cmd.do === "fakeAudio") {
         d.fakeAudio = cmd.value;
         applyAudio();
@@ -248,7 +252,7 @@ export function Companion() {
         <Face
           onEngine={(engine) => {
             engineRef.current = engine;
-            engine?.configure({ followPointer, energy });
+            engine?.configure({ followPointer, naps, energy });
             applyAudio();
           }}
           onMood={(label) => {
@@ -262,6 +266,7 @@ export function Companion() {
             events.current.push(text);
             if (events.current.length > 200) events.current.shift();
           }}
+          onOpenLink={openLink}
           onSpeech={(b) => {
             if (b) measure();
             setBubble(b);

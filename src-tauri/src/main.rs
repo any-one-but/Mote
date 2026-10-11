@@ -1,5 +1,6 @@
 // Mote for Mac: native windows around the pages in ../desktop.
 mod audio;
+mod links;
 mod senses;
 mod tidy;
 
@@ -252,6 +253,8 @@ fn main() {
             set_debug_window,
             set_float_on_top,
             set_helping_size,
+            links::read_dropped_link,
+            links::open_link,
             tidy::work_inspect,
             tidy::work_start,
             tidy::work_cancel,

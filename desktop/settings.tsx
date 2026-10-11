@@ -1,8 +1,15 @@
-import { StrictMode, useState } from "react";
+import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { Energy } from "@/components/companion/engine";
-import { isDesktopApp, showDebugWindow } from "@/lib/companion/desktop";
+import { isDesktopApp, openLink, showDebugWindow } from "@/lib/companion/desktop";
 import { useSettings, type Pace, type Settings } from "@/lib/companion/settings";
+import {
+  linkName,
+  loadLinks,
+  onLinksChanged,
+  removeLink,
+  type SavedLink,
+} from "@/components/companion/links";
 import { MiniMote, Page, Row, Section, Segmented, Toggle } from "./ui";
 
 const ENERGY: Array<{ value: Energy; label: string }> = [
@@ -51,6 +58,16 @@ function SettingsWindow() {
             onChange={(followPointer) => set({ followPointer })}
           />
         </Row>
+        <Row
+          label="Naps when left alone"
+          hint="Left be for a few minutes, Mote dozes off. A poke wakes them."
+        >
+          <Toggle
+            label="Naps when left alone"
+            checked={settings.naps}
+            onChange={(naps) => set({ naps })}
+          />
+        </Row>
         <Row label="Energy" hint="How often Mote does something on their own." stacked>
           <Segmented
             label="Energy"
@@ -70,6 +87,10 @@ function SettingsWindow() {
             onChange={(pace) => set({ pace })}
           />
         </Row>
+      </Section>
+
+      <Section title="Saved links">
+        <SavedLinks />
       </Section>
 
       {isDesktopApp() ? (
@@ -107,3 +128,74 @@ createRoot(document.getElementById("root")!).render(
     <SettingsWindow />
   </StrictMode>,
 );
+
+/**
+ * The links you've dragged onto Mote, newest first, with how they've gone
+ * when Mote brought them up. Removing one here means it never comes up again.
+ */
+function SavedLinks() {
+  const [links, setLinks] = useState<SavedLink[]>([]);
+  useEffect(() => {
+    const read = () => setLinks(loadLinks().slice().reverse());
+    read();
+    return onLinksChanged(read);
+  }, []);
+  if (!links.length) {
+    return (
+      <p className="links-empty">
+        Drag a link from your browser onto Mote to save it. Every now and then, Mote will bring one
+        up and ask if you’d like to go there.
+      </p>
+    );
+  }
+  return (
+    <ul className="links">
+      {links.map((l) => (
+        <li key={l.url} className="link-row">
+          <div className="link-text">
+            <a
+              href={l.url}
+              className="link-name"
+              onClick={(e) => {
+                e.preventDefault();
+                openLink(l.url);
+              }}
+            >
+              {linkName(l)}
+            </a>
+            <span className="link-stats">
+              {host(l.url)} ·{" "}
+              {l.suggested
+                ? `suggested ${times(l.suggested)}, ${l.opened ? `opened ${times(l.opened)}` : "never opened"}`
+                : "not suggested yet"}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="link-remove"
+            aria-label={`Remove ${linkName(l)}`}
+            title="Remove"
+            onClick={() => {
+              removeLink(l.url);
+              setLinks(loadLinks().slice().reverse());
+            }}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 7l10 10M17 7L7 17" />
+            </svg>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+const times = (n: number) => (n === 1 ? "once" : n === 2 ? "twice" : `${n} times`);
+
+function host(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}

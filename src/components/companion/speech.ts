@@ -20,7 +20,15 @@ export type Outcome = "yes" | "no" | "moved" | "petted" | "ignored" | "done";
 export type Direction = "left" | "right" | "up" | "down";
 
 /** Things that just happened, which Mote might want to comment on. */
-export type SpeechEvent = "petted" | "dizzy-over" | "media-start" | "welcome-back" | "played";
+export type SpeechEvent =
+  | "petted"
+  | "dizzy-over"
+  | "media-start"
+  | "welcome-back"
+  | "played"
+  | "woke-rested"
+  | "woke-groggy"
+  | "startled";
 
 export type SpeechContext = {
   feel: MindValues;
@@ -38,6 +46,16 @@ export type SpeechContext = {
   game: string | null;
   gameKind: "chess" | "minecraft" | "game" | null;
   gameWon: boolean;
+  /** A saved link being talked about: what it's called, whether it's a
+   * video, and its history with you. */
+  link: {
+    name: string;
+    video: boolean;
+    suggested: number;
+    opened: number;
+    /** Days since Mote last suggested it (null if never). */
+    daysSince: number | null;
+  } | null;
 };
 
 export type Line = {
@@ -63,7 +81,7 @@ export type Line = {
   /** Never said in Friendly mode. */
   unkind?: boolean;
   /** Something Mote does about it (play the game again). */
-  then?: Partial<Record<Outcome, "play-again">>;
+  then?: Partial<Record<Outcome, "play-again" | "open-link">>;
   /** Group name shown in the debug list. */
   group: string;
 };
@@ -112,6 +130,35 @@ export const LINES: Line[] = [
     kind: "flavor",
     when: (c) => c.event === "media-start",
     say: ["Ooh, something’s on!", "Oh! Are we watching something?"],
+  },
+  {
+    id: "woke-rested",
+    group: "After something happens",
+    kind: "flavor",
+    when: (c) => c.event === "woke-rested",
+    say: [
+      "Good morning! …Is it morning?",
+      "I’m back! Did I miss anything?",
+      "That was a great nap. I dreamed about snacks.",
+    ],
+  },
+  {
+    id: "woke-groggy",
+    group: "After something happens",
+    kind: "flavor",
+    when: (c) => c.event === "woke-groggy",
+    say: [
+      "Five more minutes…",
+      "Wha—? I was right in the middle of a dream.",
+      "Mmf… was I snoring?",
+    ],
+  },
+  {
+    id: "startled",
+    group: "After something happens",
+    kind: "flavor",
+    when: (c) => c.event === "startled",
+    say: ["Who’s there?!", "I’m up! I’m up!"],
   },
   {
     id: "welcome-back",
@@ -179,7 +226,7 @@ export const LINES: Line[] = [
     group: "Apps you give Mote",
     kind: "flavor",
     when: never,
-    say: (c) => [`*${name(c)}* is an app, not a game. I can’t play that!`],
+    say: (c) => [`*${name(c)}* is an app, not a game. Or a snack.`],
   },
   {
     id: "busy",
@@ -187,6 +234,94 @@ export const LINES: Line[] = [
     kind: "flavor",
     when: never,
     say: ["Hang on, I’m busy!"],
+  },
+
+  // Links you save, and Mote bringing them up again some day
+  {
+    id: "link-saved",
+    group: "Saved links",
+    kind: "flavor",
+    when: never,
+    say: (c) => {
+      const x = `*${c.link?.name ?? "that"}*`;
+      return c.link?.video
+        ? [
+            `Ooh, ${x}! I’ll save it for later.`,
+            `${x}, saved! We’ll watch it together sometime.`,
+            `Into my little box of favorites it goes: ${x}.`,
+            `Saving ${x} for a cozy day.`,
+            `${x}! I’ll remember that one. Probably while snacking.`,
+          ]
+        : [
+            `${x}, saved! I’ll remind you about it someday.`,
+            `Ooh, a link! Tucking ${x} away for later.`,
+            `Got it! ${x} is safe with me.`,
+          ];
+    },
+  },
+  {
+    id: "link-already",
+    group: "Saved links",
+    kind: "flavor",
+    when: never,
+    say: (c) => [
+      `I already have *${c.link?.name}*! It’s one of my favorites.`,
+      `*${c.link?.name}*? Already saved. Great taste, though.`,
+    ],
+  },
+  {
+    id: "suggest-link",
+    group: "Saved links",
+    kind: "ask",
+    when: never,
+    // Never held back by the usual ten-minute rest: how often links come up
+    // is decided where they're suggested.
+    cooldown: 0,
+    say: (c) => {
+      const l = c.link;
+      if (!l) return ["Want to look at something?"];
+      const x = `*${l.name}*`;
+      const see = l.video ? "watch" : "look at";
+      const it = l.video ? "watch it" : "have a look";
+      const lines = [
+        `I was just thinking about ${x}. Want to ${it}?`,
+        `Snack break? We could ${see} ${x}.`,
+        `Before I nap… ${x}? Just one?`,
+        `Ooh, I know! ${x}! Yes?`,
+        `Feel like ${x}?`,
+        `How about a little break? ${x} is waiting.`,
+      ];
+      if (l.suggested === 0) {
+        lines.push(
+          `Remember ${x}? You saved it a while back. Want to ${it}?`,
+          `I’ve been saving ${x} for a moment like this. ${l.video ? "Watch it" : "Open it"} now?`,
+          `Psst. ${x}. Shall we?`,
+        );
+      }
+      if (l.opened >= 2 && l.opened * 2 >= l.suggested) {
+        lines.push(
+          `${x} again? You always say yes to this one!`,
+          `Our favorite! ${x}? Pretty please?`,
+          `I bet you want to ${see} ${x}. Am I right?`,
+        );
+      }
+      if (l.daysSince !== null && l.daysSince > 14) {
+        lines.push(
+          `It’s been ages since we ${l.video ? "watched" : "looked at"} ${x}. Shall we?`,
+          `Haven’t seen ${x} in forever! Want to?`,
+        );
+      }
+      return lines;
+    },
+    replies: {
+      yes: ["Yay! Opening it.", "Here you go!", "Enjoy! I’ll be right here."],
+      no: [
+        "Okay! Another time.",
+        "That’s fine. I’ll keep it safe.",
+        "Fair enough. Back in the box it goes.",
+      ],
+    },
+    then: { yes: "open-link" },
   },
 
   // Needs: Mote asks for these on their own, when they need them
@@ -223,7 +358,8 @@ export const LINES: Line[] = [
 export const lineById = new Map(LINES.map((l) => [l.id, l]));
 
 /** Something Mote does when you give them one of the apps that came with the Mac. */
-export type AppMood = "think" | "cute" | "delight" | "surprise" | "hum" | "glance" | "dizzy";
+export type AppMood =
+  "think" | "cute" | "delight" | "surprise" | "hum" | "glance" | "yawn" | "dizzy";
 
 /**
  * Apps that come with every Mac, by app ID: what Mote says when you drop one
@@ -295,10 +431,7 @@ export const APPLE_APPS: Record<string, { say: string[]; mood?: AppMood }> = {
     say: ["Two plus two is… bits?", "Numbers! My favorites are 1 and 0."],
     mood: "think",
   },
-  "com.apple.clock": {
-    say: ["Tick tock! What time is it?", "Time flies when we’re together!"],
-    mood: "glance",
-  },
+  "com.apple.clock": { say: ["Is it nap time yet?", "Tick tock! What time is it?"], mood: "yawn" },
   "com.apple.weather": {
     say: ["Is it sunny out there? It’s always cozy in here.", "Do I need a tiny umbrella?"],
     mood: "glance",
@@ -363,7 +496,7 @@ export const APPLE_APPS: Record<string, { say: string[]; mood?: AppMood }> = {
     say: ["Stocks? Is that like soup?", "Line go up? Line go down?"],
     mood: "think",
   },
-  "com.apple.home": { say: ["Home! Can we have mood lighting? Something cozy."], mood: "cute" },
+  "com.apple.home": { say: ["Can you turn the lights down? I’m sleepy."], mood: "yawn" },
   "com.apple.freeform": { say: ["Freeform! Draw me?"], mood: "cute" },
   "com.apple.fontbook": {
     say: ["Fonts! I like the round ones.", "So many letters."],

@@ -16,6 +16,16 @@ import {
 } from "@/components/companion/mind";
 import { reactionById } from "@/components/companion/reactions";
 import {
+  addLink,
+  isVideo,
+  linkName,
+  loadLinks,
+  noteOpened,
+  noteSuggested,
+  pickLink,
+  type SavedLink,
+} from "@/components/companion/links";
+import {
   APPLE_APPS,
   chooseLine,
   lifetime,
@@ -37,6 +47,12 @@ export type Mood =
   | "cute"
   | "delight"
   | "surprise"
+  // Napping when left alone: nodding off, asleep, waking, and jolted awake.
+  | "doze"
+  | "sleep"
+  | "wake"
+  | "startle"
+  | "yawn"
   | "dizzy"
   | "purr"
   // Idles that come from lasting moods.
@@ -106,12 +122,16 @@ export type EngineHooks = {
   onEvent?: (text: string) => void;
   /** A speech bubble appears (or goes away, with null). */
   onSpeech?: (bubble: Bubble | null) => void;
+  /** You said yes to a saved link Mote suggested: open it. */
+  onOpenLink?: (url: string) => void;
 };
 
 export type Energy = "calm" | "normal" | "lively";
 
 export type EngineOptions = {
   followPointer: boolean;
+  /** Mote naps when left alone. */
+  naps: boolean;
   energy: Energy;
   /**
    * Sound from another window you can see (null when there's none), and
@@ -221,6 +241,10 @@ export type FaceEngine = {
   jobDone: (ok: boolean) => void;
   /** An app dropped on Mote: a game gets played, anything else gets a reaction. */
   offerApp: (app: AppOffer) => void;
+  /** A link dropped on Mote, to save for suggesting some day. */
+  saveLink: (url: string, title: string | null) => void;
+  /** Debug: suggest a saved link right now. */
+  suggestLink: () => void;
   snapshot: () => EngineSnapshot;
 };
 
@@ -232,6 +256,11 @@ export const MOOD_LIST: Mood[] = [
   "cute",
   "delight",
   "surprise",
+  "doze",
+  "sleep",
+  "wake",
+  "startle",
+  "yawn",
   "dizzy",
   "purr",
   "huff",
@@ -300,7 +329,11 @@ const SPRING: Record<keyof Pose, [number, number]> = {
 };
 
 /** Mood length (ms) and how fast springs move while it plays (1 = normal). */
-const MOODS: Record<Exclude<Mood, "settle">, { dur: number; tempo: number }> = {
+const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: number }> = {
+  doze: { dur: 4200, tempo: 0.18 },
+  wake: { dur: 1100, tempo: 1 },
+  yawn: { dur: 2600, tempo: 0.7 },
+  startle: { dur: 1600, tempo: 1.2 },
   glance: { dur: 1700, tempo: 1 },
   think: { dur: 3400, tempo: 0.7 },
   frustrate: { dur: 2100, tempo: 1 },
@@ -330,6 +363,10 @@ const PURR_AFTER = 1300;
 
 /** Moods Mote is too caught up in to talk through. */
 const BUSY: Mood[] = [
+  "doze",
+  "sleep",
+  "wake",
+  "startle",
   "dizzy",
   "purr",
   "delight",
@@ -366,6 +403,9 @@ const BAG: Mood[] = [
 ];
 
 const LABELS: Partial<Record<Mood, string>> = {
+  sleep: "Mote is sleeping. Poke to wake.",
+  yawn: "Mote yawns.",
+  startle: "Mote jolts awake!",
   think: "Mote is thinking.",
   frustrate: "Mote is grumpy.",
   cute: "Mote is feeling cute.",
@@ -523,6 +563,80 @@ export function poseFor(
       [700, { open: 1.12, wide: 0.95, y: -2 }],
       [1300, {}],
     ];
+  } else if (mood === "doze") {
+    keys = [
+      [0, { lid: 0.3, lidCurve: 0.05, lidTilt: -0.08, y: 2, lookY: 0.3, lookMix: 0.6 }],
+      [
+        1200,
+        {
+          lid: 0.5,
+          lidCurve: 0.05,
+          lidTilt: -0.1,
+          y: 5,
+          rot: 3,
+          lookY: 0.45,
+          lookMix: 0.8,
+          sy: 0.99,
+        },
+      ],
+      [2200, { lid: 0.26, lidCurve: 0.05, lidTilt: -0.06, y: 1, rot: 1, lookY: 0.2, lookMix: 0.6 }],
+      [2900, { lid: 0.6, lidCurve: 0.06, lidTilt: -0.12, y: 7, rot: 5, lookY: 0.5, lookMix: 0.9 }],
+    ];
+  } else if (mood === "sleep") {
+    keys = [[0, SLEEP]];
+  } else if (mood === "wake") {
+    keys = [
+      [0, { ...SLEEP, lid: 0.5, cheek: 0.06, y: 5, rot: 3 }],
+      [160, { open: 1.16, wide: 0.98, y: -7, sy: 1.05, sx: 0.96 }],
+      [520, { open: 1.04 }],
+      [800, {}],
+    ];
+  } else if (mood === "yawn") {
+    // A long stretch with eyes squeezed shut (edges kept parallel), then droops.
+    keys = [
+      [0, { sy: 1.02, lid: 0.2, lidCurve: 0.05 }],
+      [
+        250,
+        {
+          sy: 1.08,
+          sx: 0.95,
+          y: -4,
+          lid: 0.58,
+          lidCurve: 0.2,
+          cheek: 0.2,
+          cheekCurve: -0.2,
+        },
+      ],
+      [1500, { sy: 0.97, sx: 1.03, y: 2, lid: 0.4, lidCurve: 0.05 }],
+      [2000, { lid: 0.36, lidCurve: 0.04 }],
+      [2400, {}],
+    ];
+  } else if (mood === "startle") {
+    // From fast asleep to wide awake in a blink: eyes huge, a jump, a shiver.
+    keys = [
+      [0, { ...SLEEP, open: 0.3 }],
+      [
+        70,
+        {
+          open: 1.4,
+          wide: 0.85,
+          y: -16,
+          sy: 1.12,
+          sx: 0.9,
+          lookY: -0.1,
+          lookMix: 1,
+        },
+      ],
+      [450, { open: 1.25, wide: 0.9, y: -5, sy: 1.04, sx: 0.98 }],
+      [900, { open: 1.12 }],
+      [1300, {}],
+    ];
+    if (t > 70 && t < 520) {
+      const decay = 1 - (t - 70) / 450;
+      const shiver = Math.sin(((t - 70) / 1000) * Math.PI * 2 * 14);
+      shakeX = shiver * 1.6 * decay;
+      shakeRot = shiver * 1.2 * decay;
+    }
   } else if (mood === "huff") {
     // A big, cross breath in… and out through the nose.
     const cross: Partial<Pose> = { lid: 0.26, lidTilt: 0.6, lidCurve: 0.06, open: 0.96 };
@@ -975,6 +1089,25 @@ export function padAt(t: number, seed: number) {
   };
 }
 
+/**
+ * Closed, contented eyes: a soft ‿ of even thickness. The brow sags into the
+ * eye and the cheek cut bows the same way underneath, so both edges run
+ * parallel instead of a curved top over a flat bottom.
+ */
+const SLEEP: Partial<Pose> = {
+  open: 0.72,
+  wide: 1.1,
+  lid: 0.64,
+  lidCurve: 0.3,
+  cheek: 0.1,
+  cheekCurve: -0.3,
+  y: 7,
+  rot: 5,
+  sy: 0.985,
+  lookY: 0.2,
+  lookMix: 1,
+};
+
 /** Blink curve: quick accelerating close, short hold, softer open with a tiny pop. */
 function blinkCurve(t: number, slow: boolean) {
   const close = slow ? 170 : 72;
@@ -1125,6 +1258,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
 
   const options: EngineOptions = {
     followPointer: true,
+    naps: true,
     energy: "normal",
     media: null,
     placement: null,
@@ -1205,7 +1339,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   // The pointer out on the rest of the screen: whipping it around catches
   // Mote's eye for a moment.
   const pointerTrail: Array<{ t: number; d: number }> = [];
-  const pointerOut = { dx: 0, dy: 0, has: false };
+  const pointerOut = { dx: 0, dy: 0, has: false, at: Number.NEGATIVE_INFINITY };
   let pointerUntil = Number.NEGATIVE_INFINITY;
   // Typing in another app: Mote looks over at it and finds it intriguing.
   let typingUntil = Number.NEGATIVE_INFINITY;
@@ -1218,9 +1352,24 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   };
   // Something being dragged over the window: Mote perks up, curious.
   let hovering = false;
+  // Napping: the last time you did anything with Mote themself, how long
+  // they wait before nodding off, when they fell asleep, and whether the
+  // yawn underway leads into a doze.
+  let touchedAt = 0;
+  const newNapAfter = () => 4 * 60_000 + Math.random() * 3 * 60_000;
+  let napAfter = newNapAfter();
+  let sleptAt = 0;
+  let dozeNext = false;
+  let twitchStart = -1;
+  let nextTwitch = 5000;
+  /** You did something with Mote: no nodding off for a while. */
+  const touch = () => {
+    touchedAt = clock;
+    if (mood === "settle" || mood === "yawn") napAfter = newNapAfter();
+  };
   /** You did something; back after a long while away, Mote is glad. */
   const noticeYou = () => {
-    if (clock - lastYou > AWAY && lastYou > 0) {
+    if (clock - lastYou > AWAY && lastYou > 0 && mood !== "sleep") {
       react("welcome-back");
       mention("welcome-back", 0.6);
     }
@@ -1243,6 +1392,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   let helping: "busy" | "talking" | null = null;
   // The app just dropped on Mote, and the game being played (and how it went).
   let offered: SpeechContext["offering"] = null;
+  // Saved links: the one being talked about, and when Mote next considers
+  // bringing one up (and last did).
+  let talkingLink: SavedLink | null = null;
+  let nextLinkCheck = 3 * 60_000;
+  let lastLinkAt = Number.NEGATIVE_INFINITY;
   let game: { name: string; mood: GameMood; won: boolean } | null = null;
 
   const log = (text: string) => hooks.onEvent?.(text);
@@ -1312,6 +1466,17 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     game: game?.name ?? null,
     gameKind: game ? (game.mood === "gaming" ? "game" : game.mood) : null,
     gameWon: game?.won ?? false,
+    link: talkingLink
+      ? {
+          name: linkName(talkingLink),
+          video: isVideo(talkingLink.url),
+          suggested: talkingLink.suggested,
+          opened: talkingLink.opened,
+          daysSince: talkingLink.lastSuggested
+            ? (Date.now() - talkingLink.lastSuggested) / 86_400_000
+            : null,
+        }
+      : null,
   });
 
   const showBubble = (b: Bubble | null) => {
@@ -1353,6 +1518,12 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (line.then?.[outcome] === "play-again" && game) {
       react("play");
       start(game.mood, now);
+    }
+    if (line.then?.[outcome] === "open-link" && talkingLink) {
+      react("link-opened");
+      noteOpened(talkingLink.url);
+      hooks.onOpenLink?.(talkingLink.url);
+      start("delight", now);
     }
     const replies = (options.friendly && line.kindReplies?.[outcome]) || line.replies?.[outcome];
     if (replies?.length) {
@@ -1441,8 +1612,36 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       if (line && !(options.friendly && line.unkind)) {
         react("needs");
         say(line, now);
+        return;
       }
     }
+
+    // Now and then, a saved link: only when nothing's playing and you're
+    // around to say yes (you've done something in the last couple of
+    // minutes), never more than once every 12 minutes, and on average about
+    // every 20 minutes of that.
+    if (now >= nextLinkCheck) {
+      nextLinkCheck = now + 60_000;
+      const around = clock - lastYou < 2 * 60_000;
+      const quietScreen = interest !== "media" && options.media === null;
+      if (around && quietScreen && now - lastLinkAt > 12 * 60_000 && Math.random() < 0.08) {
+        suggestLink(now);
+      }
+    }
+  };
+
+  /** Brings up one of your saved links, asking if you'd like to go there. */
+  const suggestLink = (now: number) => {
+    const link = pickLink();
+    if (!link) return;
+    talkingLink = link;
+    lastLinkAt = now;
+    const line = lineById.get("suggest-link");
+    if (!line) return;
+    react("suggest-link");
+    say(line, now);
+    // Counted after the words are picked, so "never suggested" lines fit.
+    noteSuggested(link.url);
   };
 
   /**
@@ -1451,6 +1650,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
    * any bubble of theirs goes away so it doesn't cover the conversation.
    */
   const setHelping = (state: "busy" | "talking" | null) => {
+    if (state) rouse();
     if (state === helping) return;
     helping = state;
     engage();
@@ -1472,7 +1672,40 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   };
 
   /** An app dropped on Mote: play the game, or have a say about the app. */
+  /** Woken by something being dropped on them. */
+  const rouse = () => {
+    touch();
+    if (mood === "sleep" || mood === "doze" || mood === "yawn") {
+      react("wake-rested");
+      start("wake", clock);
+    }
+  };
+
+  /** A link dropped on Mote: saved (or already saved), with a happy look. */
+  const saveLink = (url: string, title: string | null) => {
+    rouse();
+    engage();
+    const fresh = addLink(url, title);
+    talkingLink = loadLinks().find((l) => l.url === url) ?? null;
+    if (!talkingLink) {
+      // (Already saved under a slightly different address.)
+      talkingLink = {
+        url,
+        title,
+        savedAt: Date.now(),
+        suggested: 0,
+        opened: 0,
+        lastSuggested: null,
+      };
+    }
+    react(fresh ? "link-saved" : "link-already");
+    log(`${fresh ? "saved" : "already had"} the link ${url}`);
+    if (mood !== "wake") start(fresh ? "delight" : "cute", clock);
+    sayNow(fresh ? "link-saved" : "link-already");
+  };
+
   const offerApp = (app: AppOffer) => {
+    rouse();
     hovering = false;
     engage();
     offered = { name: app.name, bundle: app.bundle };
@@ -1579,6 +1812,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     pointer.y = e.clientY;
     pointer.at = clock;
     pointer.has = true;
+    touch();
     noticeYou();
     if (options.followPointer && dist > 0) {
       const size = svg.getBoundingClientRect().width || 300;
@@ -1622,9 +1856,17 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   const handlePoke = (now: number) => {
     engage();
     noticeYou();
+    touch();
     pokes.push(now);
     while (pokes.length && now - pokes[0] > 2200) pokes.shift();
-    if (helping === "busy") {
+    if (mood === "sleep" || mood === "doze" || (mood === "yawn" && dozeNext)) {
+      // Woken up: after a proper nap, bright and breezy; poked awake almost
+      // as soon as they dropped off, a bit groggy.
+      const rested = mood === "sleep" && now - sleptAt > 3 * 60_000;
+      react(rested ? "wake-rested" : "wake-groggy");
+      if (mood === "sleep") mention(rested ? "woke-rested" : "woke-groggy", 0.6);
+      start("wake", now);
+    } else if (helping === "busy") {
       // Busy with a job: a quick happy look up, then back to work.
       react("poke-busy");
       return;
@@ -1734,7 +1976,14 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     interest = media ? "media" : you ? "you" : null;
     if (interest && interest !== was)
       react(interest === "media" ? "intrigued-media" : "intrigued-you");
-    if (interest === "media" && was !== "media") mention("media-start", 0.3);
+    if (interest === "media" && was !== "media") {
+      // Sound out of nowhere jolts a napping Mote awake.
+      if (mood === "sleep" || mood === "doze") {
+        react("startled-awake");
+        start("startle", now);
+        mention("startled", 0.8);
+      } else mention("media-start", 0.3);
+    }
     const watchingMedia = media && !you;
 
     // Split attention: the newest thing going on gets a look straight away;
@@ -1757,17 +2006,40 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     // Something new to look at: the eyes go there now, not on the next wander.
     if (focus !== focusWas) wander.next = now;
 
+    // Left be for a while, with nothing going on that's intriguing, Mote
+    // yawns and nods off. Only a poke (or something starting to play, or
+    // something dropped on them) wakes them.
+    const quiet = !interest && !helping && !typing && !pointerOutThere && !bubble;
+    if (
+      debug.autoMoods &&
+      options.naps &&
+      quiet &&
+      mood === "settle" &&
+      now - touchedAt > napAfter
+    ) {
+      react("doze");
+      dozeNext = true;
+      start("yawn", now);
+    }
     const over =
-      mood === "settle"
+      mood === "settle" || mood === "sleep"
         ? false
         : mood === "purr"
           ? sincePet > PURR_AFTER
           : now >= moodStart + MOODS[mood].dur;
     if (over) {
+      // Nodding off: a doze becomes real sleep, unless something happened in
+      // the meantime and they catch themself.
+      const stillQuiet = quiet && now - touchedAt > napAfter;
       // A tiny chance a check-in turns into something sweet, more when happy.
       const sweet = 0.03 + 0.12 * clamp((feel.happy - 5) / 5, 0, 1);
       if (debug.loop && mood !== "purr") start(mood, now);
-      else if (mood === "checkin" && Math.random() < sweet) {
+      else if (mood === "yawn" && dozeNext && stillQuiet) start("doze", now);
+      else if (mood === "doze" && stillQuiet) {
+        sleptAt = now;
+        react("fall-asleep");
+        start("sleep", now);
+      } else if (mood === "checkin" && Math.random() < sweet) {
         react("check-in-happy");
         start(Math.random() < 0.5 ? "cute" : "delight", now);
       } else if (helping) {
@@ -1777,6 +2049,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         start("settle", now);
         nextAct = now + actGap(watchingMedia, you || typing);
       }
+      if (mood !== "yawn" && mood !== "doze") dozeNext = false;
     }
     if (debug.autoMoods && mood === "settle" && now >= nextAct) {
       if (watchingMedia) {
@@ -1806,7 +2079,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       sincePet: sincePet < 350 ? -1 : sincePet - 350,
     });
     swirlNow = swirl;
-    purrNow = purr;
+    // Petting a sleeping Mote gets a sleepy little purr without waking them.
+    purrNow = mood === "sleep" && sincePet < 350 ? 0.6 : purr;
 
     // Lasting moods colour the idle face: a scowl when frustrated, brighter
     // eyes when happy. Moods with their own expression mostly override it.
@@ -1818,7 +2092,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       target.lidTilt += (scowl ? 0.5 * fl.frustrated : 0) * tone;
       target.open += 0.05 * fl.happy * tone;
     }
-    const tempo = mood === "settle" ? 1 : MOODS[mood].tempo;
+    const tempo = mood === "sleep" ? 0.12 : mood === "settle" ? 1 : MOODS[mood].tempo;
 
     // Something dragged over the window: eyes wide, leaning in, curious.
     if (hovering && ["settle", "glance", "think", "present"].includes(mood)) {
@@ -1853,17 +2127,27 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const rect = svg.getBoundingClientRect();
     let px = 0;
     let py = 0;
-    if (pointer.has && rect.width > 0) {
+    // The pointer is followed wherever it was last seen moving: over Mote's
+    // window, or anywhere else on the screen (moving other windows around,
+    // say), even when Mote's window isn't the active one.
+    const outside = pointerOut.at > (pointer.has ? pointer.at : Number.NEGATIVE_INFINITY);
+    if (outside && rect.width > 0) {
+      px = clamp(pointerOut.dx / (rect.width * 0.6), -1, 1);
+      py = clamp(pointerOut.dy / (rect.height * 0.6), -1, 1);
+    } else if (pointer.has && rect.width > 0) {
       px = clamp((pointer.x - (rect.left + rect.width * 0.5)) / (rect.width * 0.6), -1, 1);
       py = clamp((pointer.y - (rect.top + rect.height * 0.5)) / (rect.height * 0.6), -1, 1);
     }
-    const attention =
-      !pointer.has || !options.followPointer
+    const fade = (idle: number) => (idle < 2000 ? 1 : clamp(1 - (idle - 2000) / 1000, 0, 1));
+    // Attention to you (playing with Mote's window) only comes from the
+    // pointer over it; the eyes follow it everywhere.
+    const attention = !pointer.has || !options.followPointer ? 0 : fade(idleFor);
+    const seen = outside ? now - pointerOut.at : idleFor;
+    const looking =
+      !options.followPointer || (!pointer.has && !pointerOut.has) || mood === "sleep"
         ? 0
-        : idleFor < 2000
-          ? 1
-          : clamp(1 - (idleFor - 2000) / 1000, 0, 1);
-    lastAttention = attention;
+        : fade(seen);
+    lastAttention = looking;
     think(dt, now, attention, sincePet);
     const toward = (dx: number, dy: number) => ({
       x: clamp(dx / 600, -1, 1),
@@ -1914,7 +2198,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       }
     }
     // A frustrated Mote doesn't want to look at you quite as much.
-    const engaged = attention * (1 - 0.45 * feelings(feel).frustrated);
+    const engaged = looking * (1 - 0.45 * feelings(feel).frustrated);
     const freeX = lerp(wander.x, px, engaged);
     const freeY = lerp(wander.y, py, engaged);
     const nextGX = lerp(freeX, target.lookX, target.lookMix);
@@ -1937,24 +2221,38 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (close && !wasClose) react("close");
     wasClose = close;
 
-    // Leaning into the hand that's petting.
-    if (mood === "purr") {
+    // Leaning into the hand that's petting (just a little, asleep).
+    if (mood === "purr" || (mood === "sleep" && sincePet < 600)) {
       const lean = clamp((petAt.x - (rect.left + rect.width / 2)) / (rect.width / 2), -1, 1);
-      target.x += lean * 4;
-      target.rot += lean * 6;
+      const fade = mood === "purr" ? 1 : 0.5;
+      target.x += lean * 4 * fade;
+      target.rot += lean * 6 * fade;
+    }
+
+    // Little twitches in their sleep.
+    if (mood === "sleep") {
+      if (twitchStart < 0 && now >= nextTwitch) twitchStart = now;
+      if (twitchStart >= 0) {
+        const u = (now - twitchStart) / 600;
+        if (u >= 1) {
+          twitchStart = -1;
+          nextTwitch = now + 5000 + Math.random() * 8000;
+        } else target.lid -= Math.sin(u * Math.PI) * 0.12;
+      }
     }
 
     // Natural blinks.
-    const blinkFree = !["delight", "cute", "dizzy", "purr", "tada"].includes(mood);
+    const blinkFree = !["sleep", "wake", "delight", "cute", "dizzy", "purr", "tada"].includes(mood);
     const fb = feelings(feel);
     if (blinkFree && now >= nextBlink) {
       blinkAt(now, Math.random() < 0.16);
       nextBlink = now + (2400 + Math.random() * 3600) * (1 + 0.5 * fb.calm);
     }
-    const slow = fb.calm > 0.6;
+    const slow = mood === "doze" || fb.calm > 0.6;
     let blink = 0;
     blinks = blinks.filter((b) => now - b < 900);
     for (const b of blinks) blink = Math.max(blink, blinkCurve(now - b, slow));
+    if (mood === "sleep") blink = 0;
     lastBlinkAmt = blink;
 
     // When the window is dragged, Mote trails behind it a little and swings
@@ -1971,12 +2269,13 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
 
     // Breathing.
     if (!reduced) {
-      const base = mood === "think" ? 1600 : 2600;
+      const base = mood === "sleep" ? 3400 : mood === "think" ? 1600 : 2600;
       const period = base * (1 + 0.35 * fb.calm - 0.2 * fb.restless);
       const b = Math.sin((now / period) * Math.PI * 2);
-      target.sy += b * 0.012;
-      target.sx -= b * 0.008;
-      target.y -= b * 0.8;
+      const deep = mood === "sleep" ? 1.4 : 1;
+      target.sy += b * 0.012 * deep;
+      target.sx -= b * 0.008 * deep;
+      target.y -= b * 0.8 * deep;
     }
 
     // Integrate springs in small steps so fast motion stays stable.
@@ -2099,6 +2398,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   const winMoved = { x: 0, y: 0 };
   const winSpeed = { x: 0, y: 0 };
   const windowMoved = (dx: number, dy: number) => {
+    touch();
     const d = Math.hypot(dx, dy);
     if (d === 0 || d > 2000) return;
     winMoved.x += dx;
@@ -2190,6 +2490,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       const before = { ...options };
       Object.assign(options, opts);
       if (before.media === null && options.media !== null) react("sound-start");
+      if (!options.naps && (mood === "doze" || mood === "sleep")) start("wake", clock);
     },
     poke: () => {
       pokeQueued = true;
@@ -2226,6 +2527,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       return nx * nx + ny * ny <= 1.04;
     },
     pet: (clientX, clientY) => {
+      touch();
       engage();
       noticeYou();
       if (bubble?.kind === "pet") pettedSince = true;
@@ -2243,6 +2545,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       log(`set ${attr} to ${feel[attr].toFixed(1)}`);
     },
     answer: (yes) => {
+      touch();
       if (bubble?.kind === "ask" && !bubble.reply) resolve(yes ? "yes" : "no", clock);
     },
     dismissSpeech: () => {
@@ -2254,7 +2557,10 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       pointerOut.dx = dx;
       pointerOut.dy = dy;
       pointerOut.has = true;
-      if (inside || d === 0 || !options.followPointer) return;
+      // Mote's eyes follow the pointer anywhere on the screen, not just over
+      // their own window (see the gaze, in `step`).
+      if (d > 0) pointerOut.at = clock;
+      if (inside || d === 0 || !options.followPointer || mood === "sleep") return;
       const t = clock;
       pointerTrail.push({ t, d });
       while (pointerTrail.length && t - pointerTrail[0].t > 800) pointerTrail.shift();
@@ -2271,6 +2577,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     },
     typingAt: (dx, dy) => {
       noticeYou();
+      if (mood === "sleep") return;
       if (clock > typingUntil) {
         react("typing");
         focus = "typing";
@@ -2287,6 +2594,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     setHelping,
     jobDone,
     offerApp,
+    saveLink,
+    suggestLink: () => {
+      if (bubble) showBubble(null);
+      suggestLink(clock);
+    },
     say: (lineId) => {
       if (bubble) showBubble(null);
       const line = lineId ? lineById.get(lineId) : chooseLine(speechContext(), new Map(), clock);

@@ -119,7 +119,11 @@ function pretendInspect(paths: string[]): Given {
   if (!paths.length) return { kind: "other", reason: "nothing", names };
   const app = paths.find((p) => /\.app\/?$/i.test(p));
   if (app) {
-    const name = app.replace(/\/$/, "").split("/").pop()!.replace(/\.app$/i, "");
+    const name = app
+      .replace(/\/$/, "")
+      .split("/")
+      .pop()!
+      .replace(/\.app$/i, "");
     const known: Record<string, [string | null, "chess" | "minecraft" | "game" | null]> = {
       Chess: ["com.apple.chess", "chess"],
       Minecraft: ["com.mojang.minecraftlauncher", "minecraft"],

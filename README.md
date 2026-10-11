@@ -63,6 +63,18 @@ faster, but your Mac will be busy).
   and about 60 more) each get their own line and a little reaction.
 - **Any other app** gets "That's an app, not a game."
 
+**Links** dragged onto Mote (from a browser's address bar or a page, or a
+`.webloc` link file from Finder) are saved: any website, with YouTube and
+other video sites talked about as videos. Now and then, when Mote is awake,
+nothing is playing and you've been around in the last couple of minutes,
+Mote brings one up ("Snack break? We could watch *lofi hip hop radio*.") and
+asks if you'd like to go there; yes opens it in your browser. It happens about
+every 20 minutes at most, and never within 12 minutes of the last one. Mote
+keeps count of how often they've suggested each link, how often you said yes,
+and when they last brought it up, and favours links they've never suggested,
+ones you usually say yes to, and ones that haven't come up for a while.
+Settings lists your saved links with their history, and you can remove any.
+
 ## Mote themself
 
 Mote looks at your pointer, blinks, glances around, thinks, gets grumpy, gets
@@ -73,6 +85,14 @@ pokes in a row is too many, and Mote gets annoyed.
   Mote melts into it and purrs.
 - **Dizzy:** shaking the pointer around wildly, or throwing the window around
   the screen, makes Mote dizzy for a moment.
+- **Naps:** left be for a few minutes (no poking, petting or moving the
+  window) with nothing interesting going on, Mote yawns, dozes and falls
+  asleep. A poke wakes them ("Five more minutes…" if they'd only just dropped
+  off), and so does something starting to play (with a jolt) or something
+  dropped on them. Petting a sleeping Mote gets a sleepy purr. Naps can be
+  switched off in Settings.
+- **Eyes on you:** Mote's eyes follow your pointer anywhere on the screen,
+  even while you're busy in other windows.
 - **Watching along:** in the Mac app, if another visible window is playing
   sound, Mote keeps glancing toward it. Mote only knows *that* something is
   playing and where, never what. Moving the pointer a lot catches Mote's eye,
@@ -102,7 +122,7 @@ Drag the window by its top edge.
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. You can choose
-whether Mote follows your pointer, how lively Mote is, the pace
+whether Mote follows your pointer, whether Mote naps, how lively Mote is, the pace
 for helping with files, and whether the window floats above others.
 
 Text in the app calls Mote "Mote", or "they/them" when a pronoun is needed.
@@ -151,5 +171,7 @@ Each face there is one expression frozen in place, handy for tweaking how they l
 - `desktop/senses/main.swift` — the helper that notices sound, the pointer and typing
 - `src/components/companion/Helper.tsx` — the conversation when you give Mote something
 - `src/components/companion/assistant.ts` — what Mote says while helping, and the jobs on offer
+- `src/components/companion/links.ts` — saved links, their history, and how Mote picks one to suggest
+- `src-tauri/src/links.rs` — reading a dragged link, and opening one in your browser
 - `src-tauri/src/tidy/` — the jobs themselves, one file per step (rebuilt from the `clean.sh` cleaner)
 - `src-tauri/` — the Mac app wrapper itself

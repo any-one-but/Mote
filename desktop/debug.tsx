@@ -67,6 +67,11 @@ const MOOD_NAMES: Record<Mood, string> = {
   cute: "Cute",
   delight: "Delight",
   surprise: "Surprise",
+  yawn: "Yawn",
+  doze: "Doze",
+  sleep: "Sleep",
+  wake: "Wake up",
+  startle: "Startled awake",
   dizzy: "Dizzy",
   purr: "Purr",
   huff: "Huff",
@@ -88,6 +93,13 @@ const MOOD_NAMES: Record<Mood, string> = {
  * is real (Mote really works on it); these quick ones are only for trying
  * the conversation in a browser, where everything is pretend.
  */
+/** Links to save from the debug window (they're real links, saved for real). */
+const PRETEND_LINKS: Array<[string, string, string | null]> = [
+  ["Save a video", "https://www.youtube.com/watch?v=jfKfPfyJRdk", "lofi hip hop radio"],
+  ["Save a page", "https://en.wikipedia.org/wiki/Axolotl", "Axolotl - Wikipedia"],
+  ["Save an untitled link", "https://example.com/some/nice-article", null],
+];
+
 const PRETEND_GIFTS: Array<[string, string[]]> = [
   ["A folder", ["/Users/you/Pictures/Holiday/"]],
   ["A video", ["/Users/you/Movies/talk.mov"]],
@@ -797,6 +809,14 @@ function MotionTab({ snap, debug, command }: Ctx) {
           stacked
         >
           <GiveForm onGive={(paths) => command({ do: "give", paths })} />
+          <div className="button-row">
+            {PRETEND_LINKS.map(([label, url, title]) => (
+              <Button key={label} onClick={() => command({ do: "saveLink", url, title })}>
+                {label}
+              </Button>
+            ))}
+            <Button onClick={() => command({ do: "suggestLink" })}>Suggest a saved link now</Button>
+          </div>
           <div className="button-row">
             {PRETEND_GIFTS.map(([label, paths]) => (
               <Button key={label} onClick={() => command({ do: "give", paths })}>
