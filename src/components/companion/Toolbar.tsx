@@ -9,7 +9,7 @@ import { SNACKS } from "@/components/companion/mind";
 type Props = {
   asleep: boolean;
   wants: Want | null;
-  onGame: (game: "checkers" | "chess") => void;
+  onGame: (game: "checkers" | "chess" | "tictactoe") => void;
   onLogCalories: () => void;
   onDays: () => void;
   onFeed: (snack: string) => void;
@@ -55,6 +55,7 @@ export function Toolbar({ asleep, wants, onGame, onLogCalories, onDays, onFeed, 
       >
         <MenuItem onClick={choose(() => onGame("checkers"))}>Checkers</MenuItem>
         <MenuItem onClick={choose(() => onGame("chess"))}>Chess</MenuItem>
+        <MenuItem onClick={choose(() => onGame("tictactoe"))}>Tic-tac-toe</MenuItem>
       </ToolButton>
       <ToolButton
         label="Calories"

@@ -138,7 +138,7 @@ to see you.
 satisfaction never go below −3, hurt counts for half, and nothing sharp is
 said.
 
-**Games Mote remembers:** every game of checkers or chess is remembered: who
+**Games Mote remembers:** every game of checkers, chess or tic-tac-toe is remembered: who
 won, by how much, whether it was a comeback, and when. Starting a game, Mote
 may nod to the last one ("Rematch. I'm ready this time.", "You crushed me
 yesterday. I've been practicing since.", "Moving up? Brave."). Three in a row
@@ -158,7 +158,7 @@ Normal), and their mood.
 
 Along the bottom of Mote's window (quiet until your pointer is over it):
 
-- **Toy chest:** the games (checkers and chess).
+- **Toy chest:** the games (checkers, chess and tic-tac-toe).
 - **Carrot:** log calories, or see the days.
 - **Snack bowl:** feed Mote.
 - **Bed:** tuck Mote in (if they're tired enough). While they sleep it turns
@@ -236,6 +236,17 @@ piece) when you take one of theirs, real dismay over their queen, proud
 stretching when a pawn of theirs promotes, and the victory dance or
 good-sport smile at the end.
 
+## Tic-tac-toe
+
+Open the toy chest and choose **Tic-tac-toe**. Same levels, record-keeping
+and saving as the other games. You're X; you and Mote take turns going first.
+Your X draws itself in ink; Mote's marks are tiny Motes that blink and glance
+at your latest move. **Easy** Mote mostly plays wherever (though often grabs
+a win or a block); **Normal** always takes a win and nearly always blocks;
+**Hard** plays perfectly, so the best you can do is a draw. Mote reacts when
+you block them, when they block you, and when either of you sets up two ways
+to win at once.
+
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. You can choose
@@ -269,7 +280,7 @@ The current Mac app is already built and kept in the project. Quit Mote if it
 is open, then drag the new one into Applications and replace the old one.
 
 - `src-tauri/target/release/bundle/macos/Mote.app`
-- `src-tauri/target/release/bundle/dmg/Mote_0.6.0_aarch64.dmg` (an installer you can share)
+- `src-tauri/target/release/bundle/dmg/Mote_0.7.0_aarch64.dmg` (an installer you can share)
 
 To build a fresh copy later:
 
@@ -304,6 +315,7 @@ Each face there is one expression frozen in place, handy for tweaking how they l
 - `src/lib/checkers/rules.ts` — the rules; `ai.ts` — how Mote picks a move
 - `src/components/companion/Chess.tsx`, `chess-pieces.tsx` and `chess-lines.ts` — the chess board, its pieces, and what Mote says
 - `src/lib/chess/rules.ts` — every chess rule; `ai.ts` — how Mote picks a chess move
+- `src/components/companion/TicTacToe.tsx` and `tictactoe-lines.ts`, and `src/lib/tictactoe/game.ts` — tic-tac-toe
 - `src/components/companion/board-ui.tsx` and `board.css` — what both games share (level picker, header, end panel, the board's look)
 - `src/components/companion/links.ts` — saved links, their history, and how Mote picks one to suggest
 - `src-tauri/src/links.rs` — reading a dragged link, and opening one in your browser

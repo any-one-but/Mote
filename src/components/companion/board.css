@@ -479,28 +479,43 @@
   overflow: visible;
 }
 
-.cs-body > * {
-  stroke-width: 2.5;
+/* Each piece: a thick outline layer, the fill on top, then detail lines. */
+.cs-art {
+  --edge: #1f1915;
+  --fill: var(--ck-ink);
+  --line: #54453c;
+}
+
+.cs-art.is-cream {
+  --edge: #b9a48e;
+  --fill: #fff6ec;
+  --line: #cdbba6;
+}
+
+.cs-edge > * {
+  fill: var(--edge);
+  stroke: var(--edge);
+  stroke-width: 5;
   stroke-linejoin: round;
 }
 
-.cs-piece.is-you .cs-body > *,
-.cs-promote .cs-body > * {
-  fill: var(--ck-ink);
-  stroke: #5a4a40;
+.cs-fill > * {
+  fill: var(--fill);
 }
 
-.cs-piece.is-mote .cs-body > * {
-  fill: #fff1e4;
-  stroke: #d4bfa8;
+.cs-detail {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 2;
+  stroke-linecap: round;
 }
 
 .cs-notch {
   fill: #f6e0d3;
 }
 
-.cs-piece.is-selected .cs-body > * {
-  stroke: var(--ck-accent);
+.cs-piece.is-selected .cs-art {
+  --edge: var(--ck-accent);
 }
 
 .cs-piece .ck-shadow {
@@ -557,4 +572,117 @@
   font-weight: 500;
   letter-spacing: 0;
   color: var(--ck-soft);
+}
+
+/* Tic-tac-toe: nine soft squares, your X drawn in ink, Mote's mark a tiny
+   Mote, and a line through the winning three. */
+
+.tt-board {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: min(100%, calc(100dvh - 250px));
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+
+.tt-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: var(--ck-light);
+  cursor: default;
+  transition: background 0.15s ease;
+}
+
+.tt-cell.is-open {
+  cursor: pointer;
+}
+
+.tt-cell.is-open:hover {
+  background: #ebdfcf;
+}
+
+.tt-cell.is-win {
+  background: #f6e0d3;
+}
+
+.tt-x,
+.tt-o {
+  width: 82%;
+  height: 82%;
+  overflow: visible;
+}
+
+.tt-x path {
+  fill: none;
+  stroke: var(--ck-ink);
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-dasharray: 60;
+  stroke-dashoffset: 60;
+  animation: tt-draw 0.22s ease-out forwards;
+}
+
+.tt-x path + path {
+  animation-delay: 0.14s;
+}
+
+@keyframes tt-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.tt-o {
+  animation: tt-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tt-o-body {
+  fill: #fff6ec;
+  stroke: #b9a48e;
+  stroke-width: 3;
+}
+
+.tt-o .ck-eyes rect {
+  fill: var(--ck-ink);
+  transition:
+    x 0.3s ease,
+    y 0.3s ease;
+}
+
+@keyframes tt-pop {
+  from {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+}
+
+.tt-line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.tt-line path {
+  fill: none;
+  stroke: var(--ck-accent);
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  opacity: 0.9;
+  animation: tt-strike 0.45s 0.15s ease-out forwards;
+}
+
+@keyframes tt-strike {
+  to {
+    stroke-dashoffset: 0;
+  }
 }

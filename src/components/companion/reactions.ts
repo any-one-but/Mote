@@ -15,6 +15,7 @@ export type ReactionGroup =
   | "Eating"
   | "Checkers"
   | "Chess"
+  | "Tic-tac-toe"
   | "Time"
   | "Lasting moods"
   | "Looking after Mote"
@@ -745,6 +746,120 @@ export const REACTIONS: Reaction[] = [
     status: "live",
   },
 
+  // Tic-tac-toe
+  {
+    id: "tictactoe-start",
+    group: "Tic-tac-toe",
+    name: "A new game",
+    when: "You start a game of tic-tac-toe and go first",
+    then: "A happy hop, and something about the level",
+    status: "live",
+  },
+  {
+    id: "tictactoe-mote-first",
+    group: "Tic-tac-toe",
+    name: "Mote goes first",
+    when: "You start a game and it's Mote's turn to go first (you take turns)",
+    then: "Says so",
+    status: "live",
+  },
+  {
+    id: "tictactoe-resume",
+    group: "Tic-tac-toe",
+    name: "Back to a game",
+    when: "You open a game you left unfinished",
+    then: "Picks up where you left off",
+    status: "live",
+  },
+  {
+    id: "tictactoe-you-block",
+    group: "Tic-tac-toe",
+    name: "You block Mote",
+    when: "You take the square Mote needed for three in a row",
+    then: "Winces",
+    status: "live",
+  },
+  {
+    id: "tictactoe-mote-block",
+    group: "Tic-tac-toe",
+    name: "Mote blocks you",
+    when: "Mote takes the square you needed",
+    then: "Smug",
+    status: "live",
+  },
+  {
+    id: "tictactoe-you-fork",
+    group: "Tic-tac-toe",
+    name: "You set up two wins",
+    when: "After your move you could win two ways",
+    then: "Wide-eyed alarm",
+    status: "live",
+  },
+  {
+    id: "tictactoe-mote-fork",
+    group: "Tic-tac-toe",
+    name: "Mote sets up two wins",
+    when: "After Mote's move they could win two ways",
+    then: "A sly look",
+    status: "live",
+  },
+  {
+    id: "tictactoe-mote-threat",
+    group: "Tic-tac-toe",
+    name: "Mote sets up a win",
+    when: "After Mote's move they could win next turn",
+    then: "Sometimes a sly look and a hint",
+    status: "live",
+  },
+  {
+    id: "tictactoe-slip",
+    group: "Tic-tac-toe",
+    name: "A slip",
+    when: "On Easy, Mote leaves you a win",
+    then: "Uh-oh face",
+    status: "live",
+  },
+  {
+    id: "tictactoe-mote-win",
+    group: "Tic-tac-toe",
+    name: "Mote wins",
+    when: "Mote gets three in a row",
+    then: "Two big hops, a sway and a wink",
+    status: "live",
+  },
+  {
+    id: "tictactoe-you-win",
+    group: "Tic-tac-toe",
+    name: "You win",
+    when: "You get three in a row",
+    then: "Droops, then a good-sport smile",
+    status: "live",
+  },
+  {
+    id: "tictactoe-draw",
+    group: "Tic-tac-toe",
+    name: "A draw",
+    when: "The board fills up with no three in a row",
+    then: "Something cute",
+    status: "live",
+  },
+  {
+    id: "tictactoe-resign",
+    group: "Tic-tac-toe",
+    name: "You resign",
+    when: "You give up the game",
+    then: "Something gracious",
+    status: "live",
+  },
+  {
+    id: "tictactoe-pause",
+    group: "Tic-tac-toe",
+    name: "Saved for later",
+    when: "You put the board away mid-game",
+    then: "Promises to keep it",
+    status: "live",
+  },
+
   // Speech
   {
     id: "speak",
@@ -1120,6 +1235,7 @@ export const REACTION_GROUPS: ReactionGroup[] = [
   "Eating",
   "Checkers",
   "Chess",
+  "Tic-tac-toe",
   "Speech",
   "Time",
   "Lasting moods",

@@ -434,7 +434,7 @@ export const LINES: Line[] = [
       "Stretch break? Your shoulders say yes.",
       "Boop. That’s all.",
       "Got any games? I’m pretty good. (Sometimes.)",
-      "Chess? Checkers? The toy chest’s right there.",
+      "Chess? Checkers? Tic-tac-toe? The toy chest’s right there.",
       "I’ve been practicing my checkers. Just saying.",
     ],
   },

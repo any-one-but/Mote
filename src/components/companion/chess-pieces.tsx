@@ -1,65 +1,84 @@
+import type { ReactNode } from "react";
 import { BISHOP, KING, KNIGHT, PAWN, QUEEN, ROOK } from "@/lib/chess/rules";
 
-// The chess pieces, drawn in a 100 × 100 box: soft, chunky shapes on a shared
-// base. Yours are ink; Mote's are cream and have little eyes that look about.
+// The chess pieces, drawn in a 100 × 100 box as solid, chunky silhouettes.
+// Each piece is a few overlapping shapes drawn twice: once thick in the
+// outline colour, then filled on top, so only the outer edge shows as a line
+// (no seams where the shapes meet). A few detail lines go on last. Yours are
+// ink; Mote's are cream and have little eyes that look about.
 
-const BASE = <rect x="22" y="76" width="56" height="12" rx="6" />;
+const BASE = (
+  <>
+    <rect x="24" y="79" width="52" height="10" rx="5" />
+    <rect x="30" y="72" width="40" height="10" rx="4" />
+  </>
+);
 
-const SHAPES: Record<number, React.ReactNode> = {
+const SHAPES: Record<number, ReactNode> = {
   [PAWN]: (
     <>
-      <circle cx="50" cy="32" r="13" />
-      <path d="M38 77 C38 63 43 53 46 46 L54 46 C57 53 62 63 62 77 Z" />
-      <ellipse cx="50" cy="46" rx="11" ry="4" />
-    </>
-  ),
-  [KNIGHT]: (
-    <path d="M32 77 C32 65 38 58 45 54 C40 55 34 55 30 51 C27 48 27 43 31 40 L45 28 C47 22 52 17 58 15 L60 9 L65 16 C73 22 75 35 73 48 C71 61 67 69 67 77 Z" />
-  ),
-  [BISHOP]: (
-    <>
-      <circle cx="50" cy="14" r="5" />
-      <path d="M50 19 C63 29 65 44 58 55 L42 55 C35 44 37 29 50 19 Z" />
-      <path d="M41 77 C41 67 45 61 47 55 L53 55 C55 61 59 67 59 77 Z" />
-      <ellipse cx="50" cy="55" rx="11" ry="3.5" />
+      <circle cx="50" cy="30" r="13" />
+      <ellipse cx="50" cy="45" rx="13" ry="4.5" />
+      <path d="M35 75 C37 61 42 53 44 46 L56 46 C58 53 63 61 65 75 Z" />
     </>
   ),
   [ROOK]: (
     <>
-      <path d="M31 77 L34 40 L66 40 L69 77 Z" />
-      <path d="M28 41 L28 20 L37 20 L37 27 L45 27 L45 20 L55 20 L55 27 L63 27 L63 20 L72 20 L72 41 Z" />
+      <path d="M32 75 L35 43 L65 43 L68 75 Z" />
+      <path d="M29 45 V20 H38 V28 H45.5 V20 H54.5 V28 H62 V20 H71 V45 Z" />
+    </>
+  ),
+  [KNIGHT]: (
+    <path d="M33 75 C33 63 39 57 45 52 C39 54 32 54 28 50 C25 47 26 41 30 38 L43 26 C45 20 50 15 56 14 L59 7 L64 14 C73 19 76 33 74 47 C73 59 68 67 68 75 Z" />
+  ),
+  [BISHOP]: (
+    <>
+      <circle cx="50" cy="13" r="5.5" />
+      <path d="M50 17 C64 27 66 44 59 57 L41 57 C34 44 36 27 50 17 Z" />
+      <ellipse cx="50" cy="58" rx="13" ry="4.5" />
+      <path d="M38 75 C40 67 44 62 45 58 L55 58 C56 62 60 67 62 75 Z" />
     </>
   ),
   [QUEEN]: (
     <>
-      <path d="M31 41 L25 21 L38 32 L44 15 L50 29 L56 15 L62 32 L75 21 L69 41 Z" />
-      <circle cx="25" cy="20" r="4" />
-      <circle cx="44" cy="14" r="4" />
-      <circle cx="56" cy="14" r="4" />
-      <circle cx="75" cy="20" r="4" />
-      <path d="M35 77 C35 63 40 51 42 41 L58 41 C60 51 65 63 65 77 Z" />
-      <ellipse cx="50" cy="41" rx="19" ry="4" />
+      <path d="M31 46 L24 22 L37 33 L43 15 L50 29 L57 15 L63 33 L76 22 L69 46 Z" />
+      <circle cx="24" cy="20" r="4.5" />
+      <circle cx="43" cy="13" r="4.5" />
+      <circle cx="57" cy="13" r="4.5" />
+      <circle cx="76" cy="20" r="4.5" />
+      <ellipse cx="50" cy="46" rx="20" ry="5" />
+      <path d="M33 75 C34 63 39 53 41 46 L59 46 C61 53 66 63 67 75 Z" />
     </>
   ),
   [KING]: (
     <>
-      <rect x="46.5" y="5" width="7" height="20" rx="2" />
-      <rect x="40" y="10" width="20" height="7" rx="2" />
-      <path d="M35 41 C32 31 39 24 50 24 C61 24 68 31 65 41 Z" />
-      <path d="M35 77 C35 63 40 51 42 41 L58 41 C60 51 65 63 65 77 Z" />
-      <ellipse cx="50" cy="41" rx="17" ry="4" />
+      <rect x="46" y="4" width="8" height="21" rx="2.5" />
+      <rect x="39" y="9" width="22" height="8" rx="2.5" />
+      <path d="M33 45 C30 33 38 24 50 24 C62 24 70 33 67 45 Z" />
+      <ellipse cx="50" cy="46" rx="19" ry="5" />
+      <path d="M33 75 C34 63 39 53 41 46 L59 46 C61 53 66 63 67 75 Z" />
     </>
   ),
 };
 
+/** Lines drawn over the filled piece: collars, the bishop's notch, the base's step. */
+const DETAILS: Record<number, string> = {
+  [PAWN]: "M38 45 H62 M31 79 H69",
+  [ROOK]: "M33 45 H67 M31 79 H69",
+  [KNIGHT]: "M31 79 H69",
+  [BISHOP]: "M56 22 L50 30 M38 58 H62 M31 79 H69",
+  [QUEEN]: "M31 46 H69 M31 79 H69",
+  [KING]: "M33 46 H67 M31 79 H69",
+};
+
 /** Where the eyes go on each of Mote's pieces (the knight, side-on, gets one). */
 const EYES: Record<number, { y: number; x: number[] }> = {
-  [PAWN]: { y: 26, x: [44.5, 55.5] },
-  [KNIGHT]: { y: 23, x: [58] },
-  [BISHOP]: { y: 35, x: [45, 55] },
-  [ROOK]: { y: 48, x: [44.5, 55.5] },
-  [QUEEN]: { y: 52, x: [44.5, 55.5] },
-  [KING]: { y: 52, x: [44.5, 55.5] },
+  [PAWN]: { y: 25, x: [44.5, 55.5] },
+  [KNIGHT]: { y: 22, x: [58] },
+  [BISHOP]: { y: 33, x: [45.5, 54.5] },
+  [ROOK]: { y: 53, x: [44.5, 55.5] },
+  [QUEEN]: { y: 55, x: [45, 55] },
+  [KING]: { y: 55, x: [45, 55] },
 };
 
 export function ChessPieceArt({
@@ -77,25 +96,30 @@ export function ChessPieceArt({
   const type = Math.abs(piece);
   const mote = piece < 0;
   const eyes = EYES[type];
+  const shape = (
+    <>
+      {BASE}
+      {SHAPES[type]}
+    </>
+  );
   return (
-    <svg viewBox="0 0 100 100" className="cs-art" aria-hidden="true">
-      <ellipse cx="50" cy="86" rx="30" ry="6" className="ck-shadow" />
-      <g className="cs-body">
-        {BASE}
-        {SHAPES[type]}
-      </g>
+    <svg viewBox="0 0 100 100" className={`cs-art ${mote ? "is-cream" : "is-ink"}`} aria-hidden="true">
+      <ellipse cx="50" cy="90" rx="30" ry="5" className="ck-shadow" />
+      <g className="cs-edge">{shape}</g>
+      <g className="cs-fill">{shape}</g>
+      <path d={DETAILS[type]} className="cs-detail" />
       {mote ? (
-        <g className="ck-eyes cs-eyes" style={{ animationDelay: `${blinkDelay}s`, transformOrigin: `50% ${eyes.y + 6}px` }}>
+        <g className="ck-eyes cs-eyes" style={{ animationDelay: `${blinkDelay}s`, transformOrigin: `50% ${eyes.y + 5}px` }}>
           {eyes.x.map((x) =>
             shut ? (
-              <path key={x} d={`M${x - 3.5} ${eyes.y + 6}h7`} className="ck-shut" />
+              <path key={x} d={`M${x - 3.5} ${eyes.y + 5}h7`} className="ck-shut" />
             ) : (
-              <rect key={x} x={x - 2.5 + look.x} y={eyes.y + look.y} width="5" height="11" rx="2.5" />
+              <rect key={x} x={x - 2.5 + look.x} y={eyes.y + look.y} width="5" height="10" rx="2.5" />
             ),
           )}
         </g>
       ) : type === KNIGHT ? (
-        <circle cx="58" cy="28" r="3" className="cs-notch" />
+        <circle cx="58" cy="25" r="2.8" className="cs-notch" />
       ) : null}
     </svg>
   );

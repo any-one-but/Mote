@@ -68,6 +68,12 @@ import {
   pickChessLine,
   type ChessEvent,
 } from "@/components/companion/chess-lines";
+import {
+  pickTicTacToeLine,
+  TICTACTOE_CHANCE,
+  TICTACTOE_FACE,
+  type TicTacToeEvent,
+} from "@/components/companion/tictactoe-lines";
 import type { Level } from "@/lib/checkers/ai";
 
 export type BoardGameState = "you" | "mote" | "idle" | null;
@@ -296,7 +302,7 @@ export type FaceEngine = {
   /** A board game starts (Mote may remember the last one) and ends (Mote
    * remembers this one, and it moves their mood). `event` is the game's own
    * end line to use if there's nothing more personal to say. */
-  gameStart: (game: GameName, level: Level) => void;
+  gameStart: (game: GameName, level: Level, opener?: string) => void;
   gameOver: (result: GameResult, event: string) => void;
   /** Answer the question in the speech bubble: green (true) or red (false). */
   answer: (yes: boolean) => void;
@@ -332,6 +338,7 @@ export type FaceEngine = {
   /** Something happened in a game. Mote reacts, and maybe says something. */
   checkers: (event: CheckersEvent, level: Level) => void;
   chess: (event: ChessEvent, level: Level, words?: { piece?: string; yours?: string }) => void;
+  tictactoe: (event: TicTacToeEvent, level: Level) => void;
   snapshot: () => EngineSnapshot;
 };
 
@@ -2274,6 +2281,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       pickChessLine(event, level, recentGameLines, words),
     );
 
+  const ticTacToeEvent = (event: TicTacToeEvent, level: Level) =>
+    gameMoment(`tictactoe-${event}`, TICTACTOE_FACE[event], TICTACTOE_CHANCE[event], () =>
+      pickTicTacToeLine(event, level, recentGameLines),
+    );
+
   /** You changed today's calories. */
   const noteCalories = (moment: CalorieMoment) => {
     rouse();
@@ -2365,15 +2377,17 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     start("yawn", clock);
   };
 
-  /** A board game starting: maybe a word about the last one. */
-  const gameStart = (game: GameName, level: Level) => {
+  /** A board game starting: maybe a word about the last one. `opener` is the
+   * game's own line to use instead of its usual one (Mote going first). */
+  const gameStart = (game: GameName, level: Level, opener?: string) => {
     rouse();
     engage();
     react("game-start");
     const memo = startLine(game, level, { friendly: options.friendly });
     if (!memo) {
       if (game === "checkers") checkersEvent("start", level);
-      else chessEvent("start", level);
+      else if (game === "chess") chessEvent("start", level);
+      else ticTacToeEvent((opener as TicTacToeEvent | undefined) ?? "start", level);
       return;
     }
     markMentioned(memo.id);
@@ -2390,7 +2404,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       const face = memory.winner === "mote" ? "ck-win" : memory.winner === "you" ? "ck-lose" : "cute";
       gameMoment(`${result.game}-${event}`, face, 1, () => ({ id: `streak-${Date.now()}`, text: streakSaid }));
     } else if (result.game === "checkers") checkersEvent(event as CheckersEvent, result.level);
-    else chessEvent(event as ChessEvent, result.level);
+    else if (result.game === "chess") chessEvent(event as ChessEvent, result.level);
+    else ticTacToeEvent(event as TicTacToeEvent, result.level);
   };
 
   /** Say a particular line right away (a reply to something you just did). */
@@ -3383,6 +3398,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     setBoardGame,
     checkers: checkersEvent,
     chess: chessEvent,
+    tictactoe: ticTacToeEvent,
     say: (lineId) => {
       if (bubble) showBubble(null);
       const line = lineId ? lineById.get(lineId) : chooseLine(speechContext(), new Map(), clock);
