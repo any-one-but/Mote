@@ -73,21 +73,24 @@ export function Face({ onEngine, onMood, onEvent, onSpeech, onOpenLink }: FacePr
       <g data-part="body">
         <ellipse data-part="skin" cx={cx} cy={cy} rx={faceRx} ry={faceRy} className="skin" />
 
-        {/* Spinning very fast, the eyes blur into a ring (both sit this far from the middle). */}
-        <circle
-          data-part="spin-blur"
-          className="spin-blur"
-          cx={cx}
-          cy={cy}
-          r={Math.hypot(GEO.eyeRX - cx, GEO.eyeY - cy)}
-          style={{ display: "none" }}
-        />
+        {/* Spinning very fast, each eye blurs into a band along the path it
+            travels round the ball. */}
+        <g clipPath="url(#mote-face-clip)">
+          <path data-part="spin-blur-l" className="spin-blur" style={{ display: "none" }} />
+          <path data-part="spin-blur-r" className="spin-blur" style={{ display: "none" }} />
+        </g>
+
         <g data-part="eyes" filter="url(#mote-soft)">
-          <g mask="url(#mote-eye-l)">
-            <rect className="ink" x={GEO.eyeLX - 60} y={GEO.eyeY - 72} width={120} height={144} />
+          {/* Each eye in its own wrapper, so it can travel round the ball. */}
+          <g data-part="eye-l">
+            <g mask="url(#mote-eye-l)">
+              <rect className="ink" x={GEO.eyeLX - 60} y={GEO.eyeY - 72} width={120} height={144} />
+            </g>
           </g>
-          <g mask="url(#mote-eye-r)">
-            <rect className="ink" x={GEO.eyeRX - 60} y={GEO.eyeY - 72} width={120} height={144} />
+          <g data-part="eye-r">
+            <g mask="url(#mote-eye-r)">
+              <rect className="ink" x={GEO.eyeRX - 60} y={GEO.eyeY - 72} width={120} height={144} />
+            </g>
           </g>
         </g>
 

@@ -81,15 +81,19 @@ Mote looks at your pointer, blinks, glances around, thinks, gets grumpy, gets
 surprised, and hops happily when poked (clicked right on the face). Four quick
 pokes in a row is too many, and Mote gets annoyed.
 
-- **Petting:** press and keep stroking across Mote's face for a second or so.
-  Mote melts into it and purrs.
-- **Spinning:** scroll on Mote to spin them (down or right is clockwise; the
-  other way brakes). The faster they're already going the more each scroll
-  adds, so it ranges from a gentle twirl to a blur at about a hundred turns a
-  second. Mote loves it: blissful at a slow spin, squeezing up tighter the
-  faster it goes, until their eyes blur into a ring. They coast to a stop,
-  rock upright, get happily dizzy (for longer the bigger the spin), and then
-  say something about it, different for how fast, how long and how many turns.
+- **Spinning:** Mote is a ball. Scroll on them to roll them the way your
+  fingers move, or grab them and drag to roll them under your pointer (let
+  go with a flick to send them spinning). Their eyes travel over the
+  surface, round the back and back again. The faster they're already going
+  the more each scroll adds, from a gentle roll up to about a hundred turns a
+  second, where the eyes blur into bands along their path. Grab a spinning
+  Mote to stop them dead. Mote loves it: blissful at a slow roll, squeezing
+  their eyes tighter the faster they go. As they slow, the dizziness creeps
+  in and they turn back to face you like a weighted toy; then they're
+  happily dizzy for a while (longer for bigger spins) and say something
+  about it, different for how fast, how long and how many turns.
+- **Petting:** press and rub back and forth across Mote's face. Mote rocks
+  gently with it and purrs.
 - **Dizzy:** shaking the pointer around wildly, or throwing the window around
   the screen, makes Mote dizzy for a moment.
 - **Naps:** left be for a few minutes (no poking, petting or moving the
