@@ -157,17 +157,19 @@ At the bottom of Settings, **Debug mode** opens a separate window of testing too
 
 Closing the debug window turns debug mode off.
 
-## Make a real Mac app you can keep
+## Install Mote
+
+The current Mac app is already built and kept in the project. Quit Mote if it
+is open, then drag the new one into Applications and replace the old one.
+
+- `src-tauri/target/release/bundle/macos/Mote.app`
+- `src-tauri/target/release/bundle/dmg/Mote_0.3.3_aarch64.dmg` (an installer you can share)
+
+To build a fresh copy later:
 
 ```bash
 npm run mac:build
 ```
-
-This takes a few minutes the first time. If you keep a copy in Applications,
-drag the new one over it afterwards to update it. When it's done, the app is here:
-
-- `src-tauri/target/release/bundle/macos/Mote.app` (drag this into Applications)
-- `src-tauri/target/release/bundle/dmg/` (an installer file you can share)
 
 ## See every expression side by side
 
