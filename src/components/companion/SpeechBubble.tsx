@@ -120,36 +120,6 @@ export function SpeechBubble({ bubble, anchor, onAnswer, onDismiss }: Props) {
         </span>
       ) : null}
 
-      {shown.kind === "feed" && done ? (
-        <span className="speech-hint">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M7 4h7l4 4v12H7z" />
-            <path d="M14 4v4h4" />
-          </svg>
-          drop a file on me
-        </span>
-      ) : null}
-
-      {shown.kind === "game" && done ? (
-        <span className="speech-hint">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <rect x="3" y="8" width="18" height="9" rx="4.5" />
-            <path d="M7 12.5h3M8.5 11v3M15.5 12h.01M17.5 13.5h.01" />
-          </svg>
-          drag a game onto me
-        </span>
-      ) : null}
-
-      {shown.kind === "mask" && done ? (
-        <span className="speech-hint">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <rect x="5" y="9.5" width="14" height="5" rx="2.5" />
-            <path d="M2.5 12h.01M21.5 12h.01" />
-          </svg>
-          the mask, in my tray
-        </span>
-      ) : null}
-
       {timed ? (
         <span className="speech-timer" aria-hidden="true">
           <span key={shown.id} style={{ animationDuration: `${shown.ttl}ms` }} />

@@ -1790,7 +1790,7 @@ dependencies = [
 
 [[package]]
 name = "mote"
-version = "0.2.0-mind.8"
+version = "0.3.0-experiment.1"
 dependencies = [
  "core-foundation",
  "core-graphics",

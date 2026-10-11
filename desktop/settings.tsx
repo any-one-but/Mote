@@ -2,7 +2,7 @@ import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { Energy } from "@/components/companion/engine";
 import { isDesktopApp, showDebugWindow } from "@/lib/companion/desktop";
-import { useSettings, type Settings } from "@/lib/companion/settings";
+import { useSettings, type Pace, type Settings } from "@/lib/companion/settings";
 import { MiniMote, Page, Row, Section, Segmented, Toggle } from "./ui";
 
 const ENERGY: Array<{ value: Energy; label: string }> = [
@@ -10,6 +10,18 @@ const ENERGY: Array<{ value: Energy; label: string }> = [
   { value: "normal", label: "Normal" },
   { value: "lively", label: "Lively" },
 ];
+
+const PACE: Array<{ value: Pace; label: string }> = [
+  { value: "gentle", label: "Gentle" },
+  { value: "normal", label: "Normal" },
+  { value: "turbo", label: "Turbo" },
+];
+
+const PACE_HINT: Record<Pace, string> = {
+  gentle: "Works quietly in the background. Easy on your Mac, but slower.",
+  normal: "Works through one thing at a time.",
+  turbo: "Works on many things at once. Much faster, but your Mac will be busy.",
+};
 
 function SettingsWindow() {
   const [settings, update] = useSettings();
@@ -49,19 +61,23 @@ function SettingsWindow() {
             onChange={(friendly) => set({ friendly })}
           />
         </Row>
-        <Row label="Naps when left alone" hint="When Mote gets sleepy and is left alone, they nap.">
-          <Toggle
-            label="Naps when left alone"
-            checked={settings.naps}
-            onChange={(naps) => set({ naps })}
-          />
-        </Row>
         <Row label="Energy" hint="How often Mote does something on their own." stacked>
           <Segmented
             label="Energy"
             options={ENERGY}
             value={settings.energy}
             onChange={(energy) => set({ energy })}
+          />
+        </Row>
+      </Section>
+
+      <Section title="Helping with files">
+        <Row label="Pace" hint={PACE_HINT[settings.pace]} stacked>
+          <Segmented
+            label="Pace"
+            options={PACE}
+            value={settings.pace}
+            onChange={(pace) => set({ pace })}
           />
         </Row>
       </Section>

@@ -149,7 +149,7 @@ pub enum Step {
     Names,
     Convert,
     Metadata,
-    Delete { files: Vec<String> },
+    Delete { list: Vec<String> },
     Compress { method: compress::Method },
     TrimStart { seconds: f64 },
     TrimEnd { seconds: f64 },
@@ -195,7 +195,7 @@ fn run_job(ctx: &Ctx, step: &Step, files: &[PathBuf]) -> Report {
         Step::Names => names::run(ctx),
         Step::Convert => convert::run(ctx),
         Step::Metadata => metadata::run(ctx),
-        Step::Delete { files: list } => {
+        Step::Delete { list } => {
             let list: Vec<PathBuf> = list.iter().map(PathBuf::from).collect();
             delete::run(ctx, &list)
         }
@@ -475,7 +475,7 @@ mod tests {
             let rule = delete::Rule::Leftovers;
             let list: Vec<String> =
                 delete::matches(&root, &rule).iter().map(|p| p.to_string_lossy().to_string()).collect();
-            let r = run_job(&c, &Step::Delete { files: list }, &[]);
+            let r = run_job(&c, &Step::Delete { list }, &[]);
             println!("--- delete leftovers: {:?} {:?}", r.facts, r.problems);
             println!("=== after\n{:#?}", tree(&root));
 
@@ -501,6 +501,25 @@ mod tests {
             println!("talk.mp4 is now {}s long; mp3 exists: {}",
                 String::from_utf8_lossy(&probe.stdout).trim(), root.join("talk.mp3").is_file());
         }
+    }
+
+    #[test]
+    fn jobs_from_the_window() {
+        let job = |v: &str| serde_json::from_str::<Job>(v).unwrap();
+        assert!(matches!(job(r#"{"step":"archives","folder":"/x","pace":"turbo"}"#).step, Step::Archives));
+        let d = job(r#"{"step":"delete","list":["/x/a"],"folder":"/x","pace":"normal"}"#);
+        assert!(matches!(d.step, Step::Delete { ref list } if list.len() == 1));
+        assert!(matches!(
+            job(r#"{"step":"compress","method":"optimage","folder":"/x","pace":"gentle"}"#).step,
+            Step::Compress { method: compress::Method::Optimage }
+        ));
+        let t = job(r#"{"step":"trim-start","seconds":3.5,"files":["/v.mp4"],"pace":"normal"}"#);
+        assert!(matches!(t.step, Step::TrimStart { seconds } if seconds == 3.5));
+        assert_eq!(t.files.unwrap().len(), 1);
+        let rule = |v: &str| serde_json::from_str::<delete::Rule>(v).unwrap();
+        assert!(matches!(rule(r#"{"kind":"larger","bytes":5}"#), delete::Rule::Larger { bytes: 5 }));
+        assert!(matches!(rule(r#"{"kind":"name-contains","text":"x"}"#), delete::Rule::NameContains { .. }));
+        assert!(matches!(rule(r#"{"kind":"zero-byte"}"#), delete::Rule::ZeroByte));
     }
 
     #[test]

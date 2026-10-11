@@ -1,7 +1,7 @@
-// Mote's mind: four feelings scored 0–10 that stimuli push up and down, which
+// Mote's mind: two feelings scored 0–10 that stimuli push up and down, which
 // slowly drift back to a baseline, and which add up to lasting moods.
 
-export type Attr = "happy" | "restless" | "alert" | "full";
+export type Attr = "happy" | "restless";
 
 export type MindValues = Record<Attr, number>;
 
@@ -16,56 +16,37 @@ export const ATTRS: Array<{
   every: number;
   toward: number;
 }> = [
-  // Left to themselves (nobody around, not asleep), Mote slowly gets crosser
+  // Left to themselves (nobody around), Mote slowly gets crosser
   // and more restless: a step every 6 minutes. Attention is what lifts them.
   { key: "happy", low: "Frustrated", high: "Happy", every: 360_000, toward: 0 },
   { key: "restless", low: "Calm", high: "Restless", every: 360_000, toward: 10, flip: true },
-  // Unlike the others, alertness wears off on its own: left be, Mote slowly
-  // gets tired. It doesn't wear off while Mote is intrigued by something.
-  { key: "alert", low: "Sleepy", high: "Alert", every: 960_000, toward: 0 },
-  // Mote always gets hungrier: a step every 6 minutes awake. Asleep it's much
-  // slower and stops short of really hungry (see HUNGER). Paused in Friendly mode.
-  { key: "full", low: "Hungry", high: "Full", every: 360_000, toward: 0 },
 ];
 
-export const MIND_START: MindValues = { happy: 5, restless: 5, alert: 5, full: 8 };
-
-/** How hunger behaves: asleep, a fifth as fast, and never below `sleepFloor`. */
-export const HUNGER = { asleepStep: 0.2, sleepFloor: 3.5, friendlyFloor: 5 };
+export const MIND_START: MindValues = { happy: 5, restless: 5 };
 
 /**
  * Friendly mode's limits: however long Mote is left alone, feelings stop
  * short of anything upsetting.
  */
-export const FRIENDLY = { happyMin: 4, restlessMax: 7, fullMin: 5 };
+export const FRIENDLY = { happyMin: 4, restlessMax: 7 };
 
-/** What each minute asleep (or with the app closed) does: more rested, calmer. */
-export const REST_PER_MINUTE = { alert: 1.5, restless: -1 };
+/** What each minute with the app closed does: calmer. */
+export const REST_PER_MINUTE = { restless: -1 };
 
-export type LastingMood =
-  | "frustrated"
-  | "annoyed"
-  | "happy"
-  | "restless"
-  | "calm"
-  | "sleepy"
-  | "alert"
-  | "hungry"
-  | "starving";
+export type LastingMood = "frustrated" | "annoyed" | "happy" | "restless" | "calm";
 
-export const LASTING_MOODS: Array<{ id: LastingMood; label: string; test: (v: MindValues) => boolean }> =
-  [
-    // The far ends are meant to be rare: Mote spends most of the time near 5.
-    { id: "frustrated", label: "Frustrated", test: (v) => v.happy <= 2 },
-    { id: "annoyed", label: "Annoyed", test: (v) => v.happy > 2 && v.happy <= 3.5 },
-    { id: "happy", label: "Happy", test: (v) => v.happy >= 8 },
-    { id: "restless", label: "Restless", test: (v) => v.restless >= 8 },
-    { id: "calm", label: "Calm", test: (v) => v.restless <= 2 },
-    { id: "sleepy", label: "Sleepy", test: (v) => v.alert <= 2 },
-    { id: "alert", label: "Alert", test: (v) => v.alert >= 8 },
-    { id: "hungry", label: "Hungry", test: (v) => v.full <= 3 && v.full > 1.5 },
-    { id: "starving", label: "Starving", test: (v) => v.full <= 1.5 },
-  ];
+export const LASTING_MOODS: Array<{
+  id: LastingMood;
+  label: string;
+  test: (v: MindValues) => boolean;
+}> = [
+  // The far ends are meant to be rare: Mote spends most of the time near 5.
+  { id: "frustrated", label: "Frustrated", test: (v) => v.happy <= 2 },
+  { id: "annoyed", label: "Annoyed", test: (v) => v.happy > 2 && v.happy <= 3.5 },
+  { id: "happy", label: "Happy", test: (v) => v.happy >= 8 },
+  { id: "restless", label: "Restless", test: (v) => v.restless >= 8 },
+  { id: "calm", label: "Calm", test: (v) => v.restless <= 2 },
+];
 
 export function lastingMoods(v: MindValues): LastingMood[] {
   return LASTING_MOODS.filter((m) => m.test(v)).map((m) => m.id);
@@ -77,8 +58,6 @@ export function nudge(v: MindValues, effects: Partial<MindValues>): MindValues {
   return {
     happy: clamp10(v.happy + (effects.happy ?? 0)),
     restless: clamp10(v.restless + (effects.restless ?? 0)),
-    alert: clamp10(v.alert + (effects.alert ?? 0)),
-    full: clamp10(v.full + (effects.full ?? 0)),
   };
 }
 
@@ -99,10 +78,6 @@ export function feelings(v: MindValues) {
     happy: ramp((v.happy - 7) / 3),
     restless: ramp((v.restless - 7) / 3),
     calm: ramp((3 - v.restless) / 3),
-    sleepy: ramp((2.5 - v.alert) / 2.5),
-    alert: ramp((v.alert - 7) / 3),
-    // 0 when fed enough, rising as Mote gets hungrier, 1 when starving.
-    hungry: ramp((4 - v.full) / 3),
   };
 }
 
@@ -110,7 +85,7 @@ const STORE = "mote.mind";
 
 /**
  * Feelings carry over between launches. Time with the app closed counts as
- * Mote resting: a little calmer and more rested, and the rest settles back.
+ * Mote resting: a little calmer.
  */
 export function loadMind(): MindValues {
   try {
@@ -119,18 +94,15 @@ export function loadMind(): MindValues {
       at: number;
     } | null;
     if (!saved?.values) return { ...MIND_START };
-    let v: MindValues = { ...MIND_START, ...saved.values };
+    const old = saved.values;
+    let v: MindValues = {
+      happy: old.happy ?? MIND_START.happy,
+      restless: old.restless ?? MIND_START.restless,
+    };
     const away = Math.max(0, Date.now() - saved.at);
     const minutes = away / 60_000;
-    v = nudge(v, {
-      alert: REST_PER_MINUTE.alert * minutes,
-      restless: Math.max(-3, REST_PER_MINUTE.restless * minutes),
-    });
-    // Away counts as asleep for hunger too: slow, and only down to peckish.
-    if (v.full > HUNGER.sleepFloor) {
-      v.full = Math.max(HUNGER.sleepFloor, v.full - HUNGER.asleepStep * (away / 360_000));
-    }
-    // (Like asleep, time away doesn't make Mote any crosser.)
+    v = nudge(v, { restless: Math.max(-3, REST_PER_MINUTE.restless * minutes) });
+    // (Time away doesn't make Mote any crosser.)
     return v;
   } catch {
     return { ...MIND_START };

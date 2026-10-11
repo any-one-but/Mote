@@ -3,6 +3,7 @@ import "@fontsource/outfit/400.css";
 import "@fontsource/outfit/500.css";
 import "@fontsource/outfit/600.css";
 import { Face } from "@/components/companion/Face";
+import { Helper, type Gift } from "@/components/companion/Helper";
 import { SpeechBubble } from "@/components/companion/SpeechBubble";
 import type { Bubble } from "@/components/companion/speech";
 import { GEO } from "@/lib/companion/theme";
@@ -14,6 +15,7 @@ import {
   onPointerElsewhere,
   onTypingElsewhere,
   onWindowMoved,
+  setHelpingSize,
   windowPlacement,
 } from "@/lib/companion/desktop";
 import { useSettings } from "@/lib/companion/settings";
@@ -36,7 +38,15 @@ export function Companion() {
     null,
   );
   const [bubble, setBubble] = useState<Bubble | null>(null);
-  const [sleepSet, setSleepSet] = useState(false);
+  const [gift, setGift] = useState<Gift | null>(null);
+  const [helping, setHelping] = useState(false);
+  const getEngine = useCallback(() => engineRef.current, []);
+  // Mote's own resizing moves the window; that isn't someone flinging it.
+  const ownMoveUntil = useRef(0);
+  useEffect(() => {
+    ownMoveUntil.current = performance.now() + 800;
+    setHelpingSize(helping);
+  }, [helping]);
   const [anchor, setAnchor] = useState({ x: 0, y: 0 });
 
   // The bubble's tail points down at Mote, just above the eyes.
@@ -77,10 +87,10 @@ export function Companion() {
     });
   };
 
-  const { followPointer, naps, energy, friendly, debug } = settings;
+  const { followPointer, energy, friendly, debug, pace } = settings;
   useEffect(() => {
-    engineRef.current?.configure({ followPointer, naps, energy, friendly });
-  }, [followPointer, naps, energy, friendly]);
+    engineRef.current?.configure({ followPointer, energy, friendly });
+  }, [followPointer, energy, friendly]);
 
   useEffect(
     () =>
@@ -96,22 +106,30 @@ export function Companion() {
     [],
   );
 
-  useEffect(() => onWindowMoved((dx, dy) => engineRef.current?.windowMoved(dx, dy)), []);
+  useEffect(
+    () =>
+      onWindowMoved((dx, dy) => {
+        if (performance.now() > ownMoveUntil.current) engineRef.current?.windowMoved(dx, dy);
+      }),
+    [],
+  );
   useEffect(
     () =>
       onPointerElsewhere((dx, dy, inside) => engineRef.current?.pointerElsewhere(dx, dy, inside)),
     [],
   );
   useEffect(() => onTypingElsewhere((dx, dy) => engineRef.current?.typingAt(dx, dy)), []);
-  // Files to eat and games to play, dropped on the window. Only the first
-  // thing of a bunch counts: one bite at a time.
+  // Folders and videos dropped on the window, for Mote to help with.
+  const give = useCallback((paths: string[]) => {
+    setGift((g) => ({ paths, seq: (g?.seq ?? 0) + 1 }));
+  }, []);
   useEffect(
     () =>
       onDropped(
         (over) => engineRef.current?.dragHover(over),
-        (things) => engineRef.current?.offer(things[0]),
+        (paths) => give(paths),
       ),
-    [],
+    [give],
   );
 
   // Debug mode: take orders from the debug window and report back ~10× a second.
@@ -125,7 +143,6 @@ export function Companion() {
         e.setLoop(false);
         e.setGuides(false);
         e.setManual(null);
-        e.setSleepLine(false);
       }
       debugState.current = { ...DEBUG_DEFAULTS };
       applyAudio();
@@ -145,13 +162,11 @@ export function Companion() {
       else if (cmd.do === "autoMoods") e.setAutoMoods((d.autoMoods = cmd.value));
       else if (cmd.do === "loop") e.setLoop((d.loop = cmd.value));
       else if (cmd.do === "guides") e.setGuides((d.guides = cmd.value));
-      else if (cmd.do === "sleepLine") e.setSleepLine((d.sleepLine = cmd.value));
       else if (cmd.do === "feeling") e.setFeeling(cmd.attr, cmd.value);
       else if (cmd.do === "resetFeelings") e.resetFeelings();
       else if (cmd.do === "react") e.react(cmd.id);
       else if (cmd.do === "say") e.say(cmd.id);
-      else if (cmd.do === "offer") e.offer(cmd.thing);
-      else if (cmd.do === "forgetEaten") e.forgetEaten();
+      else if (cmd.do === "give") give(cmd.paths);
       else if (cmd.do === "fakeAudio") {
         d.fakeAudio = cmd.value;
         applyAudio();
@@ -180,7 +195,7 @@ export function Companion() {
   // A quick press on Mote's body is a poke; pressing and dragging across it is
   // petting. Presses on the empty window around Mote do nothing.
   return (
-    <div className="stage">
+    <div className={`stage${helping ? " is-helping" : ""}`}>
       <button
         ref={buttonRef}
         type="button"
@@ -233,7 +248,7 @@ export function Companion() {
         <Face
           onEngine={(engine) => {
             engineRef.current = engine;
-            engine?.configure({ followPointer, naps, energy, friendly });
+            engine?.configure({ followPointer, energy, friendly });
             applyAudio();
           }}
           onMood={(label) => {
@@ -251,42 +266,15 @@ export function Companion() {
             if (b) measure();
             setBubble(b);
           }}
-          onSleepSet={setSleepSet}
         />
       </button>
-      <Tray sleepSet={sleepSet} onToggle={() => engineRef.current?.toggleSleepSet()} />
+      <Helper engine={getEngine} pace={pace} gift={gift} onOpen={setHelping} />
       <SpeechBubble
         bubble={bubble}
         anchor={anchor}
         onAnswer={(yes) => engineRef.current?.answer(yes)}
         onDismiss={() => engineRef.current?.dismissSpeech()}
       />
-    </div>
-  );
-}
-
-/**
- * The sleep set (earmuffs and mask), along the bottom of the window. Tucked
- * away until the pointer comes into the window. Food and games aren't here:
- * you drop files and games onto Mote instead.
- */
-function Tray({ sleepSet, onToggle }: { sleepSet: boolean; onToggle: () => void }) {
-  return (
-    <div className="tray" role="toolbar" aria-label="Things to give Mote">
-      <button
-        type="button"
-        className="tray-item"
-        aria-pressed={sleepSet}
-        aria-label={sleepSet ? "Take off the earmuffs and sleep mask" : "Earmuffs and sleep mask"}
-        title={sleepSet ? "Take off the earmuffs and mask" : "Earmuffs and sleep mask"}
-        onClick={onToggle}
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <rect className="tray-fill" x="5" y="9" width="14" height="6" rx="3" />
-          <circle className="tray-fill" cx="2.8" cy="12.5" r="2" />
-          <circle className="tray-fill" cx="21.2" cy="12.5" r="2" />
-        </svg>
-      </button>
     </div>
   );
 }

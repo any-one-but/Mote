@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import type { Media, Offering } from "@/components/companion/engine";
+import type { Media } from "@/components/companion/engine";
 
 /** True inside the Mac app, false in a plain browser. */
 export function isDesktopApp() {
@@ -17,6 +17,11 @@ export function openSettingsWindow() {
 export function showDebugWindow(open: boolean) {
   if (isDesktopApp()) void invoke("set_debug_window", { open }).catch(() => {});
   else if (open) window.open("debug.html", "mote-debug", "popup,width=600,height=780");
+}
+
+/** Grows Mote's window to fit the options while helping, and back after. */
+export function setHelpingSize(helping: boolean) {
+  if (isDesktopApp()) void invoke("set_helping_size", { helping }).catch(() => {});
 }
 
 export function setFloatOnTop(on: boolean) {
@@ -126,16 +131,12 @@ export async function windowPlacement(): Promise<{ x: number; y: number } | null
   }
 }
 
-/** File kinds a browser can at least tell are important, by their ending. */
-const IMPORTANT_KINDS =
-  /\.(kext|dylib|so|a|plist|keychain|keychain-db|pem|key|p12|pfx|cer|crt|mobileprovision)$/i;
-
 /**
- * Things dragged over and dropped on Mote's window. Only each thing's name
- * and size are found out (and for apps, whether they're a game); nothing is
- * ever opened, changed or moved.
+ * Things dragged over and dropped on Mote's window: where they are on disk,
+ * for Mote to help with. (A plain browser can't say where files are, so
+ * there it passes just their names, and Mote only pretends.)
  */
-export function onDropped(hover: (over: boolean) => void, drop: (things: Offering[]) => void) {
+export function onDropped(hover: (over: boolean) => void, drop: (paths: string[]) => void) {
   if (isDesktopApp()) {
     let stop: (() => void) | null = null;
     let dead = false;
@@ -145,9 +146,7 @@ export function onDropped(hover: (over: boolean) => void, drop: (things: Offerin
         else if (payload.type === "leave") hover(false);
         else if (payload.type === "drop") {
           hover(false);
-          void invoke<Offering[]>("inspect_drop", { paths: payload.paths })
-            .then((things) => things.length && drop(things))
-            .catch(() => {});
+          if (payload.paths.length) drop(payload.paths);
         }
       })
       .then((un) => (dead ? un() : (stop = un)))
@@ -158,7 +157,6 @@ export function onDropped(hover: (over: boolean) => void, drop: (things: Offerin
     };
   }
 
-  // In a browser: a dropped file's name and size, nothing more.
   const over = (e: DragEvent) => {
     if (!e.dataTransfer?.types.includes("Files")) return;
     e.preventDefault();
@@ -171,24 +169,10 @@ export function onDropped(hover: (over: boolean) => void, drop: (things: Offerin
     e.preventDefault();
     hover(false);
     const items = Array.from(e.dataTransfer?.items ?? []);
-    const things = Array.from(e.dataTransfer?.files ?? []).map((file, i): Offering => {
-      const entry = items[i]?.webkitGetAsEntry?.();
-      const app = /\.app$/i.test(file.name);
-      return {
-        name: app ? file.name.replace(/\.app$/i, "") : file.name,
-        size: file.size,
-        kind: app ? "app" : entry?.isDirectory ? "folder" : "file",
-        game: !app
-          ? null
-          : /^chess\.app$/i.test(file.name)
-            ? "chess"
-            : /minecraft/i.test(file.name)
-              ? "minecraft"
-              : null,
-        important: file.name.startsWith(".") || IMPORTANT_KINDS.test(file.name),
-      };
-    });
-    if (things.length) drop(things);
+    const names = Array.from(e.dataTransfer?.files ?? []).map((file, i) =>
+      items[i]?.webkitGetAsEntry?.()?.isDirectory ? `${file.name}/` : file.name,
+    );
+    if (names.length) drop(names);
   };
   window.addEventListener("dragenter", over);
   window.addEventListener("dragover", over);

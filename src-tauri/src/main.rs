@@ -117,6 +117,56 @@ fn set_float_on_top(app: AppHandle, on: bool) -> Result<(), String> {
     }
 }
 
+/// The window's size (and how far it was nudged up) before Mote grew it to
+/// help with something, to put back afterwards.
+static BEFORE_HELPING: std::sync::Mutex<Option<(f64, f64, f64)>> = std::sync::Mutex::new(None);
+
+/// While Mote helps with files the window grows to fit the options (to at
+/// least 380 × 600 points), moving up if it would go off the bottom of the
+/// screen. Afterwards it goes back to how it was.
+#[tauri::command]
+fn set_helping_size(app: AppHandle, helping: bool) -> Result<(), String> {
+    use tauri::{LogicalPosition, LogicalSize};
+    let Some(window) = app.get_webview_window("main") else { return Ok(()) };
+    let scale = window.scale_factor().map_err(|e| e.to_string())?;
+    let size = window.inner_size().map_err(|e| e.to_string())?.to_logical::<f64>(scale);
+    let pos = window.outer_position().map_err(|e| e.to_string())?.to_logical::<f64>(scale);
+    let mut before = BEFORE_HELPING.lock().unwrap();
+    if helping {
+        if before.is_some() {
+            return Ok(());
+        }
+        let (w, h) = (size.width.max(380.0), size.height.max(600.0));
+        if (w, h) == (size.width, size.height) {
+            return Ok(());
+        }
+        // Keep it on screen: if the bottom would hang off, move up.
+        let mut lift = 0.0;
+        if let Ok(Some(m)) = window.current_monitor() {
+            let area = m.work_area();
+            let top = area.position.to_logical::<f64>(scale).y;
+            let bottom = top + area.size.to_logical::<f64>(scale).height;
+            let outer = window.outer_size().map_err(|e| e.to_string())?.to_logical::<f64>(scale);
+            let chrome = outer.height - size.height;
+            let new_bottom = pos.y + h + chrome;
+            if new_bottom > bottom {
+                lift = (new_bottom - bottom).min(pos.y - top).max(0.0);
+            }
+        }
+        *before = Some((size.width, size.height, lift));
+        window.set_size(LogicalSize::new(w, h)).map_err(|e| e.to_string())?;
+        if lift > 0.0 {
+            window.set_position(LogicalPosition::new(pos.x, pos.y - lift)).map_err(|e| e.to_string())?;
+        }
+    } else if let Some((w, h, lift)) = before.take() {
+        window.set_size(LogicalSize::new(w, h)).map_err(|e| e.to_string())?;
+        if lift > 0.0 {
+            window.set_position(LogicalPosition::new(pos.x, pos.y + lift)).map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
 fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let settings = MenuItem::with_id(app, "settings", "Settings…", true, Some("CmdOrCtrl+,"))?;
     let about = AboutMetadata {
@@ -201,6 +251,7 @@ fn main() {
             open_settings,
             set_debug_window,
             set_float_on_top,
+            set_helping_size,
             tidy::work_inspect,
             tidy::work_start,
             tidy::work_cancel,

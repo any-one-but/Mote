@@ -4,11 +4,9 @@ import {
   MOOD_LIST,
   POSE_KEYS,
   REST,
-  EATEN_MAX,
   type EngineSnapshot,
   type ManualFace,
   type Mood,
-  type Offering,
   type Pose,
 } from "@/components/companion/engine";
 import {
@@ -20,7 +18,7 @@ import {
 } from "@/lib/companion/bus";
 import { ATTRS, FRIENDLY, LASTING_MOODS, type Attr } from "@/components/companion/mind";
 import { REACTION_GROUPS, REACTIONS, type Reaction } from "@/components/companion/reactions";
-import { APPLE_APPS, LINES, type BubbleKind } from "@/components/companion/speech";
+import { LINES, type BubbleKind } from "@/components/companion/speech";
 import { DEFAULT_SETTINGS, useSettings, type Settings } from "@/lib/companion/settings";
 import { Button, Page, Row, Section, Segmented, Slider, Toggle } from "./ui";
 
@@ -60,56 +58,30 @@ const MOOD_NAMES: Record<Mood, string> = {
   cute: "Cute",
   delight: "Delight",
   surprise: "Surprise",
-  doze: "Doze",
-  sleep: "Sleep",
-  wake: "Wake up",
   dizzy: "Dizzy",
   purr: "Purr",
   huff: "Huff",
   sulk: "Sulk",
-  yawn: "Yawn",
   fidget: "Fidget",
   hum: "Hum",
   checkin: "Check in",
-  startle: "Startled awake",
-  munch: "Munch a file",
-  chess: "Chess",
-  minecraft: "Minecraft",
-  gaming: "Gaming",
-  rumble: "Tummy rumble",
+  present: "Offering options",
+  work: "Working",
+  tada: "Job done",
+  uhoh: "Job trouble",
 };
-
-/** Pretend things to drop on Mote from the debug window. */
-const PRETEND_DROPS: Array<[string, Offering]> = [
-  ["Tiny file", { name: "note.txt", size: 600, kind: "file", game: null, important: false }],
-  ["Photo", { name: "beach.jpg", size: 3_200_000, kind: "file", game: null, important: false }],
-  [
-    "Huge video",
-    { name: "movie.mov", size: 2_400_000_000, kind: "file", game: null, important: false },
-  ],
-  ["Chess", { name: "Chess", size: 0, kind: "app", game: "chess", important: true }],
-  ["Minecraft", { name: "Minecraft", size: 0, kind: "app", game: "minecraft", important: true }],
-  ["A game", { name: "Hades", size: 0, kind: "app", game: "game", important: false }],
-  ["Apple app", { name: "Safari", size: 0, kind: "app", game: null, important: true, bundle: "" }],
-  ["Other app", { name: "Obsidian", size: 0, kind: "app", game: null, important: true }],
-  ["System file", { name: "hosts", size: 213, kind: "file", game: null, important: true }],
-  ["Folder", { name: "Documents", size: 0, kind: "folder", game: null, important: false }],
-];
 
 /**
- * Files get a fresh name each time, so Mote hasn't eaten them yet, and "Apple
- * app" is a different one of the Mac's own apps each time.
+ * Things to give Mote from the debug window. In the Mac app a path you type
+ * is real (Mote really works on it); these quick ones are only for trying
+ * the conversation in a browser, where everything is pretend.
  */
-const fresh = (thing: Offering): Offering => {
-  if (thing.bundle === "") {
-    const ids = Object.keys(APPLE_APPS);
-    const bundle = ids[Math.floor(Math.random() * ids.length)];
-    return { ...thing, bundle, name: bundle.split(".").pop() ?? "App" };
-  }
-  return thing.kind === "file" && !thing.important
-    ? { ...thing, name: thing.name.replace(".", `-${Math.floor(Math.random() * 900 + 100)}.`) }
-    : thing;
-};
+const PRETEND_GIFTS: Array<[string, string[]]> = [
+  ["A folder", ["/Users/you/Pictures/Holiday/"]],
+  ["A video", ["/Users/you/Movies/talk.mov"]],
+  ["Two videos", ["/Users/you/Movies/a.mp4", "/Users/you/Movies/b.mkv"]],
+  ["A photo", ["/Users/you/Pictures/cat.jpg"]],
+];
 
 const TAB_KEY = "mote.debug.tab";
 
@@ -187,7 +159,6 @@ function DebugWindow() {
     if (cmd.do === "autoMoods") local.autoMoods = cmd.value;
     if (cmd.do === "loop") local.loop = cmd.value;
     if (cmd.do === "guides") local.guides = cmd.value;
-    if (cmd.do === "sleepLine") local.sleepLine = cmd.value;
     if (cmd.do === "fakeAudio") local.fakeAudio = cmd.value;
     if (cmd.do === "manual") local.manual = cmd.face !== null;
     Object.assign(pending.current, local);
@@ -285,16 +256,6 @@ function MoodsTab({ snap, debug, command }: Ctx) {
             onChange={(value) => command({ do: "loop", value })}
           />
         </Row>
-        <Row
-          label="Flat sleeping eyes"
-          hint="Sleep with plain straight lines instead of the curved eyes."
-        >
-          <Toggle
-            label="Flat sleeping eyes"
-            checked={debug.sleepLine}
-            onChange={(value) => command({ do: "sleepLine", value })}
-          />
-        </Row>
       </Section>
     </>
   );
@@ -305,16 +266,12 @@ function MoodsTab({ snap, debug, command }: Ctx) {
 const ATTR_NAME: Record<Attr, string> = {
   happy: "Happy",
   restless: "Restless",
-  alert: "Alert",
-  full: "Full",
 };
 
 // Soft colours for each end of a feeling's track.
 const TINT: Record<Attr, [string, string]> = {
   happy: ["#e7b7a2", "#b9cfa0"],
   restless: ["#b9cbd9", "#e9c08f"],
-  alert: ["#c9bfdc", "#ead48f"],
-  full: ["#e8b48f", "#c9d6a6"],
 };
 
 const seconds = (ms: number) => `${Math.max(0, Math.ceil(ms / 1000))}s`;
@@ -322,7 +279,6 @@ const seconds = (ms: number) => `${Math.max(0, Math.ceil(ms / 1000))}s`;
 function MindTab({ snap, command, settings }: Ctx) {
   const [show, setShow] = useState<"all" | "live" | "idea">("all");
   if (!snap) return <p className="empty">Nothing yet. Is Mote’s window open?</p>;
-  const asleep = snap.mood === "sleep";
   const list = REACTIONS.filter((r) => show === "all" || r.status === show);
   return (
     <>
@@ -335,32 +291,19 @@ function MindTab({ snap, command, settings }: Ctx) {
           const [lo, hi] = a.flip ? [TINT[a.key][1], TINT[a.key][0]] : TINT[a.key];
           const around = snap.intrigued.includes("you") || snap.intrigued.includes("typing");
           const next = seconds(snap.driftIn[a.key]);
+          const busy = around || snap.helping !== null;
           const note =
-            a.key === "full"
-              ? settings.friendly
-                ? "No hunger in Friendly mode: snacks are just a treat"
-                : asleep
-                  ? "Asleep: barely getting hungrier, and never past peckish"
-                  : `A step hungrier in ${next}`
-              : a.key === "alert"
-                ? asleep
-                  ? `Resting: recharges in ${seconds(snap.driftIn.alert)}`
-                  : `Wears off a step in ${seconds(snap.driftIn.alert)}`
-                : a.key === "happy"
-                  ? settings.friendly && v <= FRIENDLY.happyMin
-                    ? "Friendly mode: never lower than this"
-                    : asleep
-                      ? "Asleep: not getting any crosser"
-                      : around
-                        ? "You’re here, so not getting crosser"
-                        : `A step crosser in ${next}`
-                  : settings.friendly && v >= FRIENDLY.restlessMax
-                    ? "Friendly mode: never more restless than this"
-                    : asleep
-                      ? "Asleep: calming down"
-                      : around
-                        ? "You’re here, so not getting restless"
-                        : `A step more restless in ${next}`;
+            a.key === "happy"
+              ? settings.friendly && v <= FRIENDLY.happyMin
+                ? "Friendly mode: never lower than this"
+                : busy
+                  ? "You’re here, so not getting crosser"
+                  : `A step crosser in ${next}`
+              : settings.friendly && v >= FRIENDLY.restlessMax
+                ? "Friendly mode: never more restless than this"
+                : busy
+                  ? "You’re here, so not getting restless"
+                  : `A step more restless in ${next}`;
           return (
             <div key={a.key} className="meter">
               <div className="meter-top">
@@ -435,8 +378,8 @@ function MindTab({ snap, command, settings }: Ctx) {
                       : "your pointer"
                 } right now.`
               : snap.intrigued.includes("you")
-                ? "You’ve been using Mote’s window: fewer random moods, no getting tired."
-                : "Doing their own thing. Alertness slowly wears off."
+                ? "You’ve been using Mote’s window: fewer random moods."
+                : "Doing their own thing."
           }
         >
           <span className={`chip ${snap.intrigued.length ? "is-mood" : "is-off"}`}>
@@ -550,6 +493,28 @@ function ReactionRow({
   );
 }
 
+function GiveForm({ onGive }: { onGive: (paths: string[]) => void }) {
+  const [path, setPath] = useState("");
+  return (
+    <form
+      className="button-row"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (path.trim()) onGive([path.trim()]);
+      }}
+    >
+      <input
+        className="text-input"
+        value={path}
+        onChange={(e) => setPath(e.target.value)}
+        placeholder="/path/to/a/folder"
+        aria-label="Path"
+      />
+      <Button onClick={() => path.trim() && onGive([path.trim()])}>Give</Button>
+    </form>
+  );
+}
+
 /* Speech */
 
 const KIND_NAME: Record<BubbleKind, string> = {
@@ -557,9 +522,6 @@ const KIND_NAME: Record<BubbleKind, string> = {
   ask: "Question",
   move: "Move me",
   pet: "Pet me",
-  feed: "Feed me",
-  mask: "Sleep mask",
-  game: "Play with me",
 };
 
 function SpeechTab({ snap, command }: Ctx) {
@@ -808,26 +770,18 @@ function MotionTab({ snap, debug, command }: Ctx) {
           />
         </Row>
         <Row
-          label="Drop something on Mote"
-          hint="As if you dragged it onto the window. Nothing real is used."
+          label="Give Mote something"
+          hint="As if you dropped it on the window. A path you type is real in the Mac app; the quick ones are pretend (browser only)."
           stacked
         >
+          <GiveForm onGive={(paths) => command({ do: "give", paths })} />
           <div className="button-row">
-            {PRETEND_DROPS.map(([label, thing]) => (
-              <Button key={label} onClick={() => command({ do: "offer", thing: fresh(thing) })}>
+            {PRETEND_GIFTS.map(([label, paths]) => (
+              <Button key={label} onClick={() => command({ do: "give", paths })}>
                 {label}
               </Button>
             ))}
           </div>
-        </Row>
-      </Section>
-      <Section title="Eaten lately">
-        <Row
-          label={snap?.eaten.length ? snap.eaten.join(", ") : "Nothing yet"}
-          hint={`Mote won’t eat these again. Only the last ${EATEN_MAX} are remembered.`}
-          stacked
-        >
-          <Button onClick={() => command({ do: "forgetEaten" })}>Forget them</Button>
         </Row>
       </Section>
       <Section title="Overlays">
