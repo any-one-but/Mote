@@ -63,14 +63,14 @@ pokes in a row is too many, and Mote gets annoyed.
   and so does typing in another app (Mote only notices *that* keys are
   pressed, never which).
 
-Mote has two feelings, Happy and Restless, scored 0 to 10. Left alone, Mote
-slowly gets crosser and more restless (not while you're around or while
-they're helping you); pets, company and finished jobs lift them back up. Far
-enough either way, they show: a frustrated Mote scowls, huffs and sulks, a
-restless one fidgets, a happy one hums. Feeling down, Mote asks for a pet;
-restless, to be moved somewhere new. Otherwise Mote only speaks up when
-something happens. In **Friendly mode** (Settings) Mote never gets cross or
-hurt.
+Mote is always cheerful: interactions are momentary and nothing changes
+Mote over time. Mote only speaks up when something happens (after a pet,
+getting dizzy, something starting to play, you coming back after a while).
+
+(A whole system of feelings that drift over time, lasting moods and needs is
+still in the code, switched off: `MIND_ENABLED` in
+`src/components/companion/mind.ts`. Its Debug tab and saved state come back
+with it.)
 
 ## Try it as a Mac app
 
@@ -86,14 +86,13 @@ Drag the window by its top edge.
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. You can choose
-whether Mote follows your pointer, Friendly mode, how lively Mote is, the pace
+whether Mote follows your pointer, how lively Mote is, the pace
 for helping with files, and whether the window floats above others.
 
 Text in the app calls Mote "Mote", or "they/them" when a pronoun is needed.
 
 At the bottom of Settings, **Debug mode** opens a separate window of testing tools:
 
-- **Mind**: Mote's feelings and lasting moods, and every reaction Mote has
 - **Moods**: play any mood on demand, blink, poke, turn off automatic moods, loop a mood
 - **Pose**: shape Mote's face by hand with sliders, then "Copy values" to share the numbers
 - **Motion**: slow time down, freeze Mote, show outlines of the eye cuts, pretend
@@ -129,7 +128,7 @@ Each face there is one expression frozen in place, handy for tweaking how they l
 - `desktop/` — the Mac app's pages: Mote (`index.html`), Settings, Debug, and the gallery
 - `desktop/ui.tsx` and `desktop/ui.css` — the soft buttons, switches and sliders
 - `src/lib/companion/settings.ts` — the list of settings and their defaults
-- `src/components/companion/mind.ts` — Mote's two feelings, how they drift, the lasting moods
+- `src/components/companion/mind.ts` — Mote's feelings (switched off for now)
 - `src/components/companion/reactions.ts` — every stimulus → response rule
 - `src/components/companion/speech.ts` — everything Mote can say, and when
 - `src/components/companion/SpeechBubble.tsx` — how the bubbles look

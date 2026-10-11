@@ -4,8 +4,6 @@ import { listenBus, send } from "@/lib/companion/bus";
 
 export type Settings = {
   followPointer: boolean;
-  /** Mote never gets cross or hurt: punishing reactions become gentle ones. */
-  friendly: boolean;
   energy: Energy;
   /**
    * How hard the computer works when Mote helps with files: as each job
@@ -20,7 +18,6 @@ export type Pace = "normal" | "turbo" | "gentle";
 
 export const DEFAULT_SETTINGS: Settings = {
   followPointer: true,
-  friendly: false,
   energy: "normal",
   pace: "normal",
   floatOnTop: false,
@@ -44,7 +41,6 @@ export function readSettings(): Settings {
   const bool = (v: unknown, fb: boolean) => (typeof v === "boolean" ? v : fb);
   return {
     followPointer: bool(raw.followPointer, d.followPointer),
-    friendly: bool(raw.friendly, d.friendly),
     energy: pick(raw.energy, ["calm", "normal", "lively"] as const, d.energy),
     pace: pick(raw.pace, ["normal", "turbo", "gentle"] as const, d.pace),
     floatOnTop: bool(raw.floatOnTop, d.floatOnTop),

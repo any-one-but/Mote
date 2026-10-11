@@ -87,10 +87,10 @@ export function Companion() {
     });
   };
 
-  const { followPointer, energy, friendly, debug, pace } = settings;
+  const { followPointer, energy, debug, pace } = settings;
   useEffect(() => {
-    engineRef.current?.configure({ followPointer, energy, friendly });
-  }, [followPointer, energy, friendly]);
+    engineRef.current?.configure({ followPointer, energy });
+  }, [followPointer, energy]);
 
   useEffect(
     () =>
@@ -248,7 +248,7 @@ export function Companion() {
         <Face
           onEngine={(engine) => {
             engineRef.current = engine;
-            engine?.configure({ followPointer, energy, friendly });
+            engine?.configure({ followPointer, energy });
             applyAudio();
           }}
           onMood={(label) => {

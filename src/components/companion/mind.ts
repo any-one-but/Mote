@@ -25,6 +25,16 @@ export const ATTRS: Array<{
 export const MIND_START: MindValues = { happy: 5, restless: 5 };
 
 /**
+ * The mind is switched off for now: Mote doesn't keep or change feelings
+ * over time, nothing about them is saved, and Mote doesn't ask for things
+ * they "need". Instead they're always in this cheerful, settled state. Set
+ * MIND_ENABLED to true to bring the whole system back (it's all still here,
+ * and anything saved before it was switched off is left untouched).
+ */
+export const MIND_ENABLED = false;
+export const ALWAYS: MindValues = { happy: 8, restless: 5 };
+
+/**
  * Friendly mode's limits: however long Mote is left alone, feelings stop
  * short of anything upsetting.
  */

@@ -1,7 +1,9 @@
 import {
   ATTRS,
+  ALWAYS,
   FRIENDLY,
   feelings,
+  MIND_ENABLED,
   lastingMoods,
   loadMind,
   MIND_START,
@@ -809,7 +811,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     energy: "normal",
     media: null,
     placement: null,
-    friendly: false,
+    // Always gentle: no sharp replies, nothing that hurts.
+    friendly: true,
   };
   const debug = {
     timeScale: 1,
@@ -864,7 +867,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   }
 
   // The mind: feelings, their drift timers, and a tally of reactions.
-  let feel: MindValues = loadMind();
+  // (With the mind switched off, Mote's feelings stay put: always happy.)
+  let feel: MindValues = MIND_ENABLED ? loadMind() : { ...ALWAYS };
   const driftAt: MindValues = Object.fromEntries(ATTRS.map((a) => [a.key, a.every])) as MindValues;
   const fired: Record<string, { count: number; at: number }> = {};
   let moodsNow: LastingMood[] = lastingMoods(feel);
@@ -934,7 +938,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     tick.count++;
     tick.at = clock;
     const effects = kindly(r.effects);
-    if (effects) feel = nudge(feel, effects);
+    if (effects && MIND_ENABLED) feel = nudge(feel, effects);
     log(`reaction: ${r.name.toLowerCase()}`);
   };
 
@@ -1018,7 +1022,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const line = lineById.get(b.lineId);
     if (b.reply || !line) return;
     const effects = kindly(line.effects?.[outcome]);
-    if (effects) feel = nudge(feel, effects);
+    if (effects && MIND_ENABLED) feel = nudge(feel, effects);
     if (outcome !== "done") react(`answer-${outcome}`);
     const replies = (options.friendly && line.kindReplies?.[outcome]) || line.replies?.[outcome];
     if (replies?.length) {
@@ -1056,7 +1060,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
    * scene. Needs are what make Mote speak up on their own.
    */
   const currentNeed = (): string | null => {
-    if (helping) return null;
+    if (helping || !MIND_ENABLED) return null;
     if (feel.happy <= 3) return "pet-me";
     if (feel.restless >= 7.5) return "move-me";
     return null;
@@ -1214,7 +1218,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
   };
   window.addEventListener("pointermove", onMove, { passive: true });
-  const keepFeelings = () => saveMind(feel);
+  const keepFeelings = () => MIND_ENABLED && saveMind(feel);
   window.addEventListener("pagehide", keepFeelings);
 
   let raf = 0;
@@ -1258,14 +1262,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       return;
     } else if (pokes.length >= 4 && mood !== "frustrate") {
       pokes.length = 0;
-      if (options.friendly) {
-        // Lots of pokes just tickle.
-        react("poke-giggle");
-        start("cute", now);
-      } else {
-        react("poke-spam");
-        start("frustrate", now);
-      }
+      // Too many pokes: a moment of annoyance (it passes straight away).
+      react("poke-spam");
+      start("frustrate", now);
     } else if (moodsNow.includes("frustrated")) {
       react("poke-grumpy");
       if (mood !== "frustrate") start("frustrate", now);
@@ -1285,6 +1284,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       driftAt[a.key] -= ms;
       if (driftAt[a.key] > 0) continue;
       driftAt[a.key] += a.every;
+      if (!MIND_ENABLED) continue;
       // Not while you're around (using Mote's window or typing nearby), or
       // while Mote is helping you with something.
       const around = clock < youUntil || clock < typingUntil || helping !== null;
@@ -1339,7 +1339,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     for (const m of moodsNow) if (!next.includes(m)) log(`no longer ${m}`);
     moodsNow = next;
 
-    if (now - savedAt > 5000) {
+    if (MIND_ENABLED && now - savedAt > 5000) {
       savedAt = now;
       saveMind(feel);
     }

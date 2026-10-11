@@ -51,16 +51,6 @@ function SettingsWindow() {
             onChange={(followPointer) => set({ followPointer })}
           />
         </Row>
-        <Row
-          label="Friendly mode"
-          hint="Mote never gets cross or hurt: no grumpiness, sulking or sharp words."
-        >
-          <Toggle
-            label="Friendly mode"
-            checked={settings.friendly}
-            onChange={(friendly) => set({ friendly })}
-          />
-        </Row>
         <Row label="Energy" hint="How often Mote does something on their own." stacked>
           <Segmented
             label="Energy"
