@@ -22,6 +22,7 @@ import {
 } from "@/lib/companion/desktop";
 import { useSettings } from "@/lib/companion/settings";
 import { CaloriePad } from "@/components/companion/CaloriePad";
+import { Checkers } from "@/components/companion/Checkers";
 import { applyToBook, dateKey, readBook } from "@/lib/companion/calories";
 import { markCalorieCare, useCalorieBook } from "@/lib/companion/calorie-store";
 
@@ -39,6 +40,7 @@ export function Companion() {
   const [book, commitBook] = useCalorieBook();
   const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
   const [logging, setLogging] = useState(false);
+  const [playing, setPlaying] = useState(false);
   const debugState = useRef<DebugState>({ ...DEBUG_DEFAULTS });
   const events = useRef<string[]>([]);
   const realMedia = useRef<MediaInfo>(null);
@@ -53,8 +55,9 @@ export function Companion() {
   const ownMoveUntil = useRef(0);
   useEffect(() => {
     ownMoveUntil.current = performance.now() + 800;
-    setHelpingSize(helping);
-  }, [helping]);
+    // The board needs a taller window than the file options do.
+    setHelpingSize(helping || playing, playing ? { width: 430, height: 740 } : undefined);
+  }, [helping, playing]);
   const [anchor, setAnchor] = useState({ x: 0, y: 0 });
 
   // The bubble's tail points down at Mote, just above the eyes.
@@ -69,7 +72,15 @@ export function Companion() {
   useEffect(() => {
     measure();
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    // Mote also changes size when the calorie card or the checkers board
+    // opens; the bubble follows.
+    const svg = buttonRef.current?.querySelector("svg.face");
+    const watch = svg ? new ResizeObserver(measure) : null;
+    if (svg) watch?.observe(svg);
+    return () => {
+      window.removeEventListener("resize", measure);
+      watch?.disconnect();
+    };
   }, [measure]);
 
   // Let Mote know roughly where on the screen the window is.
@@ -237,16 +248,16 @@ export function Companion() {
   // opens Mote's menu.
   return (
     <div
-      className={`stage${helping ? " is-helping" : ""}${logging ? " is-logging" : ""}`}
+      className={`stage${helping ? " is-helping" : ""}${logging ? " is-logging" : ""}${playing && !helping ? " is-playing" : ""}`}
       onContextMenu={(e) => {
         const target = e.target;
         if (target instanceof Element && target.closest("input, textarea")) return;
         e.preventDefault();
         // Not while Mote is helping with files: that conversation has the window.
         if (helping) return;
-        if (target instanceof Element && target.closest(".cal-pad, .mote-menu")) return;
+        if (target instanceof Element && target.closest(".cal-pad, .mote-menu, .ck")) return;
         const width = 196;
-        const height = 100;
+        const height = 144;
         setMenuAt({
           x: Math.max(8, Math.min(e.clientX, window.innerWidth - width - 8)),
           y: Math.max(8, Math.min(e.clientY, window.innerHeight - height - 8)),
@@ -333,7 +344,11 @@ export function Companion() {
         gift={gift}
         onOpen={(open) => {
           setHelping(open);
-          if (open) setLogging(false);
+          if (open) {
+            setLogging(false);
+            // The game is saved; it'll be there when you open the board again.
+            setPlaying(false);
+          }
         }}
       />
       {menuAt ? (
@@ -343,11 +358,23 @@ export function Companion() {
             role="menuitem"
             onClick={() => {
               setMenuAt(null);
+              setPlaying(false);
               setLogging(true);
               markCalorieCare();
             }}
           >
             Log calories
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setMenuAt(null);
+              setLogging(false);
+              setPlaying(true);
+            }}
+          >
+            Play checkers
           </button>
           <button
             type="button"
@@ -362,6 +389,7 @@ export function Companion() {
           </button>
         </div>
       ) : null}
+      {playing && !helping ? <Checkers engine={getEngine} onClose={() => setPlaying(false)} /> : null}
       {logging ? (
         <CaloriePad
           total={todayTotal}

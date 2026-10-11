@@ -1,0 +1,184 @@
+// How Mote picks a checkers move: a look-ahead search (alpha-beta) over the
+// moves, scoring each position by pieces, kings, how far men have come, and
+// a few habits good players have. The level sets how far ahead Mote looks
+// and how often they go with something other than the best move.
+
+import {
+  applyToBoard,
+  colOf,
+  isKing,
+  legalMoves,
+  other,
+  rowOf,
+  sameMove,
+  sideOf,
+  type Board,
+  type Move,
+  type Side,
+} from "./rules.ts";
+
+export type Level = "easy" | "normal" | "hard";
+
+export const LEVELS: Level[] = ["easy", "normal", "hard"];
+
+export type Choice = {
+  move: Move;
+  /** How good the position is for Mote after this move (about 100 = a man up). */
+  score: number;
+  /** How far ahead Mote looked. */
+  depth: number;
+  /** Mote went with something other than their best move on purpose. */
+  slip: boolean;
+};
+
+const WIN = 100_000;
+const MAN = 100;
+const KING = 170;
+
+const CENTER = new Set([13, 14, 17, 18]);
+
+/** How good the board is for `side`. */
+export function evaluate(board: Board, side: Side): number {
+  let mine = 0;
+  let theirs = 0;
+  let pieces = 0;
+  for (let sq = 0; sq < 32; sq++) {
+    const cell = board[sq];
+    if (!cell) continue;
+    pieces++;
+    const owner = sideOf(cell)!;
+    const row = rowOf(sq);
+    let v: number;
+    if (isKing(cell)) {
+      v = KING;
+      // Kings like the middle of the board, where they reach more.
+      const col = colOf(sq);
+      v -= (Math.abs(3.5 - row) + Math.abs(3.5 - col)) * 2;
+    } else {
+      v = MAN;
+      // Men are worth more the closer they are to being crowned.
+      const ahead = owner === "you" ? 7 - row : row;
+      v += ahead * ahead * 0.9;
+      // Holding the back row keeps the other side from crowning.
+      if (ahead === 0) v += 8;
+    }
+    if (CENTER.has(sq)) v += 6;
+    if (owner === side) mine += v;
+    else theirs += v;
+  }
+  let score = mine - theirs;
+  // Ahead, trade down: fewer pieces left makes the lead count for more.
+  if (pieces < 24 && score !== 0) score += Math.sign(score) * (24 - pieces) * 3;
+  return score;
+}
+
+type Search = {
+  deadline: number;
+  nodes: number;
+  stopped: boolean;
+};
+
+function order(moves: Move[], board: Board, side: Side): Move[] {
+  // Longer jumps and crowning moves first; they cut the search down fastest.
+  const crownRow = side === "you" ? 0 : 7;
+  const key = (m: Move) => {
+    const to = m.path[m.path.length - 1];
+    const crowns = !isKing(board[m.from]) && rowOf(to) === crownRow;
+    return m.captures.length * 10 + (crowns ? 5 : 0);
+  };
+  return moves.slice().sort((a, b) => key(b) - key(a));
+}
+
+function negamax(
+  board: Board,
+  side: Side,
+  depth: number,
+  alpha: number,
+  beta: number,
+  ply: number,
+  s: Search,
+): number {
+  if ((++s.nodes & 1023) === 0 && performance.now() > s.deadline) s.stopped = true;
+  if (s.stopped) return 0;
+  const moves = legalMoves(board, side);
+  if (!moves.length) return -WIN + ply;
+  // Keep going while jumps are forced, so a trade isn't judged halfway.
+  const forced = moves[0].captures.length > 0;
+  if (depth <= 0 && (!forced || depth < -8)) return evaluate(board, side);
+  let best = -Infinity;
+  for (const m of order(moves, board, side)) {
+    const next = applyToBoard(board, m).board;
+    const v = -negamax(next, other(side), depth - 1, -beta, -alpha, ply + 1, s);
+    if (s.stopped) return 0;
+    if (v > best) best = v;
+    if (v > alpha) alpha = v;
+    if (alpha >= beta) break;
+  }
+  return best;
+}
+
+/**
+ * Every move with its score, searched `depth` moves ahead. Scores are exact
+ * for moves within `spread` of the best; worse ones only promise they're worse.
+ */
+function scoreMoves(board: Board, side: Side, depth: number, spread: number, s: Search, first?: Move) {
+  const moves = order(legalMoves(board, side), board, side);
+  if (first) {
+    const i = moves.findIndex((m) => sameMove(m, first));
+    if (i > 0) moves.unshift(...moves.splice(i, 1));
+  }
+  const scored: Array<{ move: Move; score: number }> = [];
+  let best = -Infinity;
+  for (const m of moves) {
+    const next = applyToBoard(board, m).board;
+    const floor = best - spread - 1;
+    const v = -negamax(next, other(side), depth - 1, -Infinity, -floor, 1, s);
+    if (s.stopped) return null;
+    scored.push({ move: m, score: v });
+    if (v > best) best = v;
+  }
+  return scored.sort((a, b) => b.score - a.score);
+}
+
+const SETTINGS: Record<Level, { depth: number; ms: number; slip: number; spread: number }> = {
+  // Looks two moves ahead and often goes with something that just looks fine.
+  easy: { depth: 2, ms: 200, slip: 0.35, spread: 140 },
+  // A fair game: looks a few moves ahead, now and then picks a near-best move.
+  normal: { depth: 5, ms: 500, slip: 0.12, spread: 30 },
+  // Looks as far ahead as it can in about a second, and always plays the best.
+  hard: { depth: 20, ms: 1100, slip: 0, spread: 0 },
+};
+
+export function chooseMove(
+  board: Board,
+  side: Side,
+  level: Level,
+  rand: () => number = Math.random,
+): Choice | null {
+  const moves = legalMoves(board, side);
+  if (!moves.length) return null;
+  const cfg = SETTINGS[level];
+  if (moves.length === 1) {
+    return { move: moves[0], score: evaluate(applyToBoard(board, moves[0]).board, side), depth: 0, slip: false };
+  }
+  const s: Search = { deadline: performance.now() + cfg.ms, nodes: 0, stopped: false };
+  let scored: Array<{ move: Move; score: number }> | null = null;
+  let reached = 0;
+  for (let depth = 1; depth <= cfg.depth; depth++) {
+    const result = scoreMoves(board, side, depth, cfg.spread, s, scored?.[0]?.move);
+    if (!result) break;
+    scored = result;
+    reached = depth;
+    // A forced win or loss is found; looking further won't change it.
+    if (Math.abs(result[0].score) > WIN / 2) break;
+  }
+  if (!scored) return { move: moves[0], score: 0, depth: 0, slip: false };
+  const best = scored[0];
+  // Slipping: pick among the moves that look roughly as good.
+  if (cfg.slip > 0 && rand() < cfg.slip) {
+    const near = scored.filter((r) => best.score - r.score <= cfg.spread && r.score > -WIN / 2);
+    const pick = near[Math.floor(rand() * near.length)] ?? best;
+    return { move: pick.move, score: pick.score, depth: reached, slip: pick !== best };
+  }
+  return { move: best.move, score: best.score, depth: reached, slip: false };
+}

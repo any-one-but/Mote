@@ -105,6 +105,13 @@ const MOOD_NAMES: Record<Mood, string> = {
   reckon: "Thinking it over",
   worry: "Worried",
   plead: "Upset",
+  "ck-watch": "Checkers: your turn",
+  "ck-think": "Checkers: thinking",
+  "ck-smug": "Checkers: good move",
+  "ck-ouch": "Checkers: lost a piece",
+  "ck-crown": "Checkers: crowned",
+  "ck-win": "Checkers: won",
+  "ck-lose": "Checkers: lost",
 };
 
 /**

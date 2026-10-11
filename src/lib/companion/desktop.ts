@@ -24,9 +24,12 @@ export function showDebugWindow(open: boolean) {
   else if (open) window.open("debug.html", "mote-debug", "popup,width=600,height=780");
 }
 
-/** Grows Mote's window to fit the options while helping, and back after. */
-export function setHelpingSize(helping: boolean) {
-  if (isDesktopApp()) void invoke("set_helping_size", { helping }).catch(() => {});
+/** Grows Mote's window to fit the options while helping (or the board while
+ * playing), and back after. */
+export function setHelpingSize(helping: boolean, size?: { width: number; height: number }) {
+  if (isDesktopApp()) {
+    void invoke("set_helping_size", { helping, width: size?.width, height: size?.height }).catch(() => {});
+  }
 }
 
 /** Whether Mote opens when you log in to your Mac. */

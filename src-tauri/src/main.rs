@@ -146,10 +146,16 @@ fn set_float_on_top(app: AppHandle, on: bool) -> Result<(), String> {
 static BEFORE_HELPING: std::sync::Mutex<Option<(f64, f64, f64)>> = std::sync::Mutex::new(None);
 
 /// While Mote helps with files the window grows to fit the options (to at
-/// least 380 × 600 points), moving up if it would go off the bottom of the
-/// screen. Afterwards it goes back to how it was.
+/// least 380 × 600 points, or the size asked for, like the checkers board's),
+/// moving up if it would go off the bottom of the screen. Afterwards it goes
+/// back to how it was.
 #[tauri::command]
-fn set_helping_size(app: AppHandle, helping: bool) -> Result<(), String> {
+fn set_helping_size(
+    app: AppHandle,
+    helping: bool,
+    width: Option<f64>,
+    height: Option<f64>,
+) -> Result<(), String> {
     use tauri::{LogicalPosition, LogicalSize};
     let Some(window) = app.get_webview_window("main") else { return Ok(()) };
     let scale = window.scale_factor().map_err(|e| e.to_string())?;
@@ -157,12 +163,13 @@ fn set_helping_size(app: AppHandle, helping: bool) -> Result<(), String> {
     let pos = window.outer_position().map_err(|e| e.to_string())?.to_logical::<f64>(scale);
     let mut before = BEFORE_HELPING.lock().unwrap();
     if helping {
-        if before.is_some() {
-            return Ok(());
-        }
-        let (w, h) = (size.width.max(380.0), size.height.max(600.0));
+        let (w, h) = (size.width.max(width.unwrap_or(380.0)), size.height.max(height.unwrap_or(600.0)));
         if (w, h) == (size.width, size.height) {
             return Ok(());
+        }
+        if before.is_some() {
+            // Already grown for something else: just grow a little more.
+            return window.set_size(LogicalSize::new(w, h)).map_err(|e| e.to_string());
         }
         // Keep it on screen: if the bottom would hang off, move up.
         let mut lift = 0.0;

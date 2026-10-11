@@ -139,6 +139,26 @@ then Mote mentions where today stands, asks once a day if you haven't logged
 anything, says goodnight about the day after 9pm, and mentions yesterday the
 next morning. Every line is in `src/components/companion/calorie-lines.ts`.
 
+## Checkers
+
+Right-click Mote and choose **Play checkers**. Pick a level (**Easy**: Mote is
+still learning; **Normal**: a fair game; **Hard**: Mote looks as far ahead as
+they can in about a second and always plays their best), then **Play**. Mote's
+window grows to fit the board, with Mote sitting just above it.
+
+You're the dark pieces and go first. Click a piece, then one of the dots. The
+usual rules: jumping is compulsory (the pieces that can jump pulse), a jump
+keeps going while it can, and a piece that reaches the far side is crowned.
+Mote's pieces are tiny Motes that blink and look at whichever piece you pick
+up.
+
+Mote plays along: watching your pointer on your turn, scanning the board on
+theirs, wincing when you take a piece, looking smug when they take one,
+puffing up proud when they're crowned, a victory dance or a good-sport smile
+at the end. They comment on the big moments (and once in a while on a slip of
+their own). Close the board mid-game and it's saved for next time. Your
+record against Mote at each level sits at the top of the board.
+
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. You can choose
@@ -170,7 +190,7 @@ The current Mac app is already built and kept in the project. Quit Mote if it
 is open, then drag the new one into Applications and replace the old one.
 
 - `src-tauri/target/release/bundle/macos/Mote.app`
-- `src-tauri/target/release/bundle/dmg/Mote_0.3.7_aarch64.dmg` (an installer you can share)
+- `src-tauri/target/release/bundle/dmg/Mote_0.4.0_aarch64.dmg` (an installer you can share)
 
 To build a fresh copy later:
 
@@ -198,6 +218,9 @@ Each face there is one expression frozen in place, handy for tweaking how they l
 - `desktop/senses/main.swift` — the helper that notices sound, the pointer and typing
 - `src/components/companion/Helper.tsx` — the conversation when you give Mote something
 - `src/components/companion/assistant.ts` — what Mote says while helping, and the jobs on offer
+- `src/components/companion/Checkers.tsx` and `checkers.css` — the checkers board
+- `src/components/companion/checkers-lines.ts` — what Mote says over a game
+- `src/lib/checkers/rules.ts` — the rules; `ai.ts` — how Mote picks a move
 - `src/components/companion/links.ts` — saved links, their history, and how Mote picks one to suggest
 - `src-tauri/src/links.rs` — reading a dragged link, and opening one in your browser
 - `src-tauri/src/tidy/` — the jobs themselves, one file per step (rebuilt from the `clean.sh` cleaner)

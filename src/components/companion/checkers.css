@@ -1,0 +1,444 @@
+/* Checkers in Mote's window: a cream card under Mote, a warm wooden-feeling
+   board, your pieces in ink and Mote's as little cream Motes. */
+
+.ck {
+  --ck-card: #fffcf7;
+  --ck-ink: #2e2520;
+  --ck-soft: #8b7d71;
+  --ck-light: #f4ece1;
+  --ck-dark: #d6c2ab;
+  --ck-accent: #e3997a;
+  --ck-accent-deep: #d5866a;
+  --ck-sunk: #ebe2d5;
+  position: relative;
+  z-index: 6;
+  flex: none;
+  margin: 0 12px 12px;
+  padding: 12px;
+  border-radius: 22px;
+  background: var(--ck-card);
+  color: var(--ck-ink);
+  font-family: "Outfit", ui-rounded, system-ui, sans-serif;
+  box-shadow:
+    0 0 0 1px rgb(35 28 24 / 0.06),
+    0 10px 24px -12px rgb(35 28 24 / 0.25);
+}
+
+.ck button {
+  font: inherit;
+}
+
+.ck-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-left: 4px;
+}
+
+.ck-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.ck-meta {
+  flex: 1;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ck-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.ck-meta strong {
+  color: var(--ck-ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ck-x {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ck-sunk);
+  color: var(--ck-ink);
+  line-height: 0;
+  transition: background 0.15s ease;
+}
+
+.ck-x:hover {
+  background: #e4d9ca;
+}
+
+.ck-x svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+  stroke-linecap: round;
+}
+
+.ck-quiet {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ck-soft);
+  font-size: 13px;
+  font-weight: 500;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.ck-quiet:hover {
+  background: var(--ck-sunk);
+  color: var(--ck-ink);
+}
+
+.ck-quiet.is-sure {
+  background: #f6e0d3;
+  color: #a4482e;
+}
+
+/* The board. Its size follows the window: as wide as the card, but never
+   taller than what's left under Mote. */
+.ck-board {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  width: min(100%, calc(100dvh - 250px));
+  aspect-ratio: 1;
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgb(35 28 24 / 0.08);
+}
+
+.ck-sq {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: var(--ck-light);
+}
+
+.ck-sq.is-dark {
+  background: var(--ck-dark);
+  cursor: default;
+}
+
+.ck-sq.is-last {
+  background: color-mix(in oklab, var(--ck-dark) 70%, var(--ck-accent));
+}
+
+.ck-sq.is-target {
+  cursor: pointer;
+}
+
+.ck-sq.is-target::after {
+  content: "";
+  position: absolute;
+  inset: 34%;
+  border-radius: 999px;
+  background: var(--ck-accent);
+  opacity: 0.75;
+  animation: ck-dot 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.15s ease;
+}
+
+.ck-sq.is-target:hover::after {
+  transform: scale(1.25);
+  opacity: 1;
+}
+
+@keyframes ck-dot {
+  from {
+    transform: scale(0);
+  }
+}
+
+/* Pieces sit on top of the squares and slide between them. */
+.ck-piece {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 12.5%;
+  height: 12.5%;
+  pointer-events: none;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ck-piece.can-move,
+.ck-piece.is-selected {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.ck-disc {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.3s ease;
+}
+
+.ck-piece.can-move:hover .ck-disc {
+  transform: translateY(-3%) scale(1.04);
+}
+
+.ck-piece.is-selected .ck-disc,
+.ck-piece.is-lifted .ck-disc {
+  transform: translateY(-7%) scale(1.1);
+}
+
+.ck-piece.is-gone .ck-disc {
+  transform: scale(0.4);
+  opacity: 0;
+  transition:
+    transform 0.35s ease-in,
+    opacity 0.35s ease-in;
+}
+
+.ck-shadow {
+  fill: rgb(35 28 24 / 0.22);
+  transition: transform 0.22s ease;
+  transform-origin: 50% 60%;
+}
+
+.ck-piece.is-selected .ck-shadow,
+.ck-piece.is-lifted .ck-shadow {
+  transform: translateY(6px) scale(0.92);
+  fill: rgb(35 28 24 / 0.16);
+}
+
+.is-you .ck-body {
+  fill: var(--ck-ink);
+}
+
+.is-you .ck-ring {
+  fill: none;
+  stroke: #4c3f37;
+  stroke-width: 3;
+}
+
+.is-you .ck-crown {
+  fill: #f6e0d3;
+}
+
+.is-mote .ck-body {
+  fill: #fff1e4;
+  stroke: #ead8c5;
+  stroke-width: 2;
+}
+
+.is-mote .ck-ring {
+  fill: none;
+}
+
+.is-mote .ck-eyes rect {
+  fill: var(--ck-ink);
+  transition:
+    x 0.3s ease,
+    y 0.3s ease;
+}
+
+.is-mote .ck-shut {
+  stroke: var(--ck-ink);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+/* Each little Mote blinks now and then, all at different times. */
+.ck-eyes {
+  transform-origin: 50% 49px;
+  animation: ck-blink 6s infinite;
+}
+
+@keyframes ck-blink {
+  0%,
+  95%,
+  100% {
+    transform: scaleY(1);
+  }
+  97% {
+    transform: scaleY(0.1);
+  }
+}
+
+.is-mote .ck-crown {
+  fill: var(--ck-accent);
+}
+
+/* The pieces you have to jump with pulse until you pick one. */
+.ck-piece.is-hint .ck-disc {
+  animation: ck-hint 1.4s ease-in-out infinite;
+}
+
+@keyframes ck-hint {
+  50% {
+    transform: translateY(-4%) scale(1.06);
+  }
+}
+
+.ck-piece.is-selected .ck-body {
+  stroke: var(--ck-accent);
+  stroke-width: 5;
+}
+
+.ck-status {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--ck-soft);
+}
+
+.ck-status.is-note {
+  color: #a4482e;
+}
+
+.ck-end {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.ck-result {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.ck-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.ck-primary,
+.ck-secondary {
+  height: 42px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.ck-primary {
+  background: var(--ck-accent);
+  color: #fffcf7;
+}
+
+.ck-primary:hover {
+  background: var(--ck-accent-deep);
+}
+
+.ck-secondary {
+  background: var(--ck-sunk);
+  color: var(--ck-ink);
+}
+
+.ck-secondary:hover {
+  background: #e4d9ca;
+}
+
+.ck-primary:active,
+.ck-secondary:active {
+  transform: scale(0.96);
+}
+
+/* Picking a level. */
+.ck-pick {
+  padding: 16px;
+}
+
+.ck-lede {
+  margin: -4px 0 14px 4px;
+  font-size: 14px;
+  color: var(--ck-soft);
+}
+
+.ck-levels {
+  display: flex;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--ck-sunk);
+}
+
+.ck-levels button {
+  flex: 1;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ck-soft);
+  font-size: 15px;
+  font-weight: 500;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.ck-levels button:hover {
+  color: var(--ck-ink);
+}
+
+.ck-levels button.is-on {
+  background: var(--ck-card);
+  color: var(--ck-ink);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgb(35 28 24 / 0.12);
+}
+
+.ck-hint {
+  margin: 8px 0 16px 4px;
+  font-size: 13px;
+  color: var(--ck-soft);
+}
+
+.ck-pick .ck-primary {
+  width: 100%;
+}
+
+.ck button:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ck-accent) 70%, transparent);
+  outline-offset: 2px;
+}
+
+/* Mote moves up to make room for the board. */
+.stage.is-playing {
+  display: flex;
+  flex-direction: column;
+}
+
+.stage.is-playing .window {
+  position: relative;
+  height: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.stage.is-playing .face {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: auto;
+  height: calc(100% - 6px);
+  transform: translateX(-50%);
+}
