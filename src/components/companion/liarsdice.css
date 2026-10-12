@@ -23,11 +23,18 @@
 }
 
 .ld-die.is-you .ld-body {
-  fill: var(--ck-ink);
+  fill: var(--ck-piece);
 }
 
 .ld-die.is-you .ld-pip {
   fill: #fff1e4;
+}
+
+/* In dark mode your ink dice get a soft edge, so they show on the dark card. */
+:root[data-theme="dark"] .ld-die.is-you .ld-body,
+:root[data-theme="dark"] .ld-mini .ld-body {
+  stroke: #6a5b50;
+  stroke-width: 3;
 }
 
 .ld-die.is-mote .ld-body,
@@ -39,7 +46,7 @@
 
 .ld-die.is-mote .ld-pip,
 .ld-die.is-hidden .ck-eyes rect {
-  fill: var(--ck-ink);
+  fill: var(--ck-piece);
 }
 
 /* Mote's dice turn over when they're shown. */
@@ -127,7 +134,7 @@
 }
 
 .ld-mini .ld-body {
-  fill: var(--ck-ink);
+  fill: var(--ck-piece);
 }
 
 .ld-mini .ld-pip {
@@ -169,11 +176,11 @@
 }
 
 .ld-count button:hover:not(:disabled) {
-  background: #e4d9ca;
+  background: var(--ck-sunk-hover);
 }
 
 .ld-count button:disabled {
-  color: #c4b6a8;
+  color: var(--text-faint);
   cursor: default;
 }
 

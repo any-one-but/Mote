@@ -18,7 +18,6 @@ import {
   onTypingElsewhere,
   onWindowMoved,
   setHelpingSize,
-  showDebugWindow,
   windowPlacement,
 } from "@/lib/companion/desktop";
 import { featureOn, useFeatures } from "@/lib/companion/features";
@@ -28,7 +27,7 @@ import {
   type GalleryOpened,
   type PasscodeCheck,
 } from "@/lib/companion/gallery";
-import { useSettings } from "@/lib/companion/settings";
+import { useDark, useSettings } from "@/lib/companion/settings";
 import { CaloriePad } from "@/components/companion/CaloriePad";
 import { PasscodePad } from "@/components/companion/PasscodePad";
 import { Checkers } from "@/components/companion/Checkers";
@@ -41,7 +40,7 @@ import { markCalorieCare, useCalorieBook } from "@/lib/companion/calorie-store";
 
 type MediaInfo = EngineOptions["media"];
 
-/** The debug window's pretend media: a window off to one side playing something. */
+/** Debug's pretend media: a window off to one side playing something. */
 function pretend(side: "left" | "right"): NonNullable<MediaInfo> {
   return { dx: side === "left" ? -700 : 700, dy: 0, app: "Pretend" };
 }
@@ -49,7 +48,7 @@ function pretend(side: "left" | "right"): NonNullable<MediaInfo> {
 export function Companion() {
   const engineRef = useRef<FaceEngine | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [settings, updateSettings] = useSettings();
+  const [settings] = useSettings();
   const [book, commitBook] = useCalorieBook();
   // What the buttons show: asleep (the bed becomes a sun), and what Mote would like.
   const [status, setStatus] = useState<{ asleep: boolean; wants: Want | null }>({ asleep: false, wants: null });
@@ -126,7 +125,7 @@ export function Companion() {
     };
   }, []);
 
-  // Media playing in another window, or the debug window's pretend version of it.
+  // Media playing in another window, or Debug's pretend version of it.
   const applyAudio = () => {
     const { fakeAudio } = debugState.current;
     engineRef.current?.configure({
@@ -134,7 +133,8 @@ export function Companion() {
     });
   };
 
-  const { followPointer, naps, energy, debug, pace, friendly } = settings;
+  const { energy, pace, friendly } = settings;
+  const dark = useDark(settings.theme);
   // The diet tracker is a keyed feature (see features.ts): off, Mote keeps no
   // count and says nothing about calories, and its button and card are gone.
   const [features] = useFeatures();
@@ -149,18 +149,36 @@ export function Companion() {
   const checkIns = featureOn(features, "checkins");
   const games = featureOn(features, "games");
   const eyesOnly = featureOn(features, "eyes");
+  const glint = featureOn(features, "glint");
+  const moodShape = featureOn(features, "moodshape");
   const files = featureOn(features, "files");
   const apps = featureOn(features, "apps");
   const debugOn = featureOn(features, "debug");
   const linksOn = useRef(links);
   linksOn.current = links;
-  // Debug switched off or locked: its window closes.
+  // Debug mode: on while Settings is open with its Debug tabs, which says
+  // hello every second. A few seconds without one (Settings closed, or Debug
+  // switched off), and it's over.
+  const [debug, setDebug] = useState(false);
   useEffect(() => {
-    if (!debugOn && settings.debug) {
-      updateSettings({ debug: false });
-      showDebugWindow(false);
+    if (!debugOn) {
+      setDebug(false);
+      return;
     }
-  }, [debugOn, settings.debug, updateSettings]);
+    let heard = 0;
+    const stop = listenBus((msg) => {
+      if (msg.type !== "debug") return;
+      heard = Date.now();
+      setDebug(true);
+    });
+    const t = window.setInterval(() => {
+      if (Date.now() - heard > 3000) setDebug(false);
+    }, 1000);
+    return () => {
+      stop();
+      window.clearInterval(t);
+    };
+  }, [debugOn]);
   useEffect(() => {
     if (!diet) setLogging(false);
   }, [diet]);
@@ -179,23 +197,27 @@ export function Companion() {
       }),
     [],
   );
+  const engineOptions: Partial<EngineOptions> = {
+    energy,
+    calorieGoal,
+    friendly,
+    hunger,
+    sleepNeed,
+    brows,
+    mouth,
+    links,
+    checkIns,
+    games,
+    eyesOnly,
+    dark,
+    glint,
+    moodShape,
+  };
+  const optionsNow = useRef(engineOptions);
+  optionsNow.current = engineOptions;
   useEffect(() => {
-    engineRef.current?.configure({
-      followPointer,
-      naps,
-      energy,
-      calorieGoal,
-      friendly,
-      hunger,
-      sleepNeed,
-      brows,
-      mouth,
-      links,
-      checkIns,
-      games,
-      eyesOnly,
-    });
-  }, [followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed, brows, mouth, links, checkIns, games, eyesOnly]);
+    engineRef.current?.configure(optionsNow.current);
+  }, [energy, calorieGoal, friendly, hunger, sleepNeed, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape]);
 
   useEffect(
     () =>
@@ -242,7 +264,7 @@ export function Companion() {
     [give],
   );
 
-  // Debug mode: take orders from the debug window and report back ~10× a second.
+  // Debug mode: take orders from the Debug tabs and report back ~10× a second.
   useEffect(() => {
     if (!debug) {
       const e = engineRef.current;
@@ -450,21 +472,7 @@ export function Companion() {
         <Face
           onEngine={(engine) => {
             engineRef.current = engine;
-            engine?.configure({
-              followPointer,
-              naps,
-              energy,
-              calorieGoal,
-              friendly,
-              hunger,
-              sleepNeed,
-              brows,
-              mouth,
-              links,
-              checkIns,
-              games,
-              eyesOnly,
-            });
+            engine?.configure(optionsNow.current);
             applyAudio();
           }}
           onMood={(label) => {
@@ -507,11 +515,6 @@ export function Companion() {
         hunger={hunger}
         sleepNeed={sleepNeed}
         gallery={gallery}
-        debug={debugOn}
-        onDebug={() => {
-          updateSettings({ debug: true });
-          showDebugWindow(true);
-        }}
         onGallery={() => void openLocalGallery()}
         asleep={status.asleep}
         wants={status.wants}

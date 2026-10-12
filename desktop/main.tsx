@@ -1,30 +1,17 @@
 import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { Companion } from "@/components/companion/Companion";
-import {
-  isDesktopApp,
-  onDebugWindowClosed,
-  openSettingsWindow,
-  setFloatOnTop,
-  showDebugWindow,
-} from "@/lib/companion/desktop";
-import { featureOn, readFeatures } from "@/lib/companion/features";
-import { readSettings, useSettings } from "@/lib/companion/settings";
+import { isDesktopApp, openSettingsWindow, setFloatOnTop } from "@/lib/companion/desktop";
+import { useSettings } from "@/lib/companion/settings";
 import "../src/styles.css";
 import "./desktop.css";
 
 // The Mac app's main window: Mote, a strip along the top for dragging, and the
-// window-level parts of Settings (floating, the debug window, ⌘,).
+// window-level parts of Settings (floating, ⌘,).
 function App() {
-  const [settings, update] = useSettings();
+  const [settings] = useSettings();
 
   useEffect(() => setFloatOnTop(settings.floatOnTop), [settings.floatOnTop]);
-
-  useEffect(() => {
-    // Open again if it was open last time (and it's still unlocked).
-    if (readSettings().debug && featureOn(readFeatures(), "debug")) showDebugWindow(true);
-    return onDebugWindowClosed(() => update({ debug: false }));
-  }, [update]);
 
   // In the Mac app the menu owns ⌘, — this covers a plain browser.
   useEffect(() => {

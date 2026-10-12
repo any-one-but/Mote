@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import { averageIntake, colorFor, dateKey, type CalorieBook } from "@/lib/companion/calories";
 import { useCalorieBook } from "@/lib/companion/calorie-store";
 import { featureOn, useFeatures } from "@/lib/companion/features";
-import { useSettings } from "@/lib/companion/settings";
+import { useDark, useSettings } from "@/lib/companion/settings";
 import { Page } from "./ui";
 import "./calories.css";
 
@@ -51,6 +51,7 @@ function standing(y: number, m: number, d: number, now: Date) {
 
 function Days() {
   const [settings] = useSettings();
+  useDark(settings.theme);
   const [book] = useCalorieBook();
   const [features] = useFeatures();
   const diet = featureOn(features, "diet");

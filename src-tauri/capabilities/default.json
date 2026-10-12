@@ -2,6 +2,6 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Lets Mote's windows drag themselves and talk to each other.",
-  "windows": ["main", "settings", "debug", "calories"],
+  "windows": ["main", "settings", "calories"],
   "permissions": ["core:default", "core:window:allow-start-dragging"]
 }

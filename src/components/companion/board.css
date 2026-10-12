@@ -1,6 +1,16 @@
 /* Checkers in Mote's window: a cream card under Mote, a warm wooden-feeling
    board, your pieces in ink and Mote's as little cream Motes. */
 
+/* Dark mode: the card goes dark; the board and pieces stay as they are. */
+:root[data-theme="dark"] .ck {
+  --ck-card: var(--surface);
+  --ck-ink: #f6ebe0;
+  --ck-soft: #b3a497;
+  --ck-sunk: var(--sunk);
+  --ck-sunk-hover: var(--sunk-hover);
+  --ck-soft-bg: var(--surface-soft);
+}
+
 .ck {
   --ck-card: #fffcf7;
   --ck-ink: #2e2520;
@@ -10,6 +20,10 @@
   --ck-accent: #e3997a;
   --ck-accent-deep: #d5866a;
   --ck-sunk: #ebe2d5;
+  --ck-sunk-hover: #e4d9ca;
+  --ck-soft-bg: #f6efe5;
+  /* Pieces stay ink-coloured in dark mode too: they sit on the board. */
+  --ck-piece: #2e2520;
   position: relative;
   z-index: 6;
   flex: none;
@@ -20,8 +34,8 @@
   color: var(--ck-ink);
   font-family: "Outfit", ui-rounded, system-ui, sans-serif;
   box-shadow:
-    0 0 0 1px rgb(35 28 24 / 0.06),
-    0 10px 24px -12px rgb(35 28 24 / 0.25);
+    0 0 0 1px rgb(var(--ink-rgb) / 0.06),
+    0 10px 24px -12px rgb(var(--shade-rgb) / 0.25);
 }
 
 .ck button {
@@ -77,7 +91,7 @@
 }
 
 .ck-x:hover {
-  background: #e4d9ca;
+  background: var(--ck-sunk-hover);
 }
 
 .ck-x svg {
@@ -108,8 +122,8 @@
 }
 
 .ck-quiet.is-sure {
-  background: #f6e0d3;
-  color: #a4482e;
+  background: var(--warn-wash);
+  color: var(--warn);
 }
 
 /* The board. Its size follows the window: as wide as the card, but never
@@ -123,7 +137,7 @@
   margin: 0 auto;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgb(35 28 24 / 0.08);
+  box-shadow: inset 0 0 0 1px rgb(var(--ink-rgb) / 0.08);
 }
 
 .ck-sq {
@@ -225,7 +239,7 @@
 }
 
 .is-you .ck-body {
-  fill: var(--ck-ink);
+  fill: var(--ck-piece);
 }
 
 .is-you .ck-ring {
@@ -249,14 +263,14 @@
 }
 
 .is-mote .ck-eyes rect {
-  fill: var(--ck-ink);
+  fill: var(--ck-piece);
   transition:
     x 0.3s ease,
     y 0.3s ease;
 }
 
 .is-mote .ck-shut {
-  stroke: var(--ck-ink);
+  stroke: var(--ck-piece);
   stroke-width: 4;
   stroke-linecap: round;
 }
@@ -306,7 +320,7 @@
 }
 
 .ck-status.is-note {
-  color: #a4482e;
+  color: var(--warn);
 }
 
 .ck-end {
@@ -355,7 +369,7 @@
 }
 
 .ck-secondary:hover {
-  background: #e4d9ca;
+  background: var(--ck-sunk-hover);
 }
 
 .ck-primary:active,
@@ -482,7 +496,7 @@
 /* Each piece: a thick outline layer, the fill on top, then detail lines. */
 .cs-art {
   --edge: #1f1915;
-  --fill: var(--ck-ink);
+  --fill: var(--ck-piece);
   --line: #54453c;
 }
 
@@ -531,7 +545,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: rgb(255 252 247 / 0.72);
+  background: color-mix(in srgb, var(--ck-card) 72%, transparent);
   backdrop-filter: blur(2px);
   animation: cs-fade 0.2s ease;
 }
@@ -546,8 +560,8 @@
   border-radius: 16px;
   background: var(--ck-card);
   box-shadow:
-    0 0 0 1px rgb(35 28 24 / 0.08),
-    0 8px 18px -10px rgb(35 28 24 / 0.35);
+    0 0 0 1px rgb(var(--ink-rgb) / 0.08),
+    0 8px 18px -10px rgb(var(--shade-rgb) / 0.35);
   transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -620,7 +634,7 @@
 
 .tt-x path {
   fill: none;
-  stroke: var(--ck-ink);
+  stroke: var(--ck-piece);
   stroke-width: 10;
   stroke-linecap: round;
   stroke-dasharray: 60;
@@ -649,7 +663,7 @@
 }
 
 .tt-o .ck-eyes rect {
-  fill: var(--ck-ink);
+  fill: var(--ck-piece);
   transition:
     x 0.3s ease,
     y 0.3s ease;
@@ -704,7 +718,7 @@
   margin-top: 10px;
   padding: 10px 12px;
   border-radius: 16px;
-  background: #f6efe5;
+  background: var(--ck-soft-bg);
   animation: cs-fade 0.25s ease;
 }
 
@@ -721,7 +735,7 @@
 }
 
 .coach-face rect {
-  fill: var(--ck-ink);
+  fill: var(--ck-piece);
 }
 
 .coach-body {
@@ -746,11 +760,11 @@
 }
 
 .coach-line.is-mistake .coach-label {
-  color: #b5553b;
+  color: var(--warn);
 }
 
 .coach-line.is-good .coach-label {
-  color: #5f8a4c;
+  color: var(--good);
 }
 
 .coach-buttons {
@@ -773,7 +787,7 @@
 }
 
 .coach-btn:hover {
-  background: #e4d9ca;
+  background: var(--ck-sunk-hover);
 }
 
 .coach-btn.is-main {
@@ -797,5 +811,5 @@
 }
 
 .tt-cell.is-go {
-  background: #e6eedb;
+  background: var(--good-wash);
 }

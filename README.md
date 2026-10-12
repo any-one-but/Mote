@@ -93,8 +93,7 @@ pokes in a row is too many, and Mote gets annoyed.
   Exhausted, they nod off even with things going on. A poke wakes them
   (groggy, and a little put out, if they're still tired), and so does
   something starting to play (with a jolt) or something dropped on them.
-  Petting a sleeping Mote gets a sleepy purr. Naps on their own can be
-  switched off in Settings; tucking them in still works.
+  Petting a sleeping Mote gets a sleepy purr.
 - **Eyes on you:** Mote's eyes follow your pointer anywhere on the screen,
   even while you're busy in other windows.
 - **Watching along:** in the Mac app, if another visible window is playing
@@ -105,7 +104,7 @@ pokes in a row is too many, and Mote gets annoyed.
 
 ## Mood, hunger and sleep
 
-Mote's mood sits on two axes, which the Debug window draws as a chart:
+Mote's mood sits on two axes, which Debug's Mind tab draws as a chart:
 
 - **Joyful ↔ Frustrated** is about how Mote is *treated*. Petting, pokes,
   playing, attention and winning bring joy. Meanness (poking over and over),
@@ -173,14 +172,13 @@ doesn't come back within eight hours, and none come while Mote is cross
 
 Along the bottom of Mote's window (quiet until your pointer is over it):
 
-- **Toy chest:** the games (checkers, chess, tic-tac-toe and Liar's Dice). It can be switched off in the Debug window.
+- **Toy chest:** the games (checkers, chess, tic-tac-toe and Liar's Dice). It can be switched off in Debug's Features tab.
 - **Carrot:** log calories, or see the days (only with the diet tracker switched on).
 - **Snack bowl:** feed Mote (only with "Mote eats too" switched on).
 - **Bed** (with Goodnight Mote switched on): tuck Mote in (if they're tired enough). While they sleep it turns
   into a sun, to wake them.
 - **Picture frame** (with Local Gallery switched on): open Local Gallery
   (Mote asks for the passcode first, if one is set).
-- **Wrench** (with the Debug window unlocked): open the Debug window.
 
 A soft pulsing ring on a button means Mote would like that: hungry, sleepy,
 or wanting to play.
@@ -237,7 +235,7 @@ then plays a square that lets you set up two ways to win at once, if you spot
 it. They only sometimes take a win you leave open.
 
 The old levels (Easy, Normal, Hard) and Learn with Mote are still there,
-behind the **Levels and learning** switch in the Debug window's Features tab
+behind the **Levels and learning** switch in Debug's Features tab
 (see below). With it on, the level picker comes back, with **Close** (the
 usual way) as a fourth choice.
 
@@ -267,7 +265,7 @@ level).
 
 ### Learning with Mote
 
-With the **Levels and learning** feature switched on (in the Debug window), checkers
+With the **Levels and learning** feature switched on (in Debug's Features tab), checkers
 and tic-tac-toe have a **Learn with Mote** option on the level picker. Mote's notes appear under the board, in their own words:
 
 - **On your turn**, a tip about what matters right now (a win to take, a
@@ -348,7 +346,7 @@ either way). Rounds won and lost nudge their mood a little.
 
 Mote carries Local Gallery, the Mac app from the Local_Gallery repo, inside
 `Mote.app` and opens it from a picture-frame button (with the Local Gallery
-feature switched on in the Debug window). It's the real app, built from the same code with the same
+feature switched on in Debug's Features tab). It's the real app, built from the same code with the same
 app ID and name, so it uses the same library, folders, settings and
 thumbnails as the Local Gallery you build from its own repo. Mote doesn't run
 any of it; it only opens it, as if you'd double-clicked it.
@@ -412,22 +410,32 @@ of Mote's folder; nothing in Mote or the gallery uses them. `npm run mac:build` 
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. You can choose
-whether Mote follows your pointer, Friendly mode, whether Mote naps, how lively Mote is, the pace
-for helping with files, whether Mote opens when you log in, and whether the
-window floats above others. With Local Gallery switched on, it also has the
-gallery's passcode (see above).
+the **Appearance** (Light, Dark, or System to follow the Mac), Friendly mode,
+how lively Mote is, the pace for helping with files, whether Mote opens when
+you log in, and whether the window floats above others. With Local Gallery
+switched on, it also has the gallery's passcode (see above). Mote's eyes
+always follow your pointer, and Mote always naps when left alone.
+
+**Dark mode** swaps Mote's colours, like a photo negative: a dark face with
+cream eyes (and cream eyebrows and mouth, if they're on), on a dark window.
+Everything around Mote goes dark and warm too: speech bubbles, buttons, the
+game cards, Settings and the Days window. The game boards and pieces stay as
+they are.
 
 Text in the app calls Mote "Mote", or "they/them" when a pronoun is needed.
 
-### The Debug window and experimental features
+### Debug and experimental features
 
-The Debug window is locked behind a **Feature Key**: at the bottom of
-Settings, type the key into **Feature Key** and press Unlock (or Return).
-Unlocking is for good (resetting settings doesn't undo it); the Debug window
-is then listed underneath, with a switch to hide it again. Only a fingerprint
-of the key is kept in the app, never the key itself.
+Debug is locked behind a **Feature Key**: at the bottom of Settings, type the
+key into **Feature Key** and press Unlock (or Return). Unlocking is for good
+(resetting settings doesn't undo it); Debug is then listed underneath, with a
+switch to hide it again. Only a fingerprint of the key is kept in the app,
+never the key itself.
 
-Once it's unlocked, a wrench button on Mote's window opens the Debug window:
+With Debug unlocked and on, Settings itself grows tabs (and the window grows
+to fit them): **Settings** first, then the Debug tabs. Mote is in debug mode
+(taking orders from those tabs) only while Settings is open. A tab about a
+feature that's switched off (Links, Gallery) isn't shown.
 
 - **Features**: switches for Mote's usual skills (all on until switched off):
   - **Saved links**: saving links dragged onto Mote, and Mote suggesting
@@ -440,6 +448,10 @@ Once it's unlocked, a wrench button on Mote's window opens the Debug window:
     dragged onto Mote. Off, apps get the same "not right now".
   - **Check-ins**: Mote now and then asking how you're doing. Off, they
     don't ask.
+  - **Mood effects persistent eye shape**: how Mote feels shaping their
+    resting eyes (a scowl, a little smile, a droop, heavy lids, worried
+    brows). Off, the eyes rest in their usual shape whatever the mood;
+    expressions still play.
   - **Toy chest**: the toy chest button and its games, and Mote asking for
     or suggesting a game. Off, the button goes, an open game is put away,
     and Mote never brings games up: a lonely Mote asks for a pet instead,
@@ -476,6 +488,12 @@ Once it's unlocked, a wrench button on Mote's window opens the Debug window:
     and touching anywhere in it counts as touching Mote (pokes, pets).
     Eyebrows and the mouth work the same if they're on. The expression sheet
     shows it with ?eyes=1.
+  - **Eye reflection dot**: a little reflection high in each eye. It rides
+    along with the eyes (lagging their gaze a touch, as a real reflection
+    would), and lids and blinks cover it. Its colour very quietly follows
+    the mood: Mote's own cream when all's well, a hint of red when
+    frustrated, a hint of blue when low, a little purple when both. In dark
+    mode it's inverted with everything else, so it's dark.
 - **Moods**: play any mood on demand, blink, poke, turn off automatic moods, loop a mood
 - **Mind**: the mood chart, hunger and rest (with buttons to nudge them), the
   games Mote remembers, and every reaction with what it does to the mood
@@ -538,10 +556,10 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 - `src/components/companion/engine.ts` — every expression and how Mote moves between them
 - `src/components/companion/Face.tsx` — how the face is drawn (the eyebrows' shape is in `eyeShape`, in engine.ts)
 - `src/lib/companion/theme.ts` — sizes and positions of the face and eyes
-- `desktop/` — the Mac app's pages: Mote (`index.html`), Settings, Debug, and the gallery
+- `desktop/` — the Mac app's pages: Mote (`index.html`), Settings (with the Debug tabs in `debug.tsx`), Days, and the expression sheet
 - `desktop/ui.tsx` and `desktop/ui.css` — the soft buttons, switches and sliders
-- `src/lib/companion/settings.ts` — the list of settings and their defaults
-- `src/lib/companion/features.ts` — the Feature Key (for the Debug window) and the experimental features
+- `src/lib/companion/settings.ts` — the list of settings and their defaults, and dark mode (`useDark`)
+- `src/lib/companion/features.ts` — the Feature Key (for Debug) and the experimental features
 - `local-gallery/` — Local Gallery's own code, kept separate; `src-tauri/src/gallery.rs` opens it,
   keeps its passcode and reads its logs
 - `src/lib/companion/gallery.ts` — talking to that from Mote's windows (and a pretend gallery, passcode 1234, in a browser)

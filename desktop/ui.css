@@ -1,4 +1,4 @@
-/* Shared look for Mote's Settings and Debug windows: flat cream, soft and springy. */
+/* Shared look for Mote's Settings (and Debug) and Days windows: flat cream, soft and springy. */
 :root {
   --paper: #f6efe5;
   --card: #fcf7f0;
@@ -11,11 +11,43 @@
   --accent-deep: #d5866a;
   --accent-wash: #f6e0d3;
   --skin: #fff1e4;
+  --good-wash: #e3ecd6;
+  --good-ink: #4f6a37;
+  --q-happy: #dfe8d1;
+  --q-needy: #f2e3c9;
+  --q-grumpy: #f2d6c9;
+  --q-miserable: #dcd7e5;
   --unit: 8px;
   --radius: 22px;
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --soft: cubic-bezier(0.22, 1, 0.36, 1);
   color-scheme: light;
+}
+
+/* Dark mode: warm and dark, and the little Mote swaps colours like the real
+   one (a dark face with cream eyes). */
+:root[data-theme="dark"] {
+  --paper: #302823;
+  --card: #3a312b;
+  --sunk: #483d36;
+  --sunk-hover: #54483f;
+  --line: #4a3f38;
+  --ink: #f6ebe0;
+  --ink-soft: #b3a497;
+  --accent-wash: #4f3529;
+  --skin: #1f1915;
+  --good-wash: #2f3b27;
+  --good-ink: #a9cf8e;
+  --q-happy: #34402c;
+  --q-needy: #4a3f2b;
+  --q-grumpy: #4d342b;
+  --q-miserable: #383447;
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] .mini-shadow {
+  fill: #000;
+  opacity: 0.25;
 }
 
 * {
@@ -810,8 +842,8 @@ input:focus-visible {
 }
 
 .tag.is-live {
-  background: #e3ecd6;
-  color: #4f6a37;
+  background: var(--good-wash);
+  color: var(--good-ink);
 }
 
 .tag.is-idea {
@@ -995,19 +1027,19 @@ input:focus-visible {
 }
 
 .mood-chart .q-happy {
-  fill: #dfe8d1;
+  fill: var(--q-happy);
 }
 
 .mood-chart .q-needy {
-  fill: #f2e3c9;
+  fill: var(--q-needy);
 }
 
 .mood-chart .q-grumpy {
-  fill: #f2d6c9;
+  fill: var(--q-grumpy);
 }
 
 .mood-chart .q-miserable {
-  fill: #dcd7e5;
+  fill: var(--q-miserable);
 }
 
 .mood-chart .q-band {

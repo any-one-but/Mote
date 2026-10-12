@@ -3,24 +3,25 @@ import { listenBus, send } from "@/lib/companion/bus";
 
 // Features kept in the app for testing but out of everyone else's reach.
 //
-// Only one thing is locked behind a Feature Key: the Debug window. Its key is
-// typed in at the bottom of Settings, and unlocking is remembered for good
-// (resetting settings doesn't undo it). Once it's unlocked, a button on
-// Mote's window opens Debug, and Debug's Features tab switches features on
-// and off: Mote's usual skills (on until switched off) and the experimental
-// features (off until switched on).
+// Only one thing is locked behind a Feature Key: Debug. Its key is typed in
+// at the bottom of Settings, and unlocking is remembered for good (resetting
+// settings doesn't undo it). Once it's unlocked and on, Settings grows the
+// Debug tabs, and the Features tab switches features on and off: Mote's
+// usual skills (on until switched off) and the experimental features (off
+// until switched on).
 //
 // Only a fingerprint of the key (its SHA-256) lives in the app, never the key.
 
 /** Features that need a key. */
 export type KeyedId = "debug";
-/** Features switched on and off in the Debug window. */
+/** Features switched on and off in the Features tab (with Debug on). */
 export type FeatureId =
   | "links"
   | "files"
   | "apps"
   | "checkins"
   | "games"
+  | "moodshape"
   | "diet"
   | "hunger"
   | "levels"
@@ -28,13 +29,14 @@ export type FeatureId =
   | "gallery"
   | "brows"
   | "mouth"
-  | "eyes";
+  | "eyes"
+  | "glint";
 
 export const KEYED: Array<{ id: KeyedId; name: string; about: string; fingerprint: string }> = [
   {
     id: "debug",
-    name: "Debug window",
-    about: "A button on Mote’s window that opens the Debug window: testing tools, and switches for experimental features.",
+    name: "Debug",
+    about: "Debug tabs alongside Settings: testing tools, and switches for Mote’s skills and experimental features.",
     fingerprint: "5338425b70e71202639415bbc64b4ca2b70d2d436f292fb7cc5415ba27eaafa9",
   },
 ];
@@ -78,6 +80,12 @@ export const FEATURES: Array<{
     usual: true,
   },
   {
+    id: "moodshape",
+    name: "Mood effects persistent eye shape",
+    about: "How Mote feels shapes their eyes while they rest: a scowl when frustrated, a little smile when joyful, a droop when low, heavy lids when sleepy, worried brows when hungry. Off, the eyes rest in their usual shape whatever the mood (expressions still play).",
+    usual: true,
+  },
+  {
     id: "diet",
     name: "Diet tracker",
     about: "Calorie logging, the Days window, the carrot button, and everything Mote says about food you eat.",
@@ -116,6 +124,11 @@ export const FEATURES: Array<{
     id: "eyes",
     name: "Just the eyes",
     about: "No body, no dot, no shadow: just Mote’s eyes (bigger), on a window the colour of Mote, so the whole window is Mote. Touching anywhere in it counts as touching Mote. Eyebrows and the mouth still work if they’re on.",
+  },
+  {
+    id: "glint",
+    name: "Eye reflection dot",
+    about: "A little reflection in each eye that moves with them. Its colour quietly follows Mote’s mood: Mote’s own colour when all’s well, a touch of red when frustrated, a touch of blue when low, a little purple when both.",
   },
 ];
 

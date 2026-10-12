@@ -19,9 +19,9 @@ export function openCaloriesWindow() {
   else window.open("calories.html", "mote-calories", "popup,width=760,height=840");
 }
 
-export function showDebugWindow(open: boolean) {
-  if (isDesktopApp()) void invoke("set_debug_window", { open }).catch(() => {});
-  else if (open) window.open("debug.html", "mote-debug", "popup,width=600,height=780");
+/** Makes the Settings window roomy enough for the Debug tabs, if it isn't. */
+export function widenSettingsWindow() {
+  if (isDesktopApp()) void invoke("widen_settings").catch(() => {});
 }
 
 /** Grows Mote's window to fit the options while helping (or the board while
@@ -238,19 +238,5 @@ export function onDropped(
     window.removeEventListener("dragover", over);
     window.removeEventListener("dragleave", leave);
     window.removeEventListener("drop", dropped);
-  };
-}
-
-/** Called when someone closes the debug window with its close button. */
-export function onDebugWindowClosed(cb: () => void): () => void {
-  if (!isDesktopApp()) return () => {};
-  let stop: (() => void) | null = null;
-  let dead = false;
-  void listen("debug-window-closed", cb)
-    .then((un) => (dead ? un() : (stop = un)))
-    .catch(() => {});
-  return () => {
-    dead = true;
-    stop?.();
   };
 }

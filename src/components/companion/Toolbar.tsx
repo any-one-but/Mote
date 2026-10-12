@@ -6,7 +6,7 @@ import { SNACKS } from "@/components/companion/mind";
 // of games (unless it's switched off), a carrot for calorie tracking (when the diet tracker is
 // unlocked), a snack bowl to feed Mote (when "Mote eats too" is), and a bed
 // to tuck them in (when "Goodnight Mote" is). With Local Gallery on, a
-// picture frame opens it; with the Debug window unlocked, a wrench opens that. A soft glow on a button means Mote would like that.
+// picture frame opens it. A soft glow on a button means Mote would like that.
 
 type Props = {
   /** The toy chest is switched on: show it. */
@@ -20,9 +20,6 @@ type Props = {
   /** Local Gallery: show its button. */
   gallery: boolean;
   onGallery: () => void;
-  /** The Debug window is unlocked: show its button. */
-  debug: boolean;
-  onDebug: () => void;
   asleep: boolean;
   wants: Want | null;
   onGame: (game: "checkers" | "chess" | "tictactoe" | "liarsdice") => void;
@@ -41,8 +38,6 @@ export function Toolbar({
   sleepNeed,
   gallery,
   onGallery,
-  debug,
-  onDebug,
   asleep,
   wants,
   onGame,
@@ -127,16 +122,6 @@ export function Toolbar({
             onGallery();
           }}
           icon={<FrameIcon />}
-        />
-      ) : null}
-      {debug ? (
-        <ToolButton
-          label="Open the Debug window"
-          onClick={() => {
-            setOpen(null);
-            onDebug();
-          }}
-          icon={<WrenchIcon />}
         />
       ) : null}
       {sleepNeed ? (
@@ -248,20 +233,6 @@ function FrameIcon() {
   );
 }
 
-function WrenchIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="tool-icon">
-      <path
-        d="M14.5 4.2a4.6 4.6 0 0 0-4.9 6.1L4.3 15.6a1.9 1.9 0 0 0 2.7 2.7l5.3-5.3a4.6 4.6 0 0 0 6.1-4.9l-2.7 2.7-2.4-.6-.6-2.4Z"
-        className="i-fill-steel"
-      />
-      <path
-        d="M14.5 4.2a4.6 4.6 0 0 0-4.9 6.1L4.3 15.6a1.9 1.9 0 0 0 2.7 2.7l5.3-5.3a4.6 4.6 0 0 0 6.1-4.9l-2.7 2.7-2.4-.6-.6-2.4Z"
-        className="i-line"
-      />
-    </svg>
-  );
-}
 
 function MoonIcon() {
   return (

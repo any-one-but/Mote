@@ -1,5 +1,4 @@
-import { StrictMode, useEffect, useRef, useState, type ReactNode } from "react";
-import { createRoot } from "react-dom/client";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   MOOD_LIST,
   POSE_KEYS,
@@ -47,12 +46,14 @@ import {
   type LibraryReport,
   type LogFile,
 } from "@/lib/companion/gallery";
-import { FEATURES, featureOn, useFeatures } from "@/lib/companion/features";
+import { FEATURES, featureOn, useFeatures, type FeatureId } from "@/lib/companion/features";
 import { DEFAULT_SETTINGS, useSettings, type Settings } from "@/lib/companion/settings";
 import { Button, Page, Row, Section, Segmented, Slider, Toggle } from "./ui";
 
-// The debug window. Each tab is one entry in TABS, so new tools slot in as
-// their own tab without touching the others.
+// Settings with Debug unlocked and on: Settings first, then the Debug tabs.
+// Each tab is one entry in TABS, so new tools slot in as their own tab
+// without touching the others. A tab about a feature that's switched off
+// (saved links, Local Gallery) isn't shown.
 
 type LogEntry = { id: number; at: number; text: string };
 
@@ -69,15 +70,19 @@ type Ctx = {
   setFace: (face: ManualFace) => void;
 };
 
-const TABS: Array<{ id: string; label: string; render: (ctx: Ctx) => ReactNode }> = [
+type Tab = { id: string; label: string; render: (ctx: Ctx) => ReactNode; needs?: FeatureId };
+
+const TABS: Tab[] = [
+  // Settings itself, passed in (see settings.tsx).
+  { id: "settings", label: "Settings", render: () => null },
   { id: "features", label: "Features", render: () => <FeaturesTab /> },
   { id: "moods", label: "Moods", render: (ctx) => <MoodsTab {...ctx} /> },
   { id: "mind", label: "Mind", render: (ctx) => <MindTab {...ctx} /> },
   { id: "speech", label: "Speech", render: (ctx) => <SpeechTab {...ctx} /> },
   { id: "pose", label: "Pose", render: (ctx) => <PoseTab {...ctx} /> },
   { id: "motion", label: "Motion", render: (ctx) => <MotionTab {...ctx} /> },
-  { id: "links", label: "Links", render: (ctx) => <LinksTab {...ctx} /> },
-  { id: "gallery", label: "Gallery", render: () => <GalleryTab /> },
+  { id: "links", label: "Links", render: (ctx) => <LinksTab {...ctx} />, needs: "links" },
+  { id: "gallery", label: "Gallery", render: () => <GalleryTab />, needs: "gallery" },
   { id: "log", label: "Log", render: (ctx) => <LogTab {...ctx} /> },
   { id: "data", label: "Data", render: (ctx) => <DataTab {...ctx} /> },
 ];
@@ -160,14 +165,13 @@ const TAB_KEY = "mote.debug.tab";
 
 function readTab() {
   try {
-    const t = localStorage.getItem(TAB_KEY);
-    return TABS.some((x) => x.id === t) ? (t as string) : "moods";
+    return localStorage.getItem(TAB_KEY) ?? "settings";
   } catch {
-    return "moods";
+    return "settings";
   }
 }
 
-function DebugWindow() {
+export function DebugPanel({ settingsTab }: { settingsTab: ReactNode }) {
   const [snap, setSnap] = useState<EngineSnapshot | null>(null);
   const [debug, setDebug] = useState<DebugState>(DEBUG_DEFAULTS);
   const [lastSeen, setLastSeen] = useState(0);
@@ -180,6 +184,7 @@ function DebugWindow() {
   const prevSettings = useRef<Settings | null>(null);
   const pending = useRef<Partial<DebugState>>({});
   const [face, setFace] = useState<ManualFace>(restFace);
+  const [features] = useFeatures();
 
   const addLog = (texts: string[]) => {
     if (!texts.length) return;
@@ -206,10 +211,15 @@ function DebugWindow() {
         addLog(msg.events);
       }
     });
-    send({ type: "debug", cmd: { do: "hello" } });
+    // Hello now and every second after: while Mote's window hears it, it's
+    // in debug mode.
+    const hello = () => send({ type: "debug", cmd: { do: "hello" } });
+    hello();
+    const beat = window.setInterval(hello, 1000);
     const tick = window.setInterval(() => setNow(Date.now()), 500);
     return () => {
       stop();
+      window.clearInterval(beat);
       window.clearInterval(tick);
     };
   }, []);
@@ -251,10 +261,39 @@ function DebugWindow() {
     face,
     setFace,
   };
-  const current = TABS.find((t) => t.id === tab) ?? TABS[0];
+  const tabs = TABS.filter((t) => !t.needs || featureOn(features, t.needs));
+  const current = tabs.find((t) => t.id === tab) ?? tabs[0];
+
+  const tabBar = (
+    <div className="debug-tabs">
+      <Segmented
+        label="Section"
+        options={tabs.map((t) => ({ value: t.id, label: t.label }))}
+        value={current.id}
+        onChange={(id) => {
+          setTab(id);
+          try {
+            localStorage.setItem(TAB_KEY, id);
+          } catch {
+            // Fine: the tab just won't be remembered.
+          }
+        }}
+      />
+    </div>
+  );
+
+  if (current.id === "settings") {
+    return (
+      <Page wide>
+        {tabBar}
+        {settingsTab}
+      </Page>
+    );
+  }
 
   return (
     <Page wide>
+      {tabBar}
       <header className="debug-header">
         <div>
           <h1>Debug</h1>
@@ -269,22 +308,6 @@ function DebugWindow() {
           <span className="chip mono">{snap ? `${Math.round(snap.fps)} fps` : "—"}</span>
         </div>
       </header>
-
-      <div className="debug-tabs">
-        <Segmented
-          label="Debug section"
-          options={TABS.map((t) => ({ value: t.id, label: t.label }))}
-          value={current.id}
-          onChange={(id) => {
-            setTab(id);
-            try {
-              localStorage.setItem(TAB_KEY, id);
-            } catch {
-              // Fine: the tab just won't be remembered.
-            }
-          }}
-        />
-      </div>
 
       {current.render(ctx)}
     </Page>
@@ -1434,9 +1457,7 @@ function DataTab({ settings, updateSettings, snap }: Ctx) {
         <pre className="mono data">{JSON.stringify(settings, null, 2)}</pre>
       </Section>
       <div className="button-row">
-        <Button onClick={() => updateSettings({ ...DEFAULT_SETTINGS, debug: true })}>
-          Reset settings (keeps debug on)
-        </Button>
+        <Button onClick={() => updateSettings({ ...DEFAULT_SETTINGS })}>Reset settings</Button>
         <Button
           onClick={() =>
             void navigator.clipboard?.writeText(
@@ -1450,9 +1471,3 @@ function DataTab({ settings, updateSettings, snap }: Ctx) {
     </>
   );
 }
-
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <DebugWindow />
-  </StrictMode>,
-);

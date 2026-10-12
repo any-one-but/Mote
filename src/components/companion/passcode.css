@@ -7,14 +7,14 @@
   flex: none;
   padding: 14px 16px 16px;
   border-radius: 22px;
-  background: #fffcf7;
-  color: #231c18;
+  background: var(--surface);
+  color: var(--color-ink);
   font-family: "Outfit", ui-rounded, system-ui, sans-serif;
   text-align: center;
   user-select: none;
   box-shadow:
-    0 0 0 1px rgb(35 28 24 / 0.06),
-    0 10px 24px -12px rgb(35 28 24 / 0.25);
+    0 0 0 1px rgb(var(--ink-rgb) / 0.06),
+    0 10px 24px -12px rgb(var(--shade-rgb) / 0.25);
   animation: pc-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -36,7 +36,7 @@
   padding-left: 2px;
   font-size: 13px;
   font-weight: 500;
-  color: #8b7d71;
+  color: var(--text-soft);
 }
 
 .pc-x {
@@ -48,14 +48,14 @@
   padding: 0;
   border: 0;
   border-radius: 999px;
-  background: #ebe2d5;
-  color: #231c18;
+  background: var(--sunk);
+  color: var(--color-ink);
   line-height: 0;
   transition: background 0.15s ease;
 }
 
 .pc-x:hover {
-  background: #e4d9ca;
+  background: var(--sunk-hover);
 }
 
 .pc-x svg,
@@ -88,14 +88,14 @@
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  box-shadow: inset 0 0 0 2px #231c18;
+  box-shadow: inset 0 0 0 2px var(--color-ink);
   transition:
     background 0.12s ease,
     transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .pc-dot.is-filled {
-  background: #231c18;
+  background: var(--color-ink);
   transform: scale(1.12);
 }
 
@@ -126,11 +126,11 @@
 }
 
 .pc-dots.is-wrong .pc-dot {
-  box-shadow: inset 0 0 0 2px #b5553b;
+  box-shadow: inset 0 0 0 2px var(--warn);
 }
 
 .pc-dots.is-wrong .pc-dot.is-filled {
-  background: #b5553b;
+  background: var(--warn);
 }
 
 @keyframes pc-shake {
@@ -153,11 +153,11 @@
   margin: 0 0 10px;
   font-size: 13px;
   line-height: 1.4;
-  color: #b5553b;
+  color: var(--warn);
 }
 
 .pc-message.is-calm {
-  color: #8b7d71;
+  color: var(--text-soft);
 }
 
 .pc-keys {
@@ -175,8 +175,8 @@
   padding: 0;
   border: 0;
   border-radius: 14px;
-  background: #f3ebe0;
-  color: #231c18;
+  background: var(--surface-soft);
+  color: var(--color-ink);
   font: inherit;
   font-size: 18px;
   font-weight: 500;
@@ -188,22 +188,22 @@
 }
 
 .pc-key:hover {
-  background: #ebe2d5;
+  background: var(--sunk);
 }
 
 .pc-key:active {
   transform: scale(0.93);
-  background: #e4d9ca;
+  background: var(--sunk-hover);
 }
 
 .pc-key.is-back {
   background: transparent;
-  color: #8b7d71;
+  color: var(--text-soft);
 }
 
 .pc-key.is-back:hover {
-  background: #f3ebe0;
-  color: #231c18;
+  background: var(--surface-soft);
+  color: var(--color-ink);
 }
 
 /* On Mote's window: the pad sits along the bottom, Mote shrinks above it. */

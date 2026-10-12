@@ -28,7 +28,6 @@ export default defineConfig({
       input: {
         main: page("index"),
         settings: page("settings"),
-        debug: page("debug"),
         calories: page("calories"),
       },
     },

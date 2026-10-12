@@ -12,7 +12,7 @@ import type { FeatureState } from "@/lib/companion/features";
 import type { Settings } from "@/lib/companion/settings";
 import { isDesktopApp } from "@/lib/companion/desktop";
 
-/** What the debug window can ask Mote's window to do. */
+/** What the Debug tabs can ask Mote's window to do. */
 export type DebugCommand =
   | { do: "hello" }
   | { do: "force"; mood: Mood }

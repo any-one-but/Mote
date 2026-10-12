@@ -100,7 +100,7 @@ export const REACTIONS: Reaction[] = [
     id: "follow",
     group: "Pointer",
     name: "Watching your pointer",
-    when: "Your pointer moves (with Follows your pointer on)",
+    when: "Your pointer moves",
     then: "Eyes and body turn to follow it",
     status: "live",
   },
@@ -1224,7 +1224,7 @@ export const REACTIONS: Reaction[] = [
     group: "Time",
     name: "Nodding off",
     when: "Tired (Rest 6 or lower) and left be for 4–7 minutes, or about a minute and a half when sleepy. Exhausted (Rest 1 or lower), even with things going on, unless you’re playing",
-    then: "Yawns, dozes, and falls asleep (unless something happens meanwhile). Can be switched off in Settings",
+    then: "Yawns, dozes, and falls asleep (unless something happens meanwhile)",
     status: "live",
   },
   {

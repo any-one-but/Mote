@@ -51,7 +51,8 @@ export function Face({ onEngine, onMood, onEvent, onSpeech, onOpenLink }: FacePr
           <feComponentTransfer in="blur" result="shape">
             <feFuncA type="linear" slope="18" intercept="-7.1" />
           </feComponentTransfer>
-          <feFlood floodColor={INK} />
+          {/* The ink colour comes from the stylesheet, so dark mode can swap it. */}
+          <feFlood className="ink-flood" floodColor={INK} />
           <feComposite in2="shape" operator="in" />
         </filter>
         <clipPath id="mote-face-clip">
@@ -87,6 +88,17 @@ export function Face({ onEngine, onMood, onEvent, onSpeech, onOpenLink }: FacePr
           </g>
           {/* The mouth (an experimental feature): reads the face like the brows do. */}
           <path data-part="mouth" className="mouth" style={{ display: "none" }} />
+        </g>
+
+        {/* Reflection dots (an experimental feature). Masked by the eyes, so
+            lids and blinks cover them; placed and tinted by the engine. */}
+        <g data-part="glints" style={{ display: "none" }}>
+          <g mask="url(#mote-eye-l)">
+            <circle data-part="glint-l" r={0} />
+          </g>
+          <g mask="url(#mote-eye-r)">
+            <circle data-part="glint-r" r={0} />
+          </g>
         </g>
 
         {/* Debug only: outlines of the pills and the brow / cheek cuts. */}

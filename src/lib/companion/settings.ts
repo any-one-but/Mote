@@ -3,11 +3,10 @@ import type { Energy } from "@/components/companion/engine";
 import { listenBus, send } from "@/lib/companion/bus";
 
 export type Settings = {
-  followPointer: boolean;
+  /** Light, dark, or whatever the Mac is set to. */
+  theme: Theme;
   /** Mote never gets too upset: hurt counts for less, no sulking or sharp words. */
   friendly: boolean;
-  /** Mote naps when left alone (a poke wakes them). */
-  naps: boolean;
   energy: Energy;
   /**
    * How hard the computer works when Mote helps with files: as each job
@@ -15,21 +14,19 @@ export type Settings = {
    */
   pace: Pace;
   floatOnTop: boolean;
-  debug: boolean;
   /** Calories to stay under for the day. */
   calorieGoal: number;
 };
 
 export type Pace = "normal" | "turbo" | "gentle";
+export type Theme = "light" | "dark" | "system";
 
 export const DEFAULT_SETTINGS: Settings = {
-  followPointer: true,
+  theme: "system",
   friendly: false,
-  naps: true,
   energy: "normal",
   pace: "normal",
   floatOnTop: false,
-  debug: false,
   calorieGoal: 2000,
 };
 
@@ -55,13 +52,11 @@ export function readSettings(): Settings {
   const d = DEFAULT_SETTINGS;
   const bool = (v: unknown, fb: boolean) => (typeof v === "boolean" ? v : fb);
   return {
-    followPointer: bool(raw.followPointer, d.followPointer),
+    theme: pick(raw.theme, ["light", "dark", "system"] as const, d.theme),
     friendly: bool(raw.friendly, d.friendly),
-    naps: bool(raw.naps, d.naps),
     energy: pick(raw.energy, ["calm", "normal", "lively"] as const, d.energy),
     pace: pick(raw.pace, ["normal", "turbo", "gentle"] as const, d.pace),
     floatOnTop: bool(raw.floatOnTop, d.floatOnTop),
-    debug: bool(raw.debug, d.debug),
     calorieGoal: goalOf(raw.calorieGoal, d.calorieGoal),
   };
 }
@@ -104,4 +99,27 @@ export function useSettings() {
   }, []);
 
   return [settings, update] as const;
+}
+
+/**
+ * Whether things look dark right now: the Theme setting, or with "system",
+ * whatever the Mac is set to (followed as it changes). Marks the page too
+ * (`data-theme` on <html>), which is all the styles need.
+ */
+export function useDark(theme: Theme): boolean {
+  const [systemDark, setSystemDark] = useState(() =>
+    typeof window === "undefined" ? false : window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => setSystemDark(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  const dark = theme === "dark" || (theme === "system" && systemDark);
+  useEffect(() => {
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+  }, [dark]);
+  return dark;
 }

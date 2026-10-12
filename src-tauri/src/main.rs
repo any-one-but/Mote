@@ -90,23 +90,6 @@ fn open_calories_window(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
-fn open_debug_window(app: &AppHandle) -> tauri::Result<()> {
-    if let Some(window) = app.get_webview_window("debug") {
-        window.show()?;
-        return window.set_focus();
-    }
-    WebviewWindowBuilder::new(app, "debug", WebviewUrl::App("debug.html".into()))
-        .title("Mote Debug")
-        .inner_size(600.0, 780.0)
-        .min_inner_size(420.0, 420.0)
-        .center()
-        .title_bar_style(TitleBarStyle::Overlay)
-        .hidden_title(true)
-        .background_color(PAPER)
-        .build()?;
-    Ok(())
-}
-
 #[tauri::command]
 fn open_settings(app: AppHandle) -> Result<(), String> {
     open_settings_window(&app).map_err(|e| e.to_string())
@@ -117,15 +100,20 @@ fn open_calories(app: AppHandle) -> Result<(), String> {
     open_calories_window(&app).map_err(|e| e.to_string())
 }
 
+/// With Debug on, Settings carries the Debug tabs too: it grows to fit them
+/// (if it isn't that big already) and stays centred.
 #[tauri::command]
-fn set_debug_window(app: AppHandle, open: bool) -> Result<(), String> {
-    if open {
-        open_debug_window(&app).map_err(|e| e.to_string())
-    } else if let Some(window) = app.get_webview_window("debug") {
-        window.close().map_err(|e| e.to_string())
-    } else {
-        Ok(())
+fn widen_settings(app: AppHandle) -> Result<(), String> {
+    let Some(window) = app.get_webview_window("settings") else { return Ok(()) };
+    let scale = window.scale_factor().map_err(|e| e.to_string())?;
+    let size = window.inner_size().map_err(|e| e.to_string())?.to_logical::<f64>(scale);
+    if size.width >= 600.0 && size.height >= 760.0 {
+        return Ok(());
     }
+    window
+        .set_size(tauri::LogicalSize::new(size.width.max(640.0), size.height.max(800.0)))
+        .map_err(|e| e.to_string())?;
+    window.center().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -264,20 +252,16 @@ fn main() {
         })
         .on_window_event(|window, event| {
             if let WindowEvent::Destroyed = event {
-                match window.label() {
-                    // Closing Mote himself quits the app, Settings and Debug included.
-                    "main" => window.app_handle().exit(0),
-                    "debug" => {
-                        let _ = window.app_handle().emit("debug-window-closed", ());
-                    }
-                    _ => {}
+                // Closing Mote quits the app, Settings included.
+                if window.label() == "main" {
+                    window.app_handle().exit(0);
                 }
             }
         })
         .invoke_handler(tauri::generate_handler![
             open_settings,
             open_calories,
-            set_debug_window,
+            widen_settings,
             set_float_on_top,
             set_helping_size,
             gallery::open_local_gallery,

@@ -7,11 +7,11 @@ import {
   openLink,
   opensAtLogin,
   setOpensAtLogin,
-  showDebugWindow,
+  widenSettingsWindow,
 } from "@/lib/companion/desktop";
 import { markCalorieCare } from "@/lib/companion/calorie-store";
 import { featureOn, KEYED, useFeatures } from "@/lib/companion/features";
-import { useSettings, type Pace, type Settings } from "@/lib/companion/settings";
+import { useDark, useSettings, type Pace, type Settings, type Theme } from "@/lib/companion/settings";
 import {
   linkName,
   loadLinks,
@@ -19,6 +19,7 @@ import {
   removeLink,
   type SavedLink,
 } from "@/components/companion/links";
+import { DebugPanel } from "./debug";
 import { LocalGallerySection } from "./passcode-settings";
 import { MiniMote, Page, Row, Section, Segmented, Toggle } from "./ui";
 
@@ -26,6 +27,12 @@ const ENERGY: Array<{ value: Energy; label: string }> = [
   { value: "calm", label: "Calm" },
   { value: "normal", label: "Normal" },
   { value: "lively", label: "Lively" },
+];
+
+const THEME: Array<{ value: Theme; label: string }> = [
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+  { value: "system", label: "System" },
 ];
 
 const PACE: Array<{ value: Pace; label: string }> = [
@@ -40,7 +47,29 @@ const PACE_HINT: Record<Pace, string> = {
   turbo: "Works on many things at once. Much faster, but your Mac will be busy.",
 };
 
+/**
+ * The Settings window. With Debug unlocked and on, it's the Debug tabs too,
+ * Settings first.
+ */
 function SettingsWindow() {
+  const [settings] = useSettings();
+  const [features] = useFeatures();
+  const debug = featureOn(features, "debug");
+  useDark(settings.theme);
+  // The Debug tabs need more room.
+  useEffect(() => {
+    if (debug) widenSettingsWindow();
+  }, [debug]);
+  return debug ? (
+    <DebugPanel settingsTab={<SettingsPanel />} />
+  ) : (
+    <Page>
+      <SettingsPanel />
+    </Page>
+  );
+}
+
+function SettingsPanel() {
   const [settings, update] = useSettings();
   const [features] = useFeatures();
   const diet = featureOn(features, "diet");
@@ -56,7 +85,7 @@ function SettingsWindow() {
   };
 
   return (
-    <Page>
+    <>
       <header className="header">
         <MiniMote hop={hop} />
         <div>
@@ -66,21 +95,12 @@ function SettingsWindow() {
       </header>
 
       <Section title="Mote">
-        <Row label="Follows your pointer" hint="Mote’s eyes track wherever your pointer goes.">
-          <Toggle
-            label="Follows your pointer"
-            checked={settings.followPointer}
-            onChange={(followPointer) => set({ followPointer })}
-          />
-        </Row>
-        <Row
-          label="Naps when left alone"
-          hint="Left be for a few minutes, Mote dozes off. A poke wakes them."
-        >
-          <Toggle
-            label="Naps when left alone"
-            checked={settings.naps}
-            onChange={(naps) => set({ naps })}
+        <Row label="Appearance" hint="Dark swaps Mote’s colours: a dark face with cream eyes." stacked>
+          <Segmented
+            label="Appearance"
+            options={THEME}
+            value={settings.theme}
+            onChange={(theme) => set({ theme })}
           />
         </Row>
         <Row
@@ -166,7 +186,7 @@ function SettingsWindow() {
       <div className="settings-foot">
         <FeatureKey />
       </div>
-    </Page>
+    </>
   );
 }
 
@@ -267,7 +287,7 @@ function OpenAtLogin({ onChange }: { onChange: () => void }) {
 
 /**
  * Feature Key: type a key to unlock a feature kept out of reach (for now,
- * just the Debug window). Every unlocked feature is listed underneath, with a
+ * just Debug). Every unlocked feature is listed underneath, with a
  * switch.
  */
 function FeatureKey() {
@@ -313,11 +333,7 @@ function FeatureKey() {
           <Toggle
             label={f.name}
             checked={featureOn(features, f.id)}
-            onChange={(on) => {
-              setOn(f.id, on);
-              // Switching Debug off closes its window too.
-              if (!on && f.id === "debug") showDebugWindow(false);
-            }}
+            onChange={(on) => setOn(f.id, on)}
           />
         </Row>
       ))}

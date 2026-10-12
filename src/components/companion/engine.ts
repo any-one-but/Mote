@@ -251,9 +251,6 @@ export type EngineHooks = {
 export type Energy = "calm" | "normal" | "lively";
 
 export type EngineOptions = {
-  followPointer: boolean;
-  /** Mote naps when left alone. */
-  naps: boolean;
   energy: Energy;
   /**
    * Sound from another window you can see (null when there's none), and
@@ -285,6 +282,12 @@ export type EngineOptions = {
   /** Just the eyes (an experimental feature): no body, so the whole window
    * is Mote, and anywhere in it counts as touching them. */
   eyesOnly: boolean;
+  /** Dark mode: Mote's colours swap, the face dark and the eyes cream. */
+  dark: boolean;
+  /** A reflection dot in each eye, tinted by mood (an experimental feature). */
+  glint: boolean;
+  /** Lasting moods shape the resting eyes (on unless switched off). */
+  moodShape: boolean;
 };
 
 /** An app dropped on Mote: its name, its ID (com.apple.safari…), and
@@ -1784,6 +1787,37 @@ const BROW = { gap: 12, span: 0.74, drop: 0.36, tilt: 0.5, curve: 0.3, arch: 2.6
 const f = (n: number) => n.toFixed(2);
 
 /** Builds one eye's pill and its two cuts. */
+/**
+ * The reflection dot in an eye: high on the eye and a little to the left (the
+ * same side in both, as if from one light). It rides along with the eye, but
+ * lags its gaze a touch, as a real reflection would, and shrinks and fades
+ * away as the eye closes.
+ */
+export function glintAt(pill: EyeShape["pill"], gazeX: number, gazeY: number) {
+  const open = clamp((pill.h - 12) / 22, 0, 1);
+  return {
+    cx: pill.x + pill.w * 0.31 - gazeX * 3,
+    cy: pill.y + Math.min(pill.h * 0.27, pill.w * 0.42) - gazeY * 2,
+    r: pill.w * 0.13 * (0.5 + 0.5 * open),
+    o: open,
+  };
+}
+
+/**
+ * The reflection's colour: Mote's own (cream, or in dark mode the dark face
+ * colour), with the faintest red as they get frustrated and blue as they get
+ * low; both together read as a little purple.
+ */
+export function glintColor(feel: Pick<MindValues, "joy" | "peace">, dark: boolean) {
+  const ramp = (n: number) => clamp(n, 0, 1);
+  const red = ramp((-feel.joy - 1) / 6) * 0.15;
+  const blue = ramp((-feel.peace - 1) / 6) * 0.15;
+  const base = dark ? [35, 28, 24] : [255, 241, 228];
+  const tint = (c: number[], to: number[], k: number) => c.map((v, i) => v + (to[i] - v) * k);
+  const c = tint(tint(base, [232, 96, 90], red), [92, 124, 230], blue);
+  return `rgb(${c.map(Math.round).join(" ")})`;
+}
+
 export function eyeShape(
   side: "l" | "r",
   pose: Pose,
@@ -1941,6 +1975,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     browL: q<SVGPathElement>(svg, "brow-l"),
     browR: q<SVGPathElement>(svg, "brow-r"),
     mouth: q<SVGPathElement>(svg, "mouth"),
+    glints: q<SVGGElement>(svg, "glints"),
+    glintL: q<SVGCircleElement>(svg, "glint-l"),
+    glintR: q<SVGCircleElement>(svg, "glint-r"),
     guides: q<SVGGElement>(svg, "guides"),
     gPillL: q<SVGRectElement>(svg, "guide-pill-l"),
     gPillR: q<SVGRectElement>(svg, "guide-pill-r"),
@@ -1957,8 +1994,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   };
 
   const options: EngineOptions = {
-    followPointer: true,
-    naps: true,
     energy: "normal",
     media: null,
     placement: null,
@@ -1973,6 +2008,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     checkIns: true,
     games: true,
     eyesOnly: false,
+    dark: false,
+    glint: false,
+    moodShape: true,
   };
   const debug = {
     timeScale: 1,
@@ -2084,10 +2122,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   let napAfter = newNapAfter();
   let dozeNext = false;
   // Tucked in (or too exhausted to stay up): the yawn becomes sleep even if
-  // things aren't quiet. And whether this sleep is one you put them down for,
-  // which switching naps off in Settings leaves alone.
+  // things aren't quiet.
   let tucked = false;
-  let putToBed = false;
   let twitchStart = -1;
   let nextTwitch = 5000;
   /** You did something with Mote: no nodding off for a while. */
@@ -2735,7 +2771,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     react("tucked-in");
     dozeNext = true;
     tucked = true;
-    putToBed = true;
     if (Math.random() < 0.6) sayNow("tucked-in");
     start("yawn", clock);
   };
@@ -2952,7 +2987,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     touch();
     noticeYou();
     // Fast strokes while the button is held are petting, not shaking.
-    if (options.followPointer && dist > 0 && e.buttons === 0) {
+    if (dist > 0 && e.buttons === 0) {
       const size = svg.getBoundingClientRect().width || 300;
       shaken("pointer", dist, size * 4.5);
     }
@@ -2984,6 +3019,15 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const a = -k * (x - target) - 2 * z * Math.sqrt(k) * v;
     const nv = v + a * dt;
     return [x + nv * dt, nv] as const;
+  };
+
+  const setGlint = (el: SVGCircleElement | null, g: ReturnType<typeof glintAt>, fill: string) => {
+    if (!el) return;
+    el.setAttribute("cx", f(g.cx));
+    el.setAttribute("cy", f(g.cy));
+    el.setAttribute("r", f(g.r));
+    el.setAttribute("fill", fill);
+    el.style.opacity = g.o.toFixed(3);
   };
 
   const setPill = (el: SVGRectElement | null, p: EyeShape["pill"]) => {
@@ -3170,14 +3214,12 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const spent = options.sleepNeed && feel.rest <= 1 && !helping && !playing && now - touchedAt > 60_000;
     if (
       debug.autoMoods &&
-      options.naps &&
       mood === "settle" &&
       ((quiet && now - touchedAt > napAfter) || spent)
     ) {
       react("doze");
       dozeNext = true;
       tucked = spent;
-      putToBed = false;
       start("yawn", now);
     }
     const over =
@@ -3259,7 +3301,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const fl = feelings(feel);
     const tone =
       mood === "settle" || mood === "ck-watch" ? 1 : mood === "glance" ? 0.7 : mood === "think" || mood === "checkin" ? 0.5 : 0;
-    if (tone > 0) {
+    // (Unless that's switched off: then the eyes rest in their usual shape.)
+    if (tone > 0 && options.moodShape) {
       const scowl = fl.frustrated > 0.2 ? 0.2 + 0.06 * fl.frustrated : 0;
       target.lid += (scowl + 0.24 * fl.sleepy + 0.08 * fl.depressed) * tone;
       target.lidTilt += ((scowl ? 0.5 * fl.frustrated : 0) - 0.3 * fl.hungry - 0.22 * fl.depressed) * tone;
@@ -3323,10 +3366,10 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const fade = (idle: number) => (idle < 2000 ? 1 : clamp(1 - (idle - 2000) / 1000, 0, 1));
     // Attention to you (playing with Mote's window) only comes from the
     // pointer over it; the eyes follow it everywhere.
-    const attention = !pointer.has || !options.followPointer ? 0 : fade(idleFor);
+    const attention = !pointer.has ? 0 : fade(idleFor);
     const seen = outside ? now - pointerOut.at : idleFor;
     const looking =
-      !options.followPointer || (!pointer.has && !pointerOut.has) || mood === "sleep"
+      (!pointer.has && !pointerOut.has) || mood === "sleep"
         ? 0
         : fade(seen);
     lastAttention = looking;
@@ -3533,6 +3576,13 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
     if (parts.mouth) parts.mouth.style.display = options.mouth ? "" : "none";
     if (options.mouth) parts.mouth?.setAttribute("d", mouthShape(view, gaze.x, gaze.y));
+    if (parts.glints) parts.glints.style.display = options.glint ? "" : "none";
+    if (options.glint) {
+      parts.glints?.setAttribute("transform", eyeShift);
+      const fill = glintColor(feel, options.dark);
+      setGlint(parts.glintL, glintAt(l.pill, gaze.x, gaze.y), fill);
+      setGlint(parts.glintR, glintAt(r.pill, gaze.x, gaze.y), fill);
+    }
 
     // The pawn, the controller, the Minecraft block and creeper.
     const at = clock - moodStart;
@@ -3683,12 +3733,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       const before = { ...options };
       Object.assign(options, opts);
       if (before.media === null && options.media !== null) react("sound-start");
-      // Naps just switched off: a Mote who nodded off on their own wakes up.
-      // (Not one you tucked in, and not on every other settings update.)
       // Tiredness switched on or off: naps come on a different clock.
       if (before.sleepNeed !== options.sleepNeed) napAfter = newNapAfter();
-      const napsOff = before.naps && !options.naps;
-      if (napsOff && !putToBed && (mood === "doze" || mood === "sleep")) start("wake", clock);
     },
     poke: () => {
       pokeQueued = true;
@@ -3772,7 +3818,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       // Mote's eyes follow the pointer anywhere on the screen, not just over
       // their own window (see the gaze, in `step`).
       if (d > 0) pointerOut.at = clock;
-      if (inside || d === 0 || !options.followPointer || mood === "sleep") return;
+      if (inside || d === 0 || mood === "sleep") return;
       const t = clock;
       pointerTrail.push({ t, d });
       while (pointerTrail.length && t - pointerTrail[0].t > 800) pointerTrail.shift();
