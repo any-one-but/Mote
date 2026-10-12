@@ -272,6 +272,19 @@ a win or a block); **Normal** always takes a win and nearly always blocks;
 you block them, when they block you, and when either of you sets up two ways
 to win at once.
 
+## Local Gallery
+
+Mote carries Local Gallery, the Mac app from the Local_Gallery repo, inside
+`Mote.app` and opens it from a picture-frame button (with the Local Gallery
+feature unlocked). It's the real app, built from the same code with the same
+app ID and name, so it uses the same library, folders, settings and
+thumbnails as the Local Gallery you build from its own repo. Mote doesn't run
+any of it; it only opens it, as if you'd double-clicked it.
+
+Its code is kept apart in `local-gallery/` (only the core app: no
+safekeeping, docs or release tools), with its own notes on where it came from
+and how to update it. `npm run mac:build` builds it and tucks it in.
+
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. You can choose
@@ -314,6 +327,8 @@ each key is kept in the app, never the key itself.
   hunger's effect on their mood, face and what they say. Off, Mote simply
   stays full.
 - **Learn with Mote**: the learning option for checkers and tic-tac-toe.
+- **Local Gallery**: a picture-frame button that opens Local Gallery, which
+  Mote carries with them (see below).
 - **Goodnight Mote**: Mote getting tired and needing sleep (sleepy and
   exhausted moods, asking for bed, the bed button, waking once rested). Off,
   Mote stays rested and simply naps after a few quiet minutes left alone,
@@ -321,17 +336,22 @@ each key is kept in the app, never the key itself.
 
 ## Install Mote
 
-The current Mac app is already built and kept in the project. Quit Mote if it
-is open, then drag the new one into Applications and replace the old one.
+Quit Mote if it is open, then drag the new one into Applications and replace
+the old one:
 
 - `src-tauri/target/release/bundle/macos/Mote.app`
-- `src-tauri/target/release/bundle/dmg/Mote_0.8.1_aarch64.dmg` (an installer you can share)
+- `src-tauri/target/release/bundle/dmg/Mote_0.9.0_aarch64.dmg` (an installer you can share)
 
-To build a fresh copy later:
+Both are made by:
 
 ```bash
 npm run mac:build
 ```
+
+With Local Gallery inside, the app is about 340 MB and the installer about
+155 MB, too big for GitHub (it refuses files over 100 MB). So the project on
+GitHub keeps only Mote's own part of the built app, and the installer is only
+on this computer. Build again to get the full one anywhere else.
 
 ## See every expression side by side
 
@@ -347,6 +367,7 @@ Each face there is one expression frozen in place, handy for tweaking how they l
 - `desktop/ui.tsx` and `desktop/ui.css` — the soft buttons, switches and sliders
 - `src/lib/companion/settings.ts` — the list of settings and their defaults
 - `src/lib/companion/features.ts` — features locked behind a Feature Key, and whether each is on
+- `local-gallery/` — Local Gallery's own code, kept separate; `src-tauri/src/gallery.rs` opens it
 - `src/components/companion/mind.ts` — Mote's mood, hunger and rest, and how they change
 - `src/components/companion/memories.ts` — the games Mote remembers, and how they bring them up
 - `src/components/companion/Toolbar.tsx` — the buttons along the bottom of Mote's window

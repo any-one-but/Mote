@@ -537,6 +537,22 @@ export const LINES: Line[] = [
     say: ["I’m not sleepy yet!", "Bedtime? It’s way too early."],
   },
 
+  // Local Gallery, opened from Mote's button
+  {
+    id: "gallery-opened",
+    group: "Local Gallery",
+    kind: "flavor",
+    when: never,
+    say: ["Opening the gallery!", "Gallery time.", "Here you go: Local Gallery.", "Ooh, pictures."],
+  },
+  {
+    id: "gallery-missing",
+    group: "Local Gallery",
+    kind: "flavor",
+    when: never,
+    say: ["Hmm, I can’t find the gallery in this copy of me."],
+  },
+
   // Needs: Mote asks for these on their own, when they need them
   {
     id: "feed-me",

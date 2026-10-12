@@ -9,7 +9,7 @@ import { listenBus, send } from "@/lib/companion/bus";
 // Only a fingerprint of each key (its SHA-256) lives in the app, never the
 // key itself.
 
-export type FeatureId = "diet" | "hunger" | "assist" | "sleep";
+export type FeatureId = "diet" | "hunger" | "assist" | "sleep" | "gallery";
 
 export const FEATURES: Array<{ id: FeatureId; name: string; about: string; fingerprint: string }> = [
   {
@@ -35,6 +35,12 @@ export const FEATURES: Array<{ id: FeatureId; name: string; about: string; finge
     name: "Goodnight Mote",
     about: "Mote getting tired and needing sleep: sleepy and exhausted moods, asking for bed, the bed button, and waking when rested. Off, Mote still naps when left alone.",
     fingerprint: "664add0a6b65db0b80c0ba78fbf710a5c8b8dfc14761f4af85a98225aeb86862",
+  },
+  {
+    id: "gallery",
+    name: "Local Gallery",
+    about: "A button that opens Local Gallery, which Mote carries with them (the same app, with the same library and settings).",
+    fingerprint: "58410d02ab9bdb3c0ed5d08fdcc5557f27ef308e10489e982b964ad60205305c",
   },
 ];
 

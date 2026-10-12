@@ -16,6 +16,7 @@ export type ReactionGroup =
   | "Checkers"
   | "Chess"
   | "Tic-tac-toe"
+  | "Local Gallery"
   | "Time"
   | "Lasting moods"
   | "Looking after Mote"
@@ -860,6 +861,24 @@ export const REACTIONS: Reaction[] = [
     status: "live",
   },
 
+  // Local Gallery
+  {
+    id: "gallery-opened",
+    group: "Local Gallery",
+    name: "Opening the gallery",
+    when: "You press the picture-frame button (Local Gallery unlocked and on)",
+    then: "A happy hop, often a word, and Local Gallery opens as its own app",
+    status: "live",
+  },
+  {
+    id: "gallery-missing",
+    group: "Local Gallery",
+    name: "No gallery",
+    when: "The gallery can’t be found or won’t open (a copy of Mote built without it, or a browser)",
+    then: "An uh-oh face, and says so",
+    status: "live",
+  },
+
   // Speech
   {
     id: "speak",
@@ -1236,6 +1255,7 @@ export const REACTION_GROUPS: ReactionGroup[] = [
   "Checkers",
   "Chess",
   "Tic-tac-toe",
+  "Local Gallery",
   "Speech",
   "Time",
   "Lasting moods",

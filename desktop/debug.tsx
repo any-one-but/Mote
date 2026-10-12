@@ -369,6 +369,7 @@ function MindTab({ snap, command, settings }: Ctx) {
   const diet = featureOn(features, "diet");
   const hunger = featureOn(features, "hunger");
   const sleepNeed = featureOn(features, "sleep");
+  const gallery = featureOn(features, "gallery");
   const [memories, setMemories] = useState(loadMemories);
   useEffect(() => {
     const t = window.setInterval(() => setMemories(loadMemories()), 3000);
@@ -382,7 +383,8 @@ function MindTab({ snap, command, settings }: Ctx) {
       (show === "all" || r.status === show) &&
       (diet || r.group !== "Eating") &&
       (hunger || !HUNGER_REACTIONS.has(r.id)) &&
-      (sleepNeed || !SLEEP_REACTIONS.has(r.id)),
+      (sleepNeed || !SLEEP_REACTIONS.has(r.id)) &&
+      (gallery || r.group !== "Local Gallery"),
   );
   const { joy, peace } = snap.mind;
   const set = (attr: "joy" | "peace" | "fullness" | "rest", value: number) => command({ do: "feeling", attr, value });

@@ -1,5 +1,6 @@
 // Mote for Mac: native windows around the pages in ../desktop.
 mod audio;
+mod gallery;
 mod links;
 mod login;
 mod senses;
@@ -275,6 +276,7 @@ fn main() {
             set_debug_window,
             set_float_on_top,
             set_helping_size,
+            gallery::open_local_gallery,
             login::login_item_enabled,
             login::set_login_item,
             links::read_dropped_link,

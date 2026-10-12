@@ -13,6 +13,7 @@ import {
   onDropped,
   openCaloriesWindow,
   openLink,
+  openLocalGallery,
   onMediaElsewhere,
   onPointerElsewhere,
   onTypingElsewhere,
@@ -119,6 +120,7 @@ export function Companion() {
   const calorieGoal = diet ? settings.calorieGoal : 0;
   const hunger = featureOn(features, "hunger");
   const sleepNeed = featureOn(features, "sleep");
+  const gallery = featureOn(features, "gallery");
   useEffect(() => {
     if (!diet) setLogging(false);
   }, [diet]);
@@ -357,6 +359,10 @@ export function Companion() {
         diet={diet}
         hunger={hunger}
         sleepNeed={sleepNeed}
+        gallery={gallery}
+        onGallery={() => {
+          void openLocalGallery().then((ok) => engineRef.current?.openedGallery(ok));
+        }}
         asleep={status.asleep}
         wants={status.wants}
         onGame={(game) => {

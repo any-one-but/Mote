@@ -1,7 +1,7 @@
 {
   "name": "app-builder-workspace",
   "private": true,
-  "version": "0.8.1",
+  "version": "0.9.0",
   "sideEffects": false,
   "type": "module",
   "overrides": {
@@ -21,10 +21,11 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "mac": "npm run senses:build && tauri dev",
-    "mac:build": "npm run senses:build && CI=true tauri build",
+    "mac:build": "npm run senses:build && npm run gallery:build && CI=true tauri build && sh scripts/embed-gallery.sh",
     "desktop:web": "vite --config desktop/vite.config.ts",
     "desktop:web:build": "vite build --config desktop/vite.config.ts",
-    "senses:build": "mkdir -p src-tauri/binaries && swiftc -O -swift-version 5 -target arm64-apple-macos14.4 desktop/senses/main.swift -o src-tauri/binaries/mote-senses-aarch64-apple-darwin"
+    "senses:build": "mkdir -p src-tauri/binaries && swiftc -O -swift-version 5 -target arm64-apple-macos14.4 desktop/senses/main.swift -o src-tauri/binaries/mote-senses-aarch64-apple-darwin",
+    "gallery:build": "cd local-gallery && ([ -d node_modules ] || npm ci --no-audit --no-fund) && npm run build"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",

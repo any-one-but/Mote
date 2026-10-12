@@ -1046,6 +1046,17 @@
   fill: #f2c86b;
 }
 
+.tool-icon .i-fill-sky {
+  fill: #dbe7ee;
+}
+
+.tool-icon .i-fill-hill {
+  fill: #a9c48f;
+  stroke: var(--color-ink);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
 .tool-menu {
   position: absolute;
   left: 50%;

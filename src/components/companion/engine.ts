@@ -304,6 +304,8 @@ export type FaceEngine = {
   feed: (snack: string) => void;
   /** Put Mote to bed: they go to sleep if they're tired enough. */
   tuckIn: () => void;
+  /** You opened Local Gallery from Mote (or tried to). */
+  openedGallery: (ok: boolean) => void;
   /** A board game starts (Mote may remember the last one) and ends (Mote
    * remembers this one, and it moves their mood). `event` is the game's own
    * end line to use if there's nothing more personal to say. */
@@ -3359,6 +3361,13 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     },
     feed: feedMote,
     tuckIn,
+    openedGallery: (ok) => {
+      rouse();
+      engage();
+      react(ok ? "gallery-opened" : "gallery-missing");
+      start(ok ? "delight" : "uhoh", clock);
+      if (!ok || Math.random() < 0.6) sayNow(ok ? "gallery-opened" : "gallery-missing");
+    },
     gameStart,
     gameOver,
     answer: (yes) => {

@@ -5,7 +5,8 @@ import { SNACKS } from "@/components/companion/mind";
 // The little row of buttons along the bottom of Mote's window: a toy chest
 // of games, a carrot for calorie tracking (when the diet tracker is
 // unlocked), a snack bowl to feed Mote (when "Mote eats too" is), and a bed
-// to tuck them in (when "Goodnight Mote" is). A soft glow on a button means Mote would like that.
+// to tuck them in (when "Goodnight Mote" is). With Local Gallery unlocked,
+// a picture frame opens it. A soft glow on a button means Mote would like that.
 
 type Props = {
   /** The diet tracker is unlocked and on: show the carrot. */
@@ -14,6 +15,9 @@ type Props = {
   hunger: boolean;
   /** Goodnight Mote: show the bed. */
   sleepNeed: boolean;
+  /** Local Gallery: show its button. */
+  gallery: boolean;
+  onGallery: () => void;
   asleep: boolean;
   wants: Want | null;
   onGame: (game: "checkers" | "chess" | "tictactoe") => void;
@@ -25,7 +29,20 @@ type Props = {
 
 type MenuId = "toys" | "carrot" | "snack";
 
-export function Toolbar({ diet, hunger, sleepNeed, asleep, wants, onGame, onLogCalories, onDays, onFeed, onBed }: Props) {
+export function Toolbar({
+  diet,
+  hunger,
+  sleepNeed,
+  gallery,
+  onGallery,
+  asleep,
+  wants,
+  onGame,
+  onLogCalories,
+  onDays,
+  onFeed,
+  onBed,
+}: Props) {
   const [open, setOpen] = useState<MenuId | null>(null);
   const root = useRef<HTMLDivElement>(null);
 
@@ -90,6 +107,16 @@ export function Toolbar({ diet, hunger, sleepNeed, asleep, wants, onGame, onLogC
             </MenuItem>
           ))}
         </ToolButton>
+      ) : null}
+      {gallery ? (
+        <ToolButton
+          label="Open Local Gallery"
+          onClick={() => {
+            setOpen(null);
+            onGallery();
+          }}
+          icon={<FrameIcon />}
+        />
       ) : null}
       {sleepNeed ? (
         <ToolButton
@@ -185,6 +212,17 @@ function BowlIcon() {
       <circle cx="12" cy="10.6" r="2.2" className="i-fill-berry" />
       <path d="M3.5 11.5h17a8.5 8.5 0 0 1-17 0Z" className="i-fill-warm" />
       <path d="M3.5 11.5h17a8.5 8.5 0 0 1-17 0ZM9 20h6" className="i-line" />
+    </svg>
+  );
+}
+
+function FrameIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="tool-icon">
+      <rect x="3.5" y="5" width="17" height="14" rx="2" className="i-fill-sky" />
+      <path d="M3.5 16.5 9 11.5l4 3.5 2.5-2 5 4" className="i-fill-hill" />
+      <circle cx="15.5" cy="9.5" r="1.6" className="i-fill-sun" />
+      <rect x="3.5" y="5" width="17" height="14" rx="2" className="i-line" />
     </svg>
   );
 }
