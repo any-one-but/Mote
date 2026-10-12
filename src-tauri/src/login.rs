@@ -67,6 +67,8 @@ pub fn refresh() {
 mod tests {
     #[test]
     fn switches_on_and_off() {
+        let _turn = crate::HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let real_home = std::env::var_os("HOME");
         let home = std::env::temp_dir().join("mote-login-test");
         let _ = std::fs::remove_dir_all(&home);
         std::env::set_var("HOME", &home);
@@ -77,5 +79,8 @@ mod tests {
         assert!(text.contains("RunAtLoad") && text.contains("com.anyonebut.mote.login"));
         super::set_login_item(false).unwrap();
         assert!(!super::login_item_enabled());
+        if let Some(h) = real_home {
+            std::env::set_var("HOME", h);
+        }
     }
 }

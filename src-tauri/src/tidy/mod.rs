@@ -534,6 +534,7 @@ mod tests {
 
     #[test]
     fn off_limits_places() {
+        let _turn = crate::HOME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let home = std::env::var("HOME").unwrap();
         assert!(off_limits(Path::new("/")));
         assert!(off_limits(Path::new(&home)));

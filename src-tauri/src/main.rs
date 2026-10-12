@@ -6,6 +6,10 @@ mod login;
 mod senses;
 mod tidy;
 
+/// Tests that change or read HOME take turns, so one never sees another's.
+#[cfg(test)]
+pub(crate) static HOME_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 use std::time::Duration;
 
 use tauri::{
