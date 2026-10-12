@@ -3,12 +3,14 @@ import type { Want } from "@/components/companion/engine";
 import { SNACKS } from "@/components/companion/mind";
 
 // The little row of buttons along the bottom of Mote's window: a toy chest
-// of games, a carrot for calorie tracking (when the diet tracker is
+// of games (unless it's switched off), a carrot for calorie tracking (when the diet tracker is
 // unlocked), a snack bowl to feed Mote (when "Mote eats too" is), and a bed
 // to tuck them in (when "Goodnight Mote" is). With Local Gallery on, a
 // picture frame opens it; with the Debug window unlocked, a wrench opens that. A soft glow on a button means Mote would like that.
 
 type Props = {
+  /** The toy chest is switched on: show it. */
+  games: boolean;
   /** The diet tracker is unlocked and on: show the carrot. */
   diet: boolean;
   /** Mote eats too: show the snack bowl. */
@@ -33,6 +35,7 @@ type Props = {
 type MenuId = "toys" | "carrot" | "snack";
 
 export function Toolbar({
+  games,
   diet,
   hunger,
   sleepNeed,
@@ -75,18 +78,20 @@ export function Toolbar({
 
   return (
     <div className={`toolbar${open ? " is-open" : ""}`} ref={root}>
-      <ToolButton
-        label="Games"
-        open={open === "toys"}
-        glow={wants === "play"}
-        onClick={() => toggle("toys")}
-        icon={<ChestIcon />}
-      >
-        <MenuItem onClick={choose(() => onGame("checkers"))}>Checkers</MenuItem>
-        <MenuItem onClick={choose(() => onGame("chess"))}>Chess</MenuItem>
-        <MenuItem onClick={choose(() => onGame("tictactoe"))}>Tic-tac-toe</MenuItem>
-        <MenuItem onClick={choose(() => onGame("liarsdice"))}>Liar’s Dice</MenuItem>
-      </ToolButton>
+      {games ? (
+        <ToolButton
+          label="Games"
+          open={open === "toys"}
+          glow={wants === "play"}
+          onClick={() => toggle("toys")}
+          icon={<ChestIcon />}
+        >
+          <MenuItem onClick={choose(() => onGame("checkers"))}>Checkers</MenuItem>
+          <MenuItem onClick={choose(() => onGame("chess"))}>Chess</MenuItem>
+          <MenuItem onClick={choose(() => onGame("tictactoe"))}>Tic-tac-toe</MenuItem>
+          <MenuItem onClick={choose(() => onGame("liarsdice"))}>Liar’s Dice</MenuItem>
+        </ToolButton>
+      ) : null}
       {diet ? (
         <ToolButton
           label="Calories"

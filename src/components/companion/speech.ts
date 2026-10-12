@@ -48,6 +48,8 @@ export type SpeechContext = {
   media: boolean;
   /** You're typing in another app. */
   typing: boolean;
+  /** The toy chest is switched on, so games can be suggested. */
+  games: boolean;
   /** An app just dropped on Mote: its name and ID. */
   offering: { name: string; bundle?: string | null } | null;
   /** The game being played, if any: its name, what sort, and how it went. */
@@ -439,7 +441,13 @@ export const LINES: Line[] = [
     weight: 3,
     // Cheerful thoughts, so not when Mote is low or cross.
     when: (c) => c.event === "chat" && !c.moods.some((m) => m === "down" || m === "depressed" || m === "frustrated"),
-    say: [
+    say: (c) => [
+      ...(c.games
+        ? [
+            "Chess? Checkers? Tic-tac-toe? The toy chest’s right there.",
+            "I’ve been practicing my checkers. Just saying.",
+          ]
+        : []),
       "Hi. Just saying hi.",
       "What are you up to?",
       "I wonder what clouds feel like.",
@@ -458,8 +466,6 @@ export const LINES: Line[] = [
       "Stretch break? Your shoulders say yes.",
       "Boop. That’s all.",
       "Got any games? I’m pretty good. (Sometimes.)",
-      "Chess? Checkers? Tic-tac-toe? The toy chest’s right there.",
-      "I’ve been practicing my checkers. Just saying.",
     ],
   },
 
@@ -806,6 +812,7 @@ const ASKED: CheckIn[] = [
   },
   {
     id: "check-fun",
+    when: (c) => c.games,
     say: ["Having a good time over there?", "Is today being fun at all?", "Enjoying yourself?"],
     replies: {
       yes: ["Yay! Good. Fun suits you.", "Excellent. Carry on having it.", "Good! I hope it’s catching. I want some."],
@@ -817,6 +824,21 @@ const ASKED: CheckIn[] = [
     },
     faces: { yes: "beam", no: "cute", ignored: "soothe" },
     then: { no: "suggest-play" },
+  },
+  {
+    // The same question with the toy chest switched off: no games to offer.
+    id: "check-fun-plain",
+    when: (c) => !c.games,
+    say: ["Having a good time over there?", "Is today being fun at all?", "Enjoying yourself?"],
+    replies: {
+      yes: ["Yay! Good. Fun suits you.", "Excellent. Carry on having it.", "Good! I hope it’s catching. I want some."],
+      no: [
+        "Boo. Take five and do the most fun thing within reach. It doesn’t have to be useful.",
+        "Well, that won’t do. Put on a song you love, loud. I’ll bob along.",
+        "Not even a little? Do something silly for a minute. Dance badly. I won’t tell.",
+      ],
+    },
+    faces: { yes: "beam", no: "cute", ignored: "soothe" },
   },
   {
     id: "check-day",
@@ -943,7 +965,7 @@ const ASKED: CheckIn[] = [
       yes: ["Me too! Well, the sound of it.", "Good. I’ll keep listening."],
       no: [
         "Then switch it! Life’s too short for boring stuff.",
-        "Put on something you actually like. Or play a game with me. I’m free.",
+        "Put on something you actually like. You deserve better than background noise.",
       ],
     },
     faces: { yes: "beam", no: "cute", ignored: "soothe" },

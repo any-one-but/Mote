@@ -147,6 +147,8 @@ export function Companion() {
   const mouth = featureOn(features, "mouth");
   const links = featureOn(features, "links");
   const checkIns = featureOn(features, "checkins");
+  const games = featureOn(features, "games");
+  const eyesOnly = featureOn(features, "eyes");
   const files = featureOn(features, "files");
   const apps = featureOn(features, "apps");
   const debugOn = featureOn(features, "debug");
@@ -162,6 +164,10 @@ export function Companion() {
   useEffect(() => {
     if (!diet) setLogging(false);
   }, [diet]);
+  // Toy chest switched off: a game that's open is put away.
+  useEffect(() => {
+    if (!games) setPlaying(null);
+  }, [games]);
   useEffect(() => {
     if (!gallery) dropAsking();
   }, [gallery, dropAsking]);
@@ -186,8 +192,10 @@ export function Companion() {
       mouth,
       links,
       checkIns,
+      games,
+      eyesOnly,
     });
-  }, [followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed, brows, mouth, links, checkIns]);
+  }, [followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed, brows, mouth, links, checkIns, games, eyesOnly]);
 
   useEffect(
     () =>
@@ -382,7 +390,7 @@ export function Companion() {
   // along the bottom hold games, calories, snacks and bedtime.
   return (
     <div
-      className={`stage${helping ? " is-helping" : ""}${logging ? " is-logging" : ""}${asking && !helping ? " is-asking" : ""}${playing && !helping ? " is-playing" : ""}`}
+      className={`stage${eyesOnly ? " is-eyes" : ""}${helping ? " is-helping" : ""}${logging ? " is-logging" : ""}${asking && !helping ? " is-asking" : ""}${playing && !helping ? " is-playing" : ""}`}
       onContextMenu={(e) => {
         const target = e.target;
         if (target instanceof Element && target.closest("input, textarea")) return;
@@ -454,6 +462,8 @@ export function Companion() {
               mouth,
               links,
               checkIns,
+              games,
+              eyesOnly,
             });
             applyAudio();
           }}
@@ -492,6 +502,7 @@ export function Companion() {
         }}
       />
       <Toolbar
+        games={games}
         diet={diet}
         hunger={hunger}
         sleepNeed={sleepNeed}

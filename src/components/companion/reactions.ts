@@ -1189,7 +1189,7 @@ export const REACTIONS: Reaction[] = [
     group: "Speech",
     name: "Check-in: not so good",
     when: "You press red on a check-in",
-    then: "A concerned, soft look and a reply that fits the question: understanding first, maybe one small idea. Not having fun gets a playful offer of a game instead, and the toy chest glows for a few minutes. Never upsets Mote",
+    then: "A concerned, soft look and a reply that fits the question: understanding first, maybe one small idea. Not having fun gets a playful offer of a game instead, and the toy chest glows for a few minutes (with the toy chest off, a nudge to do something fun). Never upsets Mote",
     status: "live",
   },
   {
@@ -1205,7 +1205,7 @@ export const REACTIONS: Reaction[] = [
     group: "Speech",
     name: "Asking for what they need",
     when: "Mote notices a need and it lasts 8–25 seconds: hungry (Fullness 2½ or less), worn out (Rest 1½ or less), or lonely (Satisfied −4 or less). Never while helping you, playing, or asleep",
-    then: "Asks to be fed, to be tucked in, to play something, or (if they’re cross as well) for a pet. If ignored, asks again only after a while",
+    then: "Asks to be fed, to be tucked in, to play something, or (if they’re cross as well, or the toy chest is switched off) for a pet. If ignored, asks again only after a while",
     status: "live",
   },
   {

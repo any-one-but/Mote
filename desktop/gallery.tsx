@@ -5,7 +5,7 @@ import "../src/styles.css";
 
 // A tuning sheet: every expression frozen side by side. Open /gallery.html.
 // ?only=a,b picks shots by name, ?size=600 makes them bigger, ?acc=1 puts the
-// accessories on every face, ?brows=1 draws the eyebrows, ?mouth=1 the mouth.
+// accessories on every face, ?brows=1 draws the eyebrows, ?mouth=1 the mouth, ?eyes=1 just the eyes.
 type Shot = [
   name: string,
   mood: Mood | null,
@@ -55,6 +55,7 @@ const size = Number(params.get("size") ?? 300);
 const allAcc = params.get("acc") === "1";
 const brows = params.get("brows") === "1";
 const mouth = params.get("mouth") === "1";
+const eyesOnly = params.get("eyes") === "1";
 const SHOTS = only ? ALL.filter(([name]) => only.split(",").includes(name)) : ALL;
 
 function Still({
@@ -119,17 +120,19 @@ function Still({
           </mask>
         ))}
       </defs>
-      <ellipse
-        className="shadow"
-        cx={GEO.cx}
-        cy={GEO.shadowY}
-        rx={GEO.shadowRx}
-        ry={GEO.shadowRy}
-      />
+      {eyesOnly ? null : (
+        <ellipse
+          className="shadow"
+          cx={GEO.cx}
+          cy={GEO.shadowY}
+          rx={GEO.shadowRx}
+          ry={GEO.shadowRy}
+        />
+      )}
       <g
         transform={`translate(${pose.x} ${pose.y}) rotate(${pose.rot} ${GEO.cx} ${GEO.pivotY}) translate(${GEO.cx} ${GEO.groundY}) scale(${pose.sx} ${pose.sy}) translate(${-GEO.cx} ${-GEO.groundY})`}
       >
-        <ellipse className="skin" cx={GEO.cx} cy={GEO.cy} rx={GEO.faceRx} ry={GEO.faceRy} />
+        {eyesOnly ? null : <ellipse className="skin" cx={GEO.cx} cy={GEO.cy} rx={GEO.faceRx} ry={GEO.faceRy} />}
         <g filter={`url(#soft-${id})`}>
           {eyes.map((e) => (
             <rect

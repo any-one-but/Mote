@@ -84,6 +84,22 @@
   opacity: 0.1;
 }
 
+/* Just the eyes (an experimental feature): no body and no shadow, the
+   window takes Mote's colour, and the eyes grow to fill it. */
+.stage.is-eyes,
+.stage.is-eyes .window {
+  background: var(--color-face);
+}
+
+.stage.is-eyes .skin,
+.stage.is-eyes .shadow {
+  display: none;
+}
+
+.stage.is-eyes .face {
+  scale: 1.45;
+}
+
 /* Debug guides: where each pill sits and what the brow / cheek cuts remove. */
 .guides {
   display: none;

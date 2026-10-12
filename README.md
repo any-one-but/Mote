@@ -173,7 +173,7 @@ doesn't come back within eight hours, and none come while Mote is cross
 
 Along the bottom of Mote's window (quiet until your pointer is over it):
 
-- **Toy chest:** the games (checkers, chess, tic-tac-toe and Liar's Dice).
+- **Toy chest:** the games (checkers, chess, tic-tac-toe and Liar's Dice). It can be switched off in the Debug window.
 - **Carrot:** log calories, or see the days (only with the diet tracker switched on).
 - **Snack bowl:** feed Mote (only with "Mote eats too" switched on).
 - **Bed** (with Goodnight Mote switched on): tuck Mote in (if they're tired enough). While they sleep it turns
@@ -440,6 +440,11 @@ Once it's unlocked, a wrench button on Mote's window opens the Debug window:
     dragged onto Mote. Off, apps get the same "not right now".
   - **Check-ins**: Mote now and then asking how you're doing. Off, they
     don't ask.
+  - **Toy chest**: the toy chest button and its games, and Mote asking for
+    or suggesting a game. Off, the button goes, an open game is put away,
+    and Mote never brings games up: a lonely Mote asks for a pet instead,
+    and "not having fun" gets a nudge toward something fun rather than a
+    game. Games already played are still remembered.
 
   and for the experimental features (all off until switched on):
   - **Diet tracker**: calorie logging, the Days window, the carrot button,
@@ -466,6 +471,11 @@ Once it's unlocked, a wrench button on Mote's window opens the Debug window:
     makes. Happy cheeks make it smile, a cross or worried slant makes a small
     frown, eyes opened wide make a little "o", and at rest it's a tiny
     contented line.
+  - **Just the eyes**: no body, no dot, no shadow. The window takes Mote's
+    cream colour and the eyes grow to fill it, so the whole window is Mote,
+    and touching anywhere in it counts as touching Mote (pokes, pets).
+    Eyebrows and the mouth work the same if they're on. The expression sheet
+    shows it with ?eyes=1.
 - **Moods**: play any mood on demand, blink, poke, turn off automatic moods, loop a mood
 - **Mind**: the mood chart, hunger and rest (with buttons to nudge them), the
   games Mote remembers, and every reaction with what it does to the mood

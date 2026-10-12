@@ -279,6 +279,12 @@ export type EngineOptions = {
   links: boolean;
   /** Check-ins: now and then Mote asks how you're doing (on unless switched off). */
   checkIns: boolean;
+  /** The toy chest: games to play (on unless switched off). Off, Mote never
+   * asks for or suggests one. */
+  games: boolean;
+  /** Just the eyes (an experimental feature): no body, so the whole window
+   * is Mote, and anywhere in it counts as touching them. */
+  eyesOnly: boolean;
 };
 
 /** An app dropped on Mote: its name, its ID (com.apple.safari…), and
@@ -1965,6 +1971,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     mouth: false,
     links: true,
     checkIns: true,
+    games: true,
+    eyesOnly: false,
   };
   const debug = {
     timeScale: 1,
@@ -2211,6 +2219,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     placement: options.placement,
     media: interest === "media",
     typing: clock < typingUntil,
+    games: options.games,
     offering: offered,
     game: game?.name ?? null,
     gameKind: game ? (game.mood === "gaming" ? "game" : game.mood) : null,
@@ -2318,7 +2327,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (helping || playing || mood === "sleep" || mood === "doze") return null;
     if (feel.fullness <= 2.5) return "feed-me";
     if (options.sleepNeed && feel.rest <= 1.5) return "tuck-me-in";
-    if (feel.peace <= -4) return feel.joy >= -2 ? "play-with-me" : "pet-me";
+    if (feel.peace <= -4) return feel.joy >= -2 && options.games ? "play-with-me" : "pet-me";
     return null;
   };
 
@@ -2687,7 +2696,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (mood === "sleep" || mood === "doze" || helping || playing) return null;
     if (feel.fullness <= 3.5) return "food";
     if (options.sleepNeed && feel.rest <= 2.5) return "sleep";
-    if (feel.peace <= -2 || clock < playNudgeUntil) return "play";
+    if (options.games && (feel.peace <= -2 || clock < playNudgeUntil)) return "play";
     return null;
   };
 
@@ -3708,6 +3717,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       else delete svg.dataset.guides;
     },
     hitTest: (clientX, clientY) => {
+      if (options.eyesOnly) return true;
       const ctm = parts.body?.getScreenCTM();
       if (!ctm) return false;
       const pt = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse());

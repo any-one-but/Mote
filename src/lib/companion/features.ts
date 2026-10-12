@@ -20,13 +20,15 @@ export type FeatureId =
   | "files"
   | "apps"
   | "checkins"
+  | "games"
   | "diet"
   | "hunger"
   | "levels"
   | "sleep"
   | "gallery"
   | "brows"
-  | "mouth";
+  | "mouth"
+  | "eyes";
 
 export const KEYED: Array<{ id: KeyedId; name: string; about: string; fingerprint: string }> = [
   {
@@ -70,6 +72,12 @@ export const FEATURES: Array<{
     usual: true,
   },
   {
+    id: "games",
+    name: "Toy chest",
+    about: "The toy chest button and its games (checkers, chess, tic-tac-toe, Liar’s Dice), and Mote asking for or suggesting a game. Off, the button goes, a game that’s open is put away, and Mote never brings games up (games you’ve played are still remembered).",
+    usual: true,
+  },
+  {
     id: "diet",
     name: "Diet tracker",
     about: "Calorie logging, the Days window, the carrot button, and everything Mote says about food you eat.",
@@ -103,6 +111,11 @@ export const FEATURES: Array<{
     id: "mouth",
     name: "Mouth",
     about: "A little mouth under Mote’s eyes. It follows every expression: a smile when happy, a small frown when worried or cross, a small “o” when surprised.",
+  },
+  {
+    id: "eyes",
+    name: "Just the eyes",
+    about: "No body, no dot, no shadow: just Mote’s eyes (bigger), on a window the colour of Mote, so the whole window is Mote. Touching anywhere in it counts as touching Mote. Eyebrows and the mouth still work if they’re on.",
   },
 ];
 
