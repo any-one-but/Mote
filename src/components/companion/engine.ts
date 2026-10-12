@@ -2262,7 +2262,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     engage();
     if (face && !debug.manual) start(face as Mood, clock);
     react(reaction);
-    if (Math.random() > chance) return;
+    if (chance <= 0 || Math.random() > chance) return;
     const said = line();
     recentGameLines = [...recentGameLines, said.id].slice(-12);
     showBubble({

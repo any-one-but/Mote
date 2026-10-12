@@ -16,7 +16,10 @@ export type TicTacToeEvent =
   | "you-win"
   | "draw"
   | "resign"
-  | "pause";
+  | "pause"
+  | "assist-start"
+  | "assist-mistake"
+  | "assist-good";
 
 export const TICTACTOE_FACE: Partial<Record<TicTacToeEvent, string>> = {
   start: "delight",
@@ -32,6 +35,9 @@ export const TICTACTOE_FACE: Partial<Record<TicTacToeEvent, string>> = {
   "you-win": "ck-lose",
   draw: "cute",
   resign: "cute",
+  "assist-start": "delight",
+  "assist-mistake": "think",
+  "assist-good": "delight",
 };
 
 export const TICTACTOE_CHANCE: Record<TicTacToeEvent, number> = {
@@ -49,6 +55,9 @@ export const TICTACTOE_CHANCE: Record<TicTacToeEvent, number> = {
   draw: 1,
   resign: 1,
   pause: 1,
+  "assist-start": 1,
+  "assist-mistake": 0,
+  "assist-good": 0,
 };
 
 type Pool = string[] | Record<Level, string[]>;
@@ -80,6 +89,12 @@ const LINES: Record<TicTacToeEvent, Pool> = {
   draw: ["A draw! Nobody wins.", "Cat’s game!", "Even again. Classic tic-tac-toe."],
   resign: ["Giving up already? Okay.", "Aw. Next time, then."],
   pause: ["I’ll keep the board just like this.", "We can finish later."],
+  "assist-start": [
+    "Let’s learn tic-tac-toe together! I’ll explain as we go.",
+    "Learning mode! Watch the notes under the board.",
+  ],
+  "assist-mistake": [""],
+  "assist-good": [""],
 };
 
 export function pickTicTacToeLine(

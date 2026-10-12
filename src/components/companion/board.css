@@ -686,3 +686,116 @@
     stroke-dashoffset: 0;
   }
 }
+
+/* Learning with Mote: Mote's notes under the board, and marked squares. */
+
+.ck.is-assist .ck-board,
+.ck.is-assist .tt-board {
+  width: min(100%, calc(100dvh - 360px));
+}
+
+.ck-pick .ck-levels + .ck-hint + .ck-levels {
+  margin-top: 4px;
+}
+
+.coach {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: #f6efe5;
+  animation: cs-fade 0.25s ease;
+}
+
+.coach-face {
+  flex: none;
+  width: 30px;
+  height: 30px;
+}
+
+.coach-face circle {
+  fill: #fff1e4;
+  stroke: #d4bfa8;
+  stroke-width: 2;
+}
+
+.coach-face rect {
+  fill: var(--ck-ink);
+}
+
+.coach-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.coach-line {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--ck-ink);
+}
+
+.coach-line + .coach-line {
+  margin-top: 4px;
+}
+
+.coach-label {
+  font-weight: 600;
+  color: var(--ck-soft);
+}
+
+.coach-line.is-mistake .coach-label {
+  color: #b5553b;
+}
+
+.coach-line.is-good .coach-label {
+  color: #5f8a4c;
+}
+
+.coach-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.coach-btn {
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ck-sunk);
+  color: var(--ck-ink);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+
+.coach-btn:hover {
+  background: #e4d9ca;
+}
+
+.coach-btn.is-main {
+  background: var(--ck-accent);
+  color: #fffcf7;
+}
+
+.coach-btn.is-main:hover {
+  background: var(--ck-accent-deep);
+}
+
+/* Marked squares: green for a move worth making, red for a piece in danger. */
+.ck-sq.is-go,
+.tt-cell.is-go {
+  box-shadow: inset 0 0 0 4px rgb(111 154 91 / 0.85);
+}
+
+.ck-sq.is-danger,
+.tt-cell.is-danger {
+  box-shadow: inset 0 0 0 4px rgb(197 87 63 / 0.85);
+}
+
+.tt-cell.is-go {
+  background: #e6eedb;
+}

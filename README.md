@@ -219,6 +219,25 @@ at the end. They comment on the big moments (and once in a while on a slip of
 their own). Close the board mid-game and it's saved for next time. Your
 record against Mote at each level sits at the top of the board.
 
+### Learning with Mote
+
+Checkers and tic-tac-toe have a **Learn with Mote** option on the level
+picker. Mote's notes appear under the board, in their own words:
+
+- **On your turn**, a tip about what matters right now (a win to take, a
+  threat to block, a piece in danger, a king to be had, the value of the
+  center or your back row). **Show me** marks the squares on the board.
+- **After a mistake** (a move that throws away a win, or hands Mote a piece
+  or a win), Mote waits, explains what went wrong and marks the better move:
+  **Take it back** to try again, or **Keep going**. Good moves that took some
+  finding get a word too.
+- **After Mote's move**, why they made it: a block, a fork, a trap, getting
+  a piece out of danger, pushing for a king.
+
+Learning games don't count toward your record or go into Mote's memories of
+games, though playing together still keeps Mote company. At the end, Mote
+says how many mistakes you made.
+
 ## Chess
 
 Open the toy chest and choose **Chess**. Same board, same levels, same
@@ -300,7 +319,7 @@ The current Mac app is already built and kept in the project. Quit Mote if it
 is open, then drag the new one into Applications and replace the old one.
 
 - `src-tauri/target/release/bundle/macos/Mote.app`
-- `src-tauri/target/release/bundle/dmg/Mote_0.7.2_aarch64.dmg` (an installer you can share)
+- `src-tauri/target/release/bundle/dmg/Mote_0.8.0_aarch64.dmg` (an installer you can share)
 
 To build a fresh copy later:
 
@@ -336,6 +355,7 @@ Each face there is one expression frozen in place, handy for tweaking how they l
 - `src/lib/checkers/rules.ts` — the rules; `ai.ts` — how Mote picks a move
 - `src/components/companion/Chess.tsx`, `chess-pieces.tsx` and `chess-lines.ts` — the chess board, its pieces, and what Mote says
 - `src/lib/chess/rules.ts` — every chess rule; `ai.ts` — how Mote picks a chess move
+- `src/lib/checkers/coach.ts` and `src/lib/tictactoe/coach.ts` — Learn with Mote: tips, mistakes and Mote's explanations
 - `src/components/companion/TicTacToe.tsx` and `tictactoe-lines.ts`, and `src/lib/tictactoe/game.ts` — tic-tac-toe
 - `src/components/companion/board-ui.tsx` and `board.css` — what both games share (level picker, header, end panel, the board's look)
 - `src/components/companion/links.ts` — saved links, their history, and how Mote picks one to suggest

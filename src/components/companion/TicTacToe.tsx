@@ -12,7 +12,8 @@ import {
   winningCells,
   type Grid,
 } from "@/lib/tictactoe/game";
-import { BoardHead, EndPanel, LevelPick } from "./board-ui";
+import { explain, review, tip } from "@/lib/tictactoe/coach";
+import { BoardHead, Coach, EndPanel, LevelPick, type CoachLine } from "./board-ui";
 import { addToStats, load, readStats, savedLevel, sleep, store, type Phase, type Stats, type Winner } from "./board-store";
 
 type Props = {
@@ -20,7 +21,7 @@ type Props = {
   onClose: () => void;
 };
 
-type Saved = { grid: Grid; turn: "you" | "mote"; level: Level };
+type Saved = { grid: Grid; turn: "you" | "mote"; level: Level; assist?: boolean };
 
 const SAVE = "mote.tictactoe";
 const STATS = "mote.tictactoe.stats";
@@ -39,10 +40,29 @@ export function TicTacToe({ engine, onClose }: Props) {
   const [last, setLast] = useState<{ you: number | null; mote: number | null }>({ you: null, mote: null });
   const [result, setResult] = useState<{ winner: Winner; line: number[] | null } | null>(null);
   const [stats, setStats] = useState<Stats>(() => readStats(STATS));
+  // Learning with Mote: their notes, the squares they've marked (shown on
+  // "Show me"), a move of yours waiting on take-back-or-keep, and how many
+  // mistakes so far.
+  const [assist, setAssist] = useState(saved.current?.assist === true);
+  const [notes, setNotes] = useState<CoachLine[]>([]);
+  const [marks, setMarks] = useState<number[]>([]);
+  const [showing, setShowing] = useState(false);
+  const [pending, setPending] = useState<{ before: Grid; after: Grid } | null>(null);
+  const mistakes = useRef(0);
 
   const alive = useRef(true);
   const levelRef = useRef(level);
   levelRef.current = level;
+  const assistRef = useRef(assist);
+  assistRef.current = assist;
+
+  /** On your turn in a learning game: a tip, after whatever Mote just said. */
+  const coachYourTurn = (g: Grid, before: CoachLine[] = []) => {
+    const t = tip(g);
+    setNotes([...before, { kind: "tip", text: t.text }]);
+    setMarks(t.cells);
+    setShowing(false);
+  };
 
   const tell = useCallback(
     (event: TicTacToeEvent) => engine()?.tictactoe(event, levelRef.current),
@@ -56,8 +76,8 @@ export function TicTacToe({ engine, onClose }: Props) {
   }, [engine, phase, turn, busy]);
 
   useEffect(() => {
-    if (phase === "playing") store(SAVE, { grid, turn, level });
-  }, [phase, grid, turn, level]);
+    if (phase === "playing") store(SAVE, { grid, turn, level, assist });
+  }, [phase, grid, turn, level, assist]);
 
   /** The game's over: say so, add it to the record, and let Mote remember it. */
   const finish = (g: Grid, how = "") => {
@@ -67,6 +87,23 @@ export function TicTacToe({ engine, onClose }: Props) {
     setResult({ winner, line: end && end.winner !== "draw" ? end.line : null });
     setPhase("over");
     store(SAVE, null);
+    setPending(null);
+    setShowing(false);
+    if (assistRef.current) {
+      // A learning game: no record, nothing for Mote to remember. Just a word
+      // about how it went.
+      const n = mistakes.current;
+      setNotes([
+        {
+          kind: n ? "tip" : "good",
+          text: n
+            ? `${n === 1 ? "One mistake" : `${n} mistakes`} this game. Every one of them is something to watch for next time.`
+            : "No mistakes this game. You’re getting the hang of it.",
+        },
+      ]);
+      tell(how === "resign" ? "resign" : winner === "mote" ? "mote-win" : winner === "you" ? "you-win" : "draw");
+      return true;
+    }
     setStats(addToStats(STATS, levelRef.current, winner));
     const left = openCells(g).length;
     engine()?.gameOver(
@@ -97,6 +134,15 @@ export function TicTacToe({ engine, onClose }: Props) {
     setLast((l) => ({ ...l, mote: choice.cell }));
     setTurn("you");
     setBusy(false);
+    if (assistRef.current) {
+      const said: CoachLine = { kind: "mote", text: explain(g, choice.cell, choice.slip) };
+      if (finish(next)) {
+        setNotes((n) => [said, ...n]);
+        return;
+      }
+      coachYourTurn(next, [said]);
+      return;
+    }
     if (finish(next)) return;
     if (isFork(next, "mote")) tell("mote-fork");
     else if (winningCells(g, "you").includes(choice.cell)) tell("mote-block");
@@ -106,11 +152,30 @@ export function TicTacToe({ engine, onClose }: Props) {
   };
 
   const play = (cell: number) => {
-    if (phase !== "playing" || turn !== "you" || busy || grid[cell]) return;
+    if (phase !== "playing" || turn !== "you" || busy || pending || grid[cell]) return;
     const next = grid.slice();
     next[cell] = "you";
     setGrid(next);
     setLast((l) => ({ ...l, you: cell }));
+    if (assistRef.current) {
+      const r = review(grid, cell);
+      if (finish(next)) return;
+      if (r.mistake) {
+        // Mote waits: take it back, or keep going.
+        mistakes.current += 1;
+        setPending({ before: grid, after: next });
+        setNotes([{ kind: "mistake", text: r.text ?? "That one costs you." }]);
+        setMarks(r.better);
+        setShowing(true);
+        tell("assist-mistake");
+        return;
+      }
+      setNotes(r.text ? [{ kind: "good", text: r.text }] : []);
+      setShowing(false);
+      if (r.text) tell("assist-good");
+      void moteMoves(next);
+      return;
+    }
     if (finish(next)) return;
     if (isFork(next, "you")) tell("you-fork");
     else if (winningCells(grid, "mote").includes(cell)) tell("you-block");
@@ -128,8 +193,35 @@ export function TicTacToe({ engine, onClose }: Props) {
     setBusy(false);
     setTurn(first);
     setPhase("playing");
-    engine()?.gameStart("tictactoe", levelRef.current, first === "mote" ? "mote-first" : undefined);
+    setPending(null);
+    mistakes.current = 0;
+    if (assistRef.current) {
+      tell("assist-start");
+      setNotes([]);
+      if (first === "you") coachYourTurn(g);
+    } else {
+      engine()?.gameStart("tictactoe", levelRef.current, first === "mote" ? "mote-first" : undefined);
+    }
     if (first === "mote") void moteMoves(g);
+  };
+
+  /** After a mistake: undo your move and try again. */
+  const takeBack = () => {
+    if (!pending) return;
+    setGrid(pending.before);
+    setLast((l) => ({ ...l, you: null }));
+    setPending(null);
+    coachYourTurn(pending.before);
+  };
+
+  /** After a mistake: leave it, and let Mote answer. */
+  const keepGoing = () => {
+    if (!pending) return;
+    const after = pending.after;
+    setPending(null);
+    setNotes([]);
+    setShowing(false);
+    void moteMoves(after);
   };
 
   const kicked = useRef(false);
@@ -138,6 +230,7 @@ export function TicTacToe({ engine, onClose }: Props) {
     if (resumed.current && !kicked.current) {
       kicked.current = true;
       tell("resume");
+      if (assistRef.current && saved.current?.turn !== "mote") coachYourTurn(resumed.current);
       if (saved.current?.turn === "mote") void moteMoves(resumed.current);
     }
     return () => {
@@ -159,6 +252,8 @@ export function TicTacToe({ engine, onClose }: Props) {
         lede="You’re X. You and Mote take turns going first."
         level={level}
         onLevel={setLevel}
+        assist={assist}
+        onAssist={setAssist}
         onPlay={begin}
         onClose={close}
       />
@@ -168,8 +263,9 @@ export function TicTacToe({ engine, onClose }: Props) {
   const yourTurn = phase === "playing" && turn === "you" && !busy;
 
   return (
-    <div className="ck">
+    <div className={`ck${assist ? " is-assist" : ""}`}>
       <BoardHead
+        assist={assist}
         level={level}
         record={stats[level]}
         playing={phase === "playing"}
@@ -182,7 +278,7 @@ export function TicTacToe({ engine, onClose }: Props) {
           <button
             key={i}
             type="button"
-            className={`tt-cell${!mark && yourTurn ? " is-open" : ""}${result?.line?.includes(i) ? " is-win" : ""}`}
+            className={`tt-cell${!mark && yourTurn && !pending ? " is-open" : ""}${result?.line?.includes(i) ? " is-win" : ""}${showing && marks.includes(i) ? " is-go" : ""}`}
             aria-label={`Square ${i + 1}${mark ? (mark === "you" ? ", X" : ", Mote") : ""}`}
             onClick={() => play(i)}
           >
@@ -192,13 +288,29 @@ export function TicTacToe({ engine, onClose }: Props) {
         {result?.line ? <WinLine line={result.line} /> : null}
       </div>
 
+      {assist ? (
+        <Coach
+          lines={notes}
+          showing={showing}
+          onShow={marks.length && phase === "playing" ? () => setShowing((v) => !v) : undefined}
+          onUndo={pending ? takeBack : undefined}
+          onKeep={pending ? keepGoing : undefined}
+        />
+      ) : null}
+
       {phase === "over" && result ? (
         <EndPanel onAgain={() => setPhase("pick")} onDone={onClose}>
           {result.winner === "you" ? "You win!" : result.winner === "mote" ? "Mote wins." : "A draw."}
         </EndPanel>
       ) : (
         <p className="ck-status" aria-live="polite">
-          {yourTurn ? "Your move" : openCells(grid).length === 9 ? "Mote goes first…" : "Mote is thinking…"}
+          {pending
+            ? "Take it back, or keep going?"
+            : yourTurn
+              ? "Your move"
+              : openCells(grid).length === 9
+                ? "Mote goes first…"
+                : "Mote is thinking…"}
         </p>
       )}
     </div>

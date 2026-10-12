@@ -18,7 +18,8 @@ import {
   type Move,
 } from "@/lib/checkers/rules";
 import { think } from "@/lib/checkers/think";
-import { BoardHead, EndPanel, LevelPick } from "./board-ui";
+import { explain, review, tip, type Mark as CoachMark } from "@/lib/checkers/coach";
+import { BoardHead, Coach, EndPanel, LevelPick, type CoachLine } from "./board-ui";
 import {
   addToStats,
   load,
@@ -51,7 +52,7 @@ const piecesOf = (board: Cell[]): Piece[] =>
 
 /** A game of checkers against Mote, played in Mote's window. */
 export function Checkers({ engine, onClose }: Props) {
-  const saved = useRef(load<{ game: unknown; level: Level; swing?: Swing }>(SAVE));
+  const saved = useRef(load<{ game: unknown; level: Level; swing?: Swing; assist?: boolean }>(SAVE));
   const resumed = useRef(reviveGame(saved.current?.game));
   const [level, setLevel] = useState<Level>(savedLevel(saved.current?.level));
   const [phase, setPhase] = useState<Phase>(resumed.current ? "playing" : "pick");
@@ -65,6 +66,17 @@ export function Checkers({ engine, onClose }: Props) {
   const [note, setNote] = useState<string | null>(null);
   const [result, setResult] = useState<Winner | null>(null);
   const [stats, setStats] = useState<Stats>(() => readStats(STATS));
+  // Learning with Mote: their notes, the squares they've marked (shown on
+  // "Show me"), a move of yours waiting on take-back-or-keep, and how many
+  // mistakes so far.
+  const [assist, setAssist] = useState(saved.current?.assist === true);
+  const [notes, setNotes] = useState<CoachLine[]>([]);
+  const [marks, setMarks] = useState<CoachMark[]>([]);
+  const [showing, setShowing] = useState(false);
+  const [pending, setPending] = useState<{ before: Game; after: Game } | null>(null);
+  const mistakes = useRef(0);
+  const assistRef = useRef(assist);
+  assistRef.current = assist;
 
   const alive = useRef(true);
   const gameRef = useRef(game);
@@ -98,6 +110,7 @@ export function Checkers({ engine, onClose }: Props) {
       kicked.current = true;
       tell("resume");
       if (gameRef.current.turn === "mote") void moteMoves(gameRef.current);
+      else if (assistRef.current) coachYourTurn(gameRef.current);
     }
     return () => {
       alive.current = false;
@@ -107,8 +120,8 @@ export function Checkers({ engine, onClose }: Props) {
   }, []);
 
   useEffect(() => {
-    if (phase === "playing") store(SAVE, { game, level, swing: swing.current });
-  }, [phase, game, level]);
+    if (phase === "playing") store(SAVE, { game, level, swing: swing.current, assist });
+  }, [phase, game, level, assist]);
 
   /** Slides a piece along a move, taking pieces as it goes. */
   const animate = async (move: Move, crowned: boolean, lift: boolean) => {
@@ -150,7 +163,37 @@ export function Checkers({ engine, onClose }: Props) {
       event,
     );
 
-  const finish = (g: Game) => {
+  /** On your turn in a learning game: a tip, after whatever Mote just said. */
+  const coachYourTurn = (g: Game, before: CoachLine[] = []) => {
+    // Working out the tip takes a moment; let the board catch up first.
+    setNotes(before);
+    setShowing(false);
+    setTimeout(() => {
+      if (!alive.current || gameRef.current !== g) return;
+      const t = tip(g.board, g.ply);
+      setNotes([...before, { kind: "tip", text: t.text }]);
+      setMarks(t.marks);
+    }, 60);
+  };
+
+  /** The end of a learning game: no record, nothing for Mote to remember. */
+  const wrapUpLesson = (event: CheckersEvent, before: CoachLine[] = []) => {
+    const n = mistakes.current;
+    setPending(null);
+    setShowing(false);
+    setNotes([
+      ...before,
+      {
+        kind: n ? "tip" : "good",
+        text: n
+          ? `${n === 1 ? "One mistake" : `${n} mistakes`} this game. Every one of them is something to watch for next time.`
+          : "No mistakes this game. You’re getting the hang of it.",
+      },
+    ]);
+    tell(event);
+  };
+
+  const finish = (g: Game, said: CoachLine[] = []) => {
     swing.current = noteSwing(swing.current, moteLead(g.board));
     const end = outcome(g);
     if (!end) return false;
@@ -158,6 +201,10 @@ export function Checkers({ engine, onClose }: Props) {
     setResult(winner);
     setPhase("over");
     store(SAVE, null);
+    if (assistRef.current) {
+      wrapUpLesson(winner === "mote" ? "mote-win" : winner === "you" ? "you-win" : "draw", said);
+      return true;
+    }
     setStats(addToStats(STATS, levelRef.current, winner));
     report(winner, end.reason, g.board, g.ply, winner === "mote" ? "mote-win" : winner === "you" ? "you-win" : "draw");
     return true;
@@ -182,6 +229,11 @@ export function Checkers({ engine, onClose }: Props) {
     setLast([choice.move.from, ...choice.move.path]);
     setGame(after);
     setBusy(false);
+    if (assistRef.current) {
+      const said: CoachLine = { kind: "mote", text: explain(g.board, choice.move, choice.score) };
+      if (!finish(after, [said])) coachYourTurn(after, [said]);
+      return;
+    }
     if (finish(after)) return;
 
     // One thing to react to: the biggest.
@@ -225,6 +277,26 @@ export function Checkers({ engine, onClose }: Props) {
     setNote(null);
     if (finish(after)) {
       setBusy(false);
+      return;
+    }
+    if (assistRef.current) {
+      const r = review(g.board, move);
+      setBusy(false);
+      if (r.mistake) {
+        // Mote waits: take it back, or keep going.
+        mistakes.current += 1;
+        setPending({ before: g, after });
+        setNotes([{ kind: "mistake", text: r.text ?? "That one costs you." }]);
+        setMarks(r.marks);
+        setShowing(true);
+        tell("assist-mistake");
+        return;
+      }
+      setNotes(r.text ? [{ kind: "good", text: r.text }] : []);
+      setShowing(false);
+      if (r.text) tell("assist-good");
+      await sleep(250);
+      if (alive.current) void moteMoves(after);
       return;
     }
     const n = move.captures.length;
@@ -291,14 +363,44 @@ export function Checkers({ engine, onClose }: Props) {
     setResult(null);
     setBusy(false);
     setPhase("playing");
+    setPending(null);
+    mistakes.current = 0;
     swing.current = { min: 0, max: 0 };
-    engine()?.gameStart("checkers", levelRef.current);
+    if (assistRef.current) {
+      tell("assist-start");
+      coachYourTurn(g);
+    } else engine()?.gameStart("checkers", levelRef.current);
+  };
+
+  /** After a mistake: undo your move and try again. */
+  const takeBack = () => {
+    if (!pending) return;
+    const before = pending.before;
+    setPending(null);
+    setGame(before);
+    setPieces(piecesOf(before.board));
+    setLast([]);
+    coachYourTurn(before);
+  };
+
+  /** After a mistake: leave it, and let Mote answer. */
+  const keepGoing = () => {
+    if (!pending) return;
+    const after = pending.after;
+    setPending(null);
+    setNotes([]);
+    setShowing(false);
+    void moteMoves(after);
   };
 
   const resign = () => {
     setResult("mote");
     setPhase("over");
     store(SAVE, null);
+    if (assistRef.current) {
+      wrapUpLesson("resign");
+      return;
+    }
     setStats(addToStats(STATS, level, "mote"));
     report("mote", "resign", game.board, game.ply, "resign");
   };
@@ -326,6 +428,8 @@ export function Checkers({ engine, onClose }: Props) {
         lede="You’re dark and go first."
         level={level}
         onLevel={setLevel}
+        assist={assist}
+        onAssist={setAssist}
         onPlay={begin}
         onClose={close}
       />
@@ -336,8 +440,15 @@ export function Checkers({ engine, onClose }: Props) {
   const lookAt = selected ?? null;
 
   return (
-    <div className="ck">
-      <BoardHead level={level} record={record} playing={phase === "playing"} onResign={resign} onClose={close} />
+    <div className={`ck${assist ? " is-assist" : ""}`}>
+      <BoardHead
+        assist={assist}
+        level={level}
+        record={record}
+        playing={phase === "playing"}
+        onResign={resign}
+        onClose={close}
+      />
 
       <div className="ck-board" role="grid" aria-label="Checkers board">
         {Array.from({ length: 64 }, (_, i) => {
@@ -350,6 +461,7 @@ export function Checkers({ engine, onClose }: Props) {
             dark ? "is-dark" : "",
             dark && last.includes(sq) ? "is-last" : "",
             dark && targets.has(sq) ? "is-target" : "",
+            dark && showing ? (marks.find((m) => m.sq === sq) ? `is-${marks.find((m) => m.sq === sq)!.kind}` : "") : "",
           ].join(" ");
           return dark ? (
             <button
@@ -376,13 +488,25 @@ export function Checkers({ engine, onClose }: Props) {
         ))}
       </div>
 
+      {assist ? (
+        <Coach
+          lines={notes}
+          showing={showing}
+          onShow={marks.length && phase === "playing" ? () => setShowing((v) => !v) : undefined}
+          onUndo={pending ? takeBack : undefined}
+          onKeep={pending ? keepGoing : undefined}
+        />
+      ) : null}
+
       {phase === "over" ? (
         <EndPanel onAgain={() => setPhase("pick")} onDone={onClose}>
           {result === "you" ? "You win!" : result === "mote" ? "Mote wins." : "A draw."}
         </EndPanel>
       ) : (
         <p className={`ck-status${note ? " is-note" : ""}`} aria-live="polite">
-          {note ?? (yourTurn ? (mustJump ? "Your move. You have a jump." : "Your move") : "Mote is thinking…")}
+          {pending
+            ? "Take it back, or keep going?"
+            : (note ?? (yourTurn ? (mustJump ? "Your move. You have a jump." : "Your move") : "Mote is thinking…"))}
         </p>
       )}
     </div>

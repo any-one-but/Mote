@@ -20,7 +20,12 @@ export type CheckersEvent =
   | "you-win"
   | "draw"
   | "resign"
-  | "pause";
+  | "pause"
+  // Learning together: an opener, and faces (no words: the notes say it)
+  // for your mistakes and your good moves.
+  | "assist-start"
+  | "assist-mistake"
+  | "assist-good";
 
 /** The mood Mote shows for each, if any (otherwise the face stays as it is). */
 export const CHECKERS_FACE: Partial<Record<CheckersEvent, string>> = {
@@ -39,6 +44,9 @@ export const CHECKERS_FACE: Partial<Record<CheckersEvent, string>> = {
   "you-win": "ck-lose",
   draw: "cute",
   resign: "cute",
+  "assist-start": "delight",
+  "assist-mistake": "think",
+  "assist-good": "delight",
 };
 
 /** How likely Mote is to say something about each (the face always shows). */
@@ -61,6 +69,9 @@ export const CHECKERS_CHANCE: Record<CheckersEvent, number> = {
   draw: 1,
   resign: 1,
   pause: 1,
+  "assist-start": 1,
+  "assist-mistake": 0,
+  "assist-good": 0,
 };
 
 type Pool = string[] | Record<Level, string[]>;
@@ -100,6 +111,12 @@ const LINES: Record<CheckersEvent, Pool> = {
   draw: ["A draw! Nobody loses.", "Even! Good game."],
   resign: ["Giving up? Okay. Good game.", "Aw, already? Rematch sometime."],
   pause: ["We’ll finish later. I’ll keep the board.", "Okay! I saved our game."],
+  "assist-start": [
+    "Let’s learn checkers together! I’ll explain as we go.",
+    "Learning mode! Watch the notes under the board.",
+  ],
+  "assist-mistake": [""],
+  "assist-good": [""],
 };
 
 export const CHECKERS_SPEECH_COUNT = Object.values(LINES).reduce(

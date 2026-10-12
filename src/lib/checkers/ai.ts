@@ -184,3 +184,22 @@ export function chooseMove(
   }
   return { move: best.move, score: best.score, depth: reached, slip: false, loss: 0 };
 }
+
+/**
+ * Every move for `side`, scored for that side (about 100 = a man), looking as
+ * far ahead as it can in `ms`. Used for teaching: moves within 300 of the
+ * best get exact scores, so a mistake can be measured.
+ */
+export function rankMoves(board: Board, side: Side, ms = 300): Array<{ move: Move; score: number }> {
+  const moves = legalMoves(board, side);
+  if (moves.length <= 1) return moves.map((move) => ({ move, score: 0 }));
+  const s: Search = { deadline: performance.now() + ms, nodes: 0, stopped: false };
+  let scored: Array<{ move: Move; score: number }> | null = null;
+  for (let depth = 1; depth <= 12; depth++) {
+    const result = scoreMoves(board, side, depth, 300, s, scored?.[0]?.move);
+    if (!result) break;
+    scored = result;
+    if (Math.abs(result[0].score) > WIN / 2) break;
+  }
+  return scored ?? moves.map((move) => ({ move, score: 0 }));
+}
