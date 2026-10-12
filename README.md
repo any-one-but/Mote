@@ -410,7 +410,8 @@ of Mote's folder; nothing in Mote or the gallery uses them. `npm run mac:build` 
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. You can choose
-the **Appearance** (Light, Dark, or System to follow the Mac), Friendly mode,
+the **Appearance** (Light, Dark, or System to follow the Mac), the **Mode**
+(see below), Friendly mode,
 how lively Mote is, the pace for helping with files, whether Mote opens when
 you log in, and whether the window floats above others. With Local Gallery
 switched on, it also has the gallery's passcode (see above). Mote's eyes
@@ -421,6 +422,17 @@ cream eyes (and cream eyebrows and mouth, if they're on), on a dark window.
 Everything around Mote goes dark and warm too: speech bubbles, buttons, the
 game cards, Settings and the Days window. The game boards and pieces stay as
 they are.
+
+**Mode** gives Mote a special look for a vibe or a season. **Neutral** is just
+Mote. **Jack-o'-lantern** (for Halloween) turns Mote's cream a soft pumpkin
+orange, makes the eyes triangles like a carved pumpkin's (they still scowl,
+smile, blink and look around), and turns the mouth, if it's on, into a
+carved grin: wide and jagged, with two blocky teeth hanging down and one
+standing up, soft and cartoony. It follows the face like the little mouth
+does (corners up when happy, a droop when glum, taller when surprised), and
+works its jaw while Mote talks. In dark mode it's inverted like everything
+else: a dark pumpkin with glowing orange eyes and grin. The expression sheet
+shows it with ?jack=1.
 
 Text in the app calls Mote "Mote", or "they/them" when a pronoun is needed.
 

@@ -27,7 +27,7 @@ import {
   type GalleryOpened,
   type PasscodeCheck,
 } from "@/lib/companion/gallery";
-import { useDark, useSettings } from "@/lib/companion/settings";
+import { useDark, useMode, useSettings } from "@/lib/companion/settings";
 import { CaloriePad } from "@/components/companion/CaloriePad";
 import { PasscodePad } from "@/components/companion/PasscodePad";
 import { Checkers } from "@/components/companion/Checkers";
@@ -135,6 +135,8 @@ export function Companion() {
 
   const { energy, pace, friendly } = settings;
   const dark = useDark(settings.theme);
+  useMode(settings.mode);
+  const jack = settings.mode === "jack";
   // The diet tracker is a keyed feature (see features.ts): off, Mote keeps no
   // count and says nothing about calories, and its button and card are gone.
   const [features] = useFeatures();
@@ -212,12 +214,13 @@ export function Companion() {
     dark,
     glint,
     moodShape,
+    jack,
   };
   const optionsNow = useRef(engineOptions);
   optionsNow.current = engineOptions;
   useEffect(() => {
     engineRef.current?.configure(optionsNow.current);
-  }, [energy, calorieGoal, friendly, hunger, sleepNeed, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape]);
+  }, [energy, calorieGoal, friendly, hunger, sleepNeed, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape, jack]);
 
   useEffect(
     () =>

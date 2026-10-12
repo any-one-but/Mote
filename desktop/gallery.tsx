@@ -1,11 +1,22 @@
 import { createRoot } from "react-dom/client";
-import { REST, eyeShape, mouthShape, poseFor, type Mood, type Pose } from "@/components/companion/engine";
+import {
+  REST,
+  eyeShape,
+  jackEye,
+  jackLook,
+  jackMouthShape,
+  mouthShape,
+  poseFor,
+  type Mood,
+  type Pose,
+} from "@/components/companion/engine";
 import { GEO, INK } from "@/lib/companion/theme";
 import "../src/styles.css";
 
 // A tuning sheet: every expression frozen side by side. Open /gallery.html.
 // ?only=a,b picks shots by name, ?size=600 makes them bigger, ?acc=1 puts the
-// accessories on every face, ?brows=1 draws the eyebrows, ?mouth=1 the mouth, ?eyes=1 just the eyes.
+// accessories on every face, ?brows=1 draws the eyebrows, ?mouth=1 the mouth, ?eyes=1 just the eyes,
+// ?jack=1 the jack-o'-lantern mode.
 type Shot = [
   name: string,
   mood: Mood | null,
@@ -56,6 +67,8 @@ const allAcc = params.get("acc") === "1";
 const brows = params.get("brows") === "1";
 const mouth = params.get("mouth") === "1";
 const eyesOnly = params.get("eyes") === "1";
+const jack = params.get("jack") === "1";
+if (jack) document.documentElement.dataset.mode = "jack";
 const SHOTS = only ? ALL.filter(([name]) => only.split(",").includes(name)) : ALL;
 
 function Still({
@@ -77,7 +90,7 @@ function Still({
 }) {
   const eyes = (["l", "r"] as const).map((side) => ({
     side,
-    ...eyeShape(side, pose, gx, gy, blink),
+    ...eyeShape(side, jack ? jackLook(pose) : pose, gx, gy, blink),
   }));
   return (
     <svg viewBox={`0 0 ${GEO.vbW} ${GEO.vbH}`} style={{ width: size, overflow: "visible" }}>
@@ -107,14 +120,18 @@ function Still({
             width={GEO.vbW}
             height={GEO.vbH}
           >
-            <rect
-              fill="white"
-              x={e.pill.x}
-              y={e.pill.y}
-              width={e.pill.w}
-              height={e.pill.h}
-              rx={e.pill.r}
-            />
+            {jack ? (
+              <path fill="white" d={jackEye(e.pill)} />
+            ) : (
+              <rect
+                fill="white"
+                x={e.pill.x}
+                y={e.pill.y}
+                width={e.pill.w}
+                height={e.pill.h}
+                rx={e.pill.r}
+              />
+            )}
             <path fill="black" d={e.lid} />
             <path fill="black" d={e.cheek} />
           </mask>
@@ -146,7 +163,12 @@ function Still({
             />
           ))}
           {brows ? eyes.map((e) => <path key={`b${e.side}`} className="brow" d={e.brow} />) : null}
-          {mouth ? <path className="mouth" d={mouthShape(pose, gx, gy)} /> : null}
+          {mouth ? (
+            <path
+              className={jack ? "mouth is-jack" : "mouth"}
+              d={jack ? jackMouthShape(pose, gx, gy) : mouthShape(pose, gx, gy)}
+            />
+          ) : null}
         </g>
       </g>
     </svg>

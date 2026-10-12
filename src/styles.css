@@ -51,6 +51,25 @@
   color-scheme: dark;
 }
 
+/* Mote's own two colours: the face, and the eyes (with the brows and mouth).
+   Modes change them without touching anything around Mote. */
+:root {
+  --mote-face: var(--color-face);
+  --mote-eyes: var(--color-ink);
+}
+
+/* Jack-o'-lantern mode: the cream turns a soft pumpkin orange. In light mode
+   that's the face, with dark carved eyes; in dark mode it's the eyes, glowing
+   in a dark face. */
+:root[data-mode="jack"] {
+  --mote-face: #f5ad6e;
+}
+
+:root[data-mode="jack"][data-theme="dark"] {
+  --mote-face: var(--color-face);
+  --mote-eyes: #f5ad6e;
+}
+
 @layer base {
   button:not(:disabled),
   [role="button"]:not(:disabled) {
@@ -105,20 +124,25 @@
 }
 
 .skin {
-  fill: var(--color-face);
+  fill: var(--mote-face);
 }
 
 .mouth {
-  fill: var(--color-ink);
-  stroke: var(--color-ink);
+  fill: var(--mote-eyes);
+  stroke: var(--mote-eyes);
   stroke-width: 7.5;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
 
+/* The carved mouth keeps a thin edge, so its teeth stay chunky. */
+.mouth.is-jack {
+  stroke-width: 3;
+}
+
 .brow {
   fill: none;
-  stroke: var(--color-ink);
+  stroke: var(--mote-eyes);
   stroke-width: 8.5;
   stroke-linecap: round;
 }
@@ -130,14 +154,14 @@
 
 /* The ink in the eyes (see the filter in Face.tsx). */
 .ink-flood {
-  flood-color: var(--color-ink);
+  flood-color: var(--mote-eyes);
 }
 
 /* Just the eyes (an experimental feature): no body and no shadow, the
    window takes Mote's colour, and the eyes grow to fill it. */
 .stage.is-eyes,
 .stage.is-eyes .window {
-  background: var(--color-face);
+  background: var(--mote-face);
 }
 
 .stage.is-eyes .skin,

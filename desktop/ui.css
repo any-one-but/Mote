@@ -45,6 +45,19 @@
   color-scheme: dark;
 }
 
+:root[data-mode="jack"] {
+  --skin: #f5ad6e;
+}
+
+/* Jack-o'-lantern in dark mode: a dark face with glowing orange eyes. */
+:root[data-mode="jack"][data-theme="dark"] {
+  --skin: #1f1915;
+}
+
+:root[data-mode="jack"][data-theme="dark"] .mini-eyes {
+  fill: #f5ad6e;
+}
+
 :root[data-theme="dark"] .mini-shadow {
   fill: #000;
   opacity: 0.25;

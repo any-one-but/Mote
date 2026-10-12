@@ -11,7 +11,15 @@ import {
 } from "@/lib/companion/desktop";
 import { markCalorieCare } from "@/lib/companion/calorie-store";
 import { featureOn, KEYED, useFeatures } from "@/lib/companion/features";
-import { useDark, useSettings, type Pace, type Settings, type Theme } from "@/lib/companion/settings";
+import {
+  useDark,
+  useMode,
+  useSettings,
+  type Mode,
+  type Pace,
+  type Settings,
+  type Theme,
+} from "@/lib/companion/settings";
 import {
   linkName,
   loadLinks,
@@ -35,6 +43,16 @@ const THEME: Array<{ value: Theme; label: string }> = [
   { value: "system", label: "System" },
 ];
 
+const MODE: Array<{ value: Mode; label: string }> = [
+  { value: "neutral", label: "Neutral" },
+  { value: "jack", label: "Jack-o’-lantern" },
+];
+
+const MODE_HINT: Record<Mode, string> = {
+  neutral: "Just Mote.",
+  jack: "Pumpkin orange, triangle eyes, and a carved, toothy grin if the mouth is on. Happy Halloween!",
+};
+
 const PACE: Array<{ value: Pace; label: string }> = [
   { value: "gentle", label: "Gentle" },
   { value: "normal", label: "Normal" },
@@ -56,6 +74,7 @@ function SettingsWindow() {
   const [features] = useFeatures();
   const debug = featureOn(features, "debug");
   useDark(settings.theme);
+  useMode(settings.mode);
   // The Debug tabs need more room.
   useEffect(() => {
     if (debug) widenSettingsWindow();
@@ -101,6 +120,14 @@ function SettingsPanel() {
             options={THEME}
             value={settings.theme}
             onChange={(theme) => set({ theme })}
+          />
+        </Row>
+        <Row label="Mode" hint={MODE_HINT[settings.mode]} stacked>
+          <Segmented
+            label="Mode"
+            options={MODE}
+            value={settings.mode}
+            onChange={(mode) => set({ mode })}
           />
         </Row>
         <Row

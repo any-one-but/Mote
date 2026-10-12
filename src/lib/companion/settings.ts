@@ -5,6 +5,8 @@ import { listenBus, send } from "@/lib/companion/bus";
 export type Settings = {
   /** Light, dark, or whatever the Mac is set to. */
   theme: Theme;
+  /** A special look for Mote, for a vibe or a season (or plain Mote). */
+  mode: Mode;
   /** Mote never gets too upset: hurt counts for less, no sulking or sharp words. */
   friendly: boolean;
   energy: Energy;
@@ -20,9 +22,11 @@ export type Settings = {
 
 export type Pace = "normal" | "turbo" | "gentle";
 export type Theme = "light" | "dark" | "system";
+export type Mode = "neutral" | "jack";
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
+  mode: "neutral",
   friendly: false,
   energy: "normal",
   pace: "normal",
@@ -53,6 +57,7 @@ export function readSettings(): Settings {
   const bool = (v: unknown, fb: boolean) => (typeof v === "boolean" ? v : fb);
   return {
     theme: pick(raw.theme, ["light", "dark", "system"] as const, d.theme),
+    mode: pick(raw.mode, ["neutral", "jack"] as const, d.mode),
     friendly: bool(raw.friendly, d.friendly),
     energy: pick(raw.energy, ["calm", "normal", "lively"] as const, d.energy),
     pace: pick(raw.pace, ["normal", "turbo", "gentle"] as const, d.pace),
@@ -129,4 +134,11 @@ export function useDark(theme: Theme): boolean {
     document.documentElement.dataset.theme = dark ? "dark" : "light";
   }, [dark]);
   return dark;
+}
+
+/** Marks the page with Mote's mode (`data-mode` on <html>) for the styles. */
+export function useMode(mode: Mode) {
+  useEffect(() => {
+    document.documentElement.dataset.mode = mode;
+  }, [mode]);
 }

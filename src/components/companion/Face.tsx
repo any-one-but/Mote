@@ -180,6 +180,8 @@ function Eye({ side }: { side: "l" | "r" }) {
         height={pill.h}
         rx={pill.r}
       />
+      {/* Jack-o'-lantern mode's triangle eye, in place of the pill. */}
+      <path data-part={`tri-${side}`} fill="white" style={{ display: "none" }} />
       <path data-part={`lid-${side}`} fill="black" d={shape.lid} />
       <path data-part={`cheek-${side}`} fill="black" d={shape.cheek} />
     </mask>
