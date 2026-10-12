@@ -31,6 +31,8 @@ import {
   type Position,
 } from "@/lib/chess/rules";
 import { think } from "@/lib/chess/think";
+import { rollMayWin } from "@/lib/close-game";
+import { featureOn, useFeatures } from "@/lib/companion/features";
 import { BoardHead, EndPanel, LevelPick } from "./board-ui";
 import {
   addToStats,
@@ -54,7 +56,7 @@ type Props = {
 
 /** A piece on the board as drawn: `p` is positive for yours, negative for Mote's. */
 type Piece = { id: number; sq: number; p: number; gone?: boolean; lifted?: boolean };
-type Saved = { fen: string; history: string[]; level: Level; swing?: Swing };
+type Saved = { fen: string; history: string[]; level: Level; swing?: Swing; mayWin?: boolean };
 
 const SAVE = "mote.chess";
 const STATS = "mote.chess.stats";
@@ -128,6 +130,11 @@ export function Chess({ engine, onClose }: Props) {
   const standing = useRef<"even" | "ahead" | "behind">("even");
   const swing = useRef<Swing>(saved.current?.swing ?? { min: 0, max: 0 });
   const lastNag = useRef(0);
+  // Picking a level is an experimental feature: without it, Mote plays the
+  // close way. And whether this is one of the games they may win.
+  const [features] = useFeatures();
+  const canPick = featureOn(features, "levels");
+  const mayWin = useRef(saved.current?.mayWin === true);
 
   const tell = useCallback(
     (event: ChessEvent, words?: { piece?: string; yours?: string }) =>
@@ -142,7 +149,7 @@ export function Chess({ engine, onClose }: Props) {
   }, [engine, phase, pos.turn, busy]);
 
   useEffect(() => {
-    if (phase === "playing") store(SAVE, { fen: toFen(pos), history, level, swing: swing.current });
+    if (phase === "playing") store(SAVE, { fen: toFen(pos), history, level, swing: swing.current, mayWin: mayWin.current });
   }, [phase, pos, history, level]);
 
   /** Slides a piece (and a castling rook), and takes whatever it lands on. */
@@ -212,7 +219,7 @@ export function Chess({ engine, onClose }: Props) {
     const lvl = levelRef.current;
     const begun = performance.now();
     if (lvl === "hard" && Math.random() < 0.25) tell("hmm");
-    const choice = await think(start, lvl, historyRef.current);
+    const choice = await think(start, lvl, historyRef.current, { mayWin: mayWin.current });
     if (!alive.current || !choice) return;
     const least = (lvl === "easy" ? 700 : 1000) + Math.random() * 800;
     const waited = performance.now() - begun;
@@ -341,7 +348,11 @@ export function Chess({ engine, onClose }: Props) {
     setBusy(false);
     setPhase("playing");
     swing.current = { min: 0, max: 0 };
-    engine()?.gameStart("chess", levelRef.current);
+    const lvl = canPick ? level : "close";
+    setLevel(lvl);
+    levelRef.current = lvl;
+    mayWin.current = rollMayWin();
+    engine()?.gameStart("chess", lvl);
   };
 
   const resign = () => {
@@ -363,7 +374,7 @@ export function Chess({ engine, onClose }: Props) {
         title="Chess"
         lede="You’re white and go first."
         level={level}
-        onLevel={setLevel}
+        onLevel={canPick ? setLevel : undefined}
         onPlay={begin}
         onClose={close}
       />

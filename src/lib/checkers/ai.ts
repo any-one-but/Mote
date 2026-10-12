@@ -1,7 +1,8 @@
 // How Mote picks a checkers move: a look-ahead search (alpha-beta) over the
 // moves, scoring each position by pieces, kings, how far men have come, and
 // a few habits good players have. The level sets how far ahead Mote looks
-// and how often they go with something other than the best move.
+// and how often they go with something other than the best move; "close" (the
+// usual) keeps the game close instead (see close-game.ts).
 
 import {
   applyToBoard,
@@ -12,14 +13,16 @@ import {
   rowOf,
   sameMove,
   sideOf,
+  QUIET_LIMIT,
   type Board,
   type Move,
   type Side,
 } from "./rules.ts";
+import { pickClose, type CloseInfo } from "../close-game.ts";
 
-export type Level = "easy" | "normal" | "hard";
+export type Level = "close" | "easy" | "normal" | "hard";
 
-export const LEVELS: Level[] = ["easy", "normal", "hard"];
+export const LEVELS: Level[] = ["close", "easy", "normal", "hard"];
 
 export type Choice = {
   move: Move;
@@ -34,6 +37,8 @@ export type Choice = {
 };
 
 const WIN = 100_000;
+
+const moveKey = (m: Move) => `${m.from}:${m.path.join(",")}`;
 const MAN = 100;
 const KING = 170;
 
@@ -143,6 +148,9 @@ function scoreMoves(board: Board, side: Side, depth: number, spread: number, s: 
 }
 
 const SETTINGS: Record<Level, { depth: number; ms: number; slip: number; spread: number }> = {
+  // Looks well ahead, scoring every move exactly enough to pick a mistake of
+  // just the right size.
+  close: { depth: 8, ms: 900, slip: 0, spread: 1200 },
   // Looks two moves ahead and often goes with something that just looks fine.
   easy: { depth: 2, ms: 200, slip: 0.35, spread: 140 },
   // A fair game: looks a few moves ahead, now and then picks a near-best move.
@@ -156,6 +164,7 @@ export function chooseMove(
   side: Side,
   level: Level,
   rand: () => number = Math.random,
+  close: CloseInfo = { mayWin: false },
 ): Choice | null {
   const moves = legalMoves(board, side);
   if (!moves.length) return null;
@@ -165,17 +174,50 @@ export function chooseMove(
   }
   const s: Search = { deadline: performance.now() + cfg.ms, nodes: 0, stopped: false };
   let scored: Array<{ move: Move; score: number }> | null = null;
+  let glance: Map<string, number> | null = null;
   let reached = 0;
   for (let depth = 1; depth <= cfg.depth; depth++) {
     const result = scoreMoves(board, side, depth, cfg.spread, s, scored?.[0]?.move);
     if (!result) break;
     scored = result;
     reached = depth;
+    // How each move looks two moves ahead: what seems fine at a glance.
+    if (depth === 2) glance = new Map(result.map((r) => [moveKey(r.move), r.score]));
     // A forced win or loss is found; looking further won't change it.
     if (Math.abs(result[0].score) > WIN / 2) break;
   }
   if (!scored) return { move: moves[0], score: 0, depth: 0, slip: false, loss: 0 };
   const best = scored[0];
+  if (level === "close") {
+    const pieces = board.filter(Boolean).length;
+    const looks = glance;
+    let spread = cfg.spread;
+    // A forced win shows every other move only as "worse". Mote may not want
+    // the win, so score the rest properly, looking a little less far.
+    if (best.score > WIN / 2) {
+      const again: Search = { deadline: performance.now() + 500, nodes: 0, stopped: false };
+      const all = scoreMoves(board, side, Math.min(reached, 6), Infinity, again, best.move);
+      if (all) {
+        scored = all;
+        spread = Infinity;
+      }
+    }
+    const { pick, slip } = pickClose(
+      scored,
+      {
+        unit: MAN,
+        // By what's been taken or moves played, plus how long since anything happened.
+        progress:
+          Math.min(1, Math.max((24 - pieces) / 16, (close.ply ?? 0) / 100)) + (3 * (close.quiet ?? 0)) / QUIET_LIMIT,
+        won: WIN / 2,
+        spread,
+        glance: looks ? (m) => looks.get(moveKey(m)) : undefined,
+        mayWin: close.mayWin,
+      },
+      rand,
+    );
+    return { move: pick.move, score: pick.score, depth: reached, slip, loss: Math.max(0, scored[0].score - pick.score) };
+  }
   // Slipping: pick among the moves that look roughly as good.
   if (cfg.slip > 0 && rand() < cfg.slip) {
     const near = scored.filter((r) => best.score - r.score <= cfg.spread && r.score > -WIN / 2);

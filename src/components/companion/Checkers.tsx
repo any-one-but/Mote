@@ -20,6 +20,7 @@ import {
 import { think } from "@/lib/checkers/think";
 import { explain, review, tip, type Mark as CoachMark } from "@/lib/checkers/coach";
 import { featureOn, useFeatures } from "@/lib/companion/features";
+import { rollMayWin } from "@/lib/close-game";
 import { BoardHead, Coach, EndPanel, LevelPick, type CoachLine } from "./board-ui";
 import {
   addToStats,
@@ -53,7 +54,9 @@ const piecesOf = (board: Cell[]): Piece[] =>
 
 /** A game of checkers against Mote, played in Mote's window. */
 export function Checkers({ engine, onClose }: Props) {
-  const saved = useRef(load<{ game: unknown; level: Level; swing?: Swing; assist?: boolean }>(SAVE));
+  const saved = useRef(
+    load<{ game: unknown; level: Level; swing?: Swing; assist?: boolean; mayWin?: boolean }>(SAVE),
+  );
   const resumed = useRef(reviveGame(saved.current?.game));
   const [level, setLevel] = useState<Level>(savedLevel(saved.current?.level));
   const [phase, setPhase] = useState<Phase>(resumed.current ? "playing" : "pick");
@@ -70,11 +73,14 @@ export function Checkers({ engine, onClose }: Props) {
   // Learning with Mote: their notes, the squares they've marked (shown on
   // "Show me"), a move of yours waiting on take-back-or-keep, and how many
   // mistakes so far.
-  // (Learning is a keyed feature: without it, every game is a real one.)
+  // (Levels and learning are an experimental feature: without it, every game
+  // is a real one, played the close way.)
   const [features] = useFeatures();
-  const canLearn = featureOn(features, "assist");
+  const canPick = featureOn(features, "levels");
   const [wantsAssist, setAssist] = useState(saved.current?.assist === true);
-  const assist = wantsAssist && canLearn;
+  const assist = wantsAssist && canPick;
+  // Whether this is one of the games Mote may win (see close-game.ts).
+  const mayWin = useRef(saved.current?.mayWin === true);
   const [notes, setNotes] = useState<CoachLine[]>([]);
   const [marks, setMarks] = useState<CoachMark[]>([]);
   const [showing, setShowing] = useState(false);
@@ -125,7 +131,7 @@ export function Checkers({ engine, onClose }: Props) {
   }, []);
 
   useEffect(() => {
-    if (phase === "playing") store(SAVE, { game, level, swing: swing.current, assist });
+    if (phase === "playing") store(SAVE, { game, level, swing: swing.current, assist, mayWin: mayWin.current });
   }, [phase, game, level, assist]);
 
   /** Slides a piece along a move, taking pieces as it goes. */
@@ -221,7 +227,7 @@ export function Checkers({ engine, onClose }: Props) {
     const lvl = levelRef.current;
     const begun = performance.now();
     if (lvl === "hard" && Math.random() < 0.25) tell("hmm");
-    const choice = await think(g.board, "mote", lvl);
+    const choice = await think(g.board, "mote", lvl, { mayWin: mayWin.current, ply: g.ply, quiet: g.quiet });
     if (!alive.current || !choice) return;
     // However quick the answer, Mote takes a moment over it.
     const least = (lvl === "easy" ? 700 : 900) + Math.random() * 700;
@@ -371,6 +377,10 @@ export function Checkers({ engine, onClose }: Props) {
     setPending(null);
     mistakes.current = 0;
     swing.current = { min: 0, max: 0 };
+    const lvl = canPick ? level : "close";
+    setLevel(lvl);
+    levelRef.current = lvl;
+    mayWin.current = rollMayWin();
     if (assistRef.current) {
       tell("assist-start");
       coachYourTurn(g);
@@ -432,9 +442,9 @@ export function Checkers({ engine, onClose }: Props) {
         title="Checkers"
         lede="You’re dark and go first."
         level={level}
-        onLevel={setLevel}
+        onLevel={canPick ? setLevel : undefined}
         assist={assist}
-        onAssist={canLearn ? setAssist : undefined}
+        onAssist={canPick ? setAssist : undefined}
         onPlay={begin}
         onClose={close}
       />

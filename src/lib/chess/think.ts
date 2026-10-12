@@ -1,7 +1,8 @@
 import { chooseMove, type Choice, type Level } from "./ai.ts";
+import type { CloseInfo } from "../close-game.ts";
 import { fromFen, toFen, type Position } from "./rules.ts";
 
-type Ask = { fen: string; level: Level; history: string[] };
+type Ask = { fen: string; level: Level; history: string[]; close: CloseInfo };
 
 let worker: Worker | null = null;
 let seq = 0;
@@ -21,7 +22,7 @@ function getWorker(): Worker | null {
       worker = null;
       for (const [id, { ask, resolve }] of waiting) {
         waiting.delete(id);
-        resolve(chooseMove(fromFen(ask.fen), ask.level, Math.random, ask.history));
+        resolve(chooseMove(fromFen(ask.fen), ask.level, Math.random, ask.history, ask.close));
       }
     };
     return worker;
@@ -31,13 +32,13 @@ function getWorker(): Worker | null {
 }
 
 /** Mote's move, worked out in the background when possible. */
-export function think(pos: Position, level: Level, history: string[]): Promise<Choice | null> {
+export function think(pos: Position, level: Level, history: string[], close: CloseInfo): Promise<Choice | null> {
   const fen = toFen(pos);
   const w = getWorker();
-  if (!w) return Promise.resolve(chooseMove(pos, level, Math.random, history));
+  if (!w) return Promise.resolve(chooseMove(pos, level, Math.random, history, close));
   const id = ++seq;
   return new Promise((resolve) => {
-    waiting.set(id, { ask: { fen, level, history }, resolve });
-    w.postMessage({ id, fen, level, history });
+    waiting.set(id, { ask: { fen, level, history, close }, resolve });
+    w.postMessage({ id, fen, level, history, close });
   });
 }

@@ -78,6 +78,7 @@ type Pool = string[] | Record<Level, string[]>;
 
 const LINES: Record<CheckersEvent, Pool> = {
   start: {
+    close: ["Checkers! Your move.", "Let’s play! I’ve got a good feeling about this one.", "Your move. I’m right behind you."],
     easy: [
       "Checkers! Go easy on me, I’m still learning.",
       "Okay! I think I remember how this works.",
@@ -99,11 +100,13 @@ const LINES: Record<CheckersEvent, Pool> = {
   hmm: ["Let me think…", "Hmm…", "Ooh, tricky."],
   forced: ["You have to jump! It’s the rules.", "There’s a jump waiting for you."],
   "mote-win": {
+    close: ["I won! I actually got you!", "Got you this time! Good game."],
     easy: ["I won?! I actually won!", "Wait, I won? Yay!"],
     normal: ["I win! Good game.", "Got you! Good game."],
     hard: ["Told you. Good game, though.", "Victory! You put up a fight."],
   },
   "you-win": {
+    close: ["So close! Good game.", "Aw, I almost had you.", "You just stayed ahead the whole time. Rematch?"],
     easy: ["You win! Teach me your ways.", "Good game! You’re really good."],
     normal: ["You win! Good game.", "Aw. You got me. Rematch?"],
     hard: ["You beat me on Hard?! Wow.", "Okay, that was impressive. Good game."],

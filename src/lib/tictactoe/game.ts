@@ -1,11 +1,14 @@
 // Tic-tac-toe: the rules, and how Mote picks a move.
 //
 // Cells are 0–8, left to right, top to bottom. You play X, Mote plays O.
-// Easy Mote mostly plays wherever, though they'll often grab a win or a
+// Close Mote (the usual) always blocks, but now and then plays a square that
+// lets you set up two ways to win at once, so you can win if you spot it;
+// they only sometimes notice a win you've left them. Easy Mote mostly plays wherever, though they'll often grab a win or a
 // block. Normal Mote always takes a win and nearly always blocks. Hard Mote
 // plays perfectly, so the best you can do is a draw.
 
 import type { Level } from "../checkers/ai.ts";
+import type { CloseInfo } from "../close-game.ts";
 
 export type Mark = "you" | "mote" | null;
 export type Grid = Mark[];
@@ -68,7 +71,12 @@ export function scoreCells(g: Grid, me: "you" | "mote"): Array<{ cell: number; s
 
 export type Choice = { cell: number; slip: boolean };
 
-export function chooseCell(g: Grid, level: Level, rand: () => number = Math.random): Choice | null {
+export function chooseCell(
+  g: Grid,
+  level: Level,
+  rand: () => number = Math.random,
+  close: CloseInfo = { mayWin: false },
+): Choice | null {
   const open = openCells(g);
   if (!open.length) return null;
   const any = () => open[Math.floor(rand() * open.length)];
@@ -81,6 +89,31 @@ export function chooseCell(g: Grid, level: Level, rand: () => number = Math.rand
   const slip = (cell: number) => ({ cell, slip: !bests.includes(cell) });
 
   if (level === "hard") return { cell: perfect(), slip: false };
+  if (level === "close") {
+    // A win left open: taken in the games Mote may win, otherwise only
+    // sometimes (it does look like they just didn't see it).
+    if (wins.length && (close.mayWin || rand() < 0.2)) return { cell: wins[0], slip: false };
+    // And outside those games, no setting up two ways to win at once.
+    const forks = (cell: number) => {
+      const next = g.slice();
+      next[cell] = "mote";
+      return isFork(next, "mote");
+    };
+    const all = scored.filter((s) => !wins.includes(s.cell));
+    const calm = close.mayWin ? all : all.filter((s) => !forks(s.cell));
+    const others = calm.length ? calm : all;
+    if (!others.length) return { cell: wins[0], slip: false };
+    const pickOf = (cells: number[]) => cells[Math.floor(rand() * cells.length)];
+    // A line about to be finished always gets blocked.
+    const block = blocks.find((c) => !wins.includes(c));
+    if (block !== undefined) return slip(block);
+    // A square that hands you a way to win, if you find it. Never as the
+    // opening move, which would look silly.
+    const giving = others.filter((s) => s.score < 0).map((s) => s.cell);
+    if (giving.length && open.length < 9 && !close.mayWin && rand() < 0.65) return slip(pickOf(giving));
+    const top = Math.max(...others.map((s) => s.score));
+    return slip(pickOf(others.filter((s) => s.score === top).map((s) => s.cell)));
+  }
   if (level === "normal") {
     if (wins.length) return { cell: wins[0], slip: false };
     if (blocks.length && rand() < 0.9) return slip(blocks[0]);

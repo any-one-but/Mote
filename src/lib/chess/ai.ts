@@ -3,9 +3,11 @@
 // horizon so it doesn't stop counting halfway through a trade. Positions are
 // scored by material plus where each piece stands. The level sets how far
 // ahead Mote looks and how often they go with something other than their
-// best move.
+// best move; "close" (the usual) keeps the game close instead (see
+// close-game.ts).
 
 import type { Level } from "../checkers/ai.ts";
+import { pickClose, type CloseInfo } from "../close-game.ts";
 import {
   KING,
   PAWN,
@@ -205,6 +207,9 @@ function negamax(pos: Position, depth: number, alpha: number, beta: number, ply:
 }
 
 const SETTINGS: Record<Level, { depth: number; ms: number; slip: number; spread: number; quiet: boolean }> = {
+  // Looks well ahead, scoring every move exactly enough to pick a mistake of
+  // just the right size.
+  close: { depth: 6, ms: 1300, slip: 0, spread: 1500, quiet: false },
   // One move ahead and no follow-through on trades: hangs pieces now and then,
   // and often picks something that only looks about right.
   easy: { depth: 1, ms: 300, slip: 0.35, spread: 200, quiet: true },
@@ -226,6 +231,7 @@ export function chooseMove(
   level: Level,
   rand: () => number = Math.random,
   history: string[] = [],
+  close: CloseInfo = { mayWin: false },
 ): Choice | null {
   const pos = copyPosition(start);
   const moves = legalMoves(pos);
@@ -246,32 +252,78 @@ export function chooseMove(
     }
   }
   let scored: Array<{ move: Move; score: number }> | null = null;
+  let glance: Map<Move, number> | null = null;
   let reached = 0;
+  /** Every move searched `depth` ahead; null if time ran out. */
+  const scoreAll = (depth: number, spread: number, s: Search) => {
+    const round: Array<{ move: Move; score: number }> = [];
+    let best = -Infinity;
+    for (const m of order(pos, moves, 0, s, scored?.[0]?.move)) {
+      const undo = makeMove(pos, m);
+      const floor = best - spread - 1;
+      const seen = repeats.get(m) ?? 0;
+      // A third time is a draw. A second is a step toward one: fine when
+      // behind, not when ahead.
+      let v = seen >= 2 ? 0 : -negamax(pos, depth - 1, -Infinity, -floor, 1, s, cfg.quiet);
+      if (seen === 1 && v > 50) v -= 40;
+      unmakeMove(pos, m, undo);
+      if (s.stopped) return null;
+      round.push({ move: m, score: v });
+      if (v > best) best = v;
+    }
+    return round.sort((a, b) => b.score - a.score);
+  };
   if (moves.length > 1) {
     for (let depth = 1; depth <= cfg.depth; depth++) {
-      const round: Array<{ move: Move; score: number }> = [];
-      let best = -Infinity;
-      for (const m of order(pos, moves, 0, s, scored?.[0]?.move)) {
-        const undo = makeMove(pos, m);
-        const floor = best - spread - 1;
-        const seen = repeats.get(m) ?? 0;
-        // A third time is a draw. A second is a step toward one: fine when
-        // behind, not when ahead.
-        let v = seen >= 2 ? 0 : -negamax(pos, depth - 1, -Infinity, -floor, 1, s, cfg.quiet);
-        if (seen === 1 && v > 50) v -= 40;
-        unmakeMove(pos, m, undo);
-        if (s.stopped) break;
-        round.push({ move: m, score: v });
-        if (v > best) best = v;
-      }
-      if (s.stopped) break;
-      scored = round.sort((a, b) => b.score - a.score);
+      const round = scoreAll(depth, spread, s);
+      if (!round) break;
+      scored = round;
       reached = depth;
+      // How each move looks two moves ahead: what seems fine at a glance.
+      if (depth === 2) glance = new Map(round.map((r) => [r.move, r.score]));
       if (Math.abs(scored[0].score) > MATE / 2) break;
     }
   }
   if (!scored) return { move: moves[0], score: 0, depth: 0, slip: false, loss: 0 };
   const best = scored[0];
+  if (level === "close") {
+    const looks = glance;
+    let wide = spread;
+    // A forced mate shows every other move only as "worse". Mote may not
+    // want the win, so score the rest properly, looking a little less far.
+    if (best.score > MATE / 2) {
+      const again: Search = {
+        deadline: performance.now() + 600,
+        nodes: 0,
+        stopped: false,
+        killers: [],
+      };
+      const all = scoreAll(Math.min(reached, 3), Infinity, again);
+      if (all) {
+        scored = all;
+        wide = Infinity;
+      }
+    }
+    const { pick, slip } = pickClose(
+      scored,
+      {
+        unit: VALUE[PAWN],
+        progress: progressOf(pos),
+        won: MATE / 2,
+        spread: wide,
+        glance: looks ? (m) => looks.get(m) : undefined,
+        mayWin: close.mayWin,
+      },
+      rand,
+    );
+    return {
+      move: pick.move,
+      score: pick.score,
+      depth: reached,
+      slip,
+      loss: Math.max(0, scored[0].score - pick.score),
+    };
+  }
   // Equal-looking best moves are picked between at random, so games vary.
   const ties = scored.filter((r) => r.score >= best.score - TIE);
   let pick = ties[Math.floor(rand() * ties.length)] ?? best;
@@ -286,6 +338,18 @@ export function chooseMove(
     slip: pick.score < best.score - TIE,
     loss: Math.max(0, best.score - pick.score),
   };
+}
+
+/** How far through the game: by what's been traded off or moves played, plus
+ * how long since a capture or a pawn move. */
+function progressOf(pos: Position): number {
+  let phase = 0;
+  for (let sq = 0; sq < 128; sq++) {
+    if (sq & 0x88) continue;
+    const t = Math.abs(pos.board[sq]);
+    if (t && t !== PAWN && t !== KING) phase += t === QUEEN ? 4 : t === ROOK ? 2 : 1;
+  }
+  return Math.min(1, Math.max(1 - Math.min(phase, 24) / 24, (pos.full - 1) / 45)) + (3 * pos.half) / 100;
 }
 
 /** Plain material count, for knowing who's ahead. Positive = white is up. */

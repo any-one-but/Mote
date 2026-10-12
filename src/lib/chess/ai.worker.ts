@@ -2,10 +2,11 @@
 // smoothly while they work out a move.
 import { chooseMove, type Level } from "./ai.ts";
 import { fromFen } from "./rules.ts";
+import type { CloseInfo } from "../close-game.ts";
 
-type Ask = { id: number; fen: string; level: Level; history: string[] };
+type Ask = { id: number; fen: string; level: Level; history: string[]; close: CloseInfo };
 
 self.onmessage = (e: MessageEvent<Ask>) => {
-  const { id, fen, level, history } = e.data;
-  self.postMessage({ id, choice: chooseMove(fromFen(fen), level, Math.random, history) });
+  const { id, fen, level, history, close } = e.data;
+  self.postMessage({ id, choice: chooseMove(fromFen(fen), level, Math.random, history, close) });
 };

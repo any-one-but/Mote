@@ -184,9 +184,11 @@ export function startLine(
   if (rand() > chance) return null;
   const s = streak(list, game, now);
   const f: Fill = { game: GAME_NAME[game], when, n: s.count };
+  // Moving up or down only means something between Easy, Normal and Hard.
   const levels = ["easy", "normal", "hard"];
-  const up = levels.indexOf(level) > levels.indexOf(last.level);
-  const down = levels.indexOf(level) < levels.indexOf(last.level);
+  const ranked = levels.includes(level) && levels.includes(last.level);
+  const up = ranked && levels.indexOf(level) > levels.indexOf(last.level);
+  const down = ranked && levels.indexOf(level) < levels.indexOf(last.level);
   let lines: string[];
 
   if (s.count >= 3 && s.winner === "you") {

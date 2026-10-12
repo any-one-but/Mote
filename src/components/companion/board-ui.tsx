@@ -8,6 +8,7 @@ import "./board.css";
 // board-store.ts.)
 
 const LEVEL_HINT: Record<Level, string> = {
+  close: "Mote keeps it close, and you just stay ahead.",
   easy: "Mote is still learning.",
   normal: "A fair game.",
   hard: "Mote plays to win.",
@@ -37,7 +38,8 @@ export function LevelPick({
   title: string;
   lede: string;
   level: Level;
-  onLevel: (l: Level) => void;
+  /** Picking a level (left out, Mote plays the usual close game). */
+  onLevel?: (l: Level) => void;
   onPlay: () => void;
   onClose: () => void;
   /** Learning with Mote (for games that have it). */
@@ -51,21 +53,25 @@ export function LevelPick({
         <CloseButton onClick={onClose} />
       </div>
       <p className="ck-lede">{lede}</p>
-      <div className="ck-levels" role="radiogroup" aria-label="Level">
-        {LEVELS.map((l) => (
-          <button
-            key={l}
-            type="button"
-            role="radio"
-            aria-checked={level === l}
-            className={level === l ? "is-on" : ""}
-            onClick={() => onLevel(l)}
-          >
-            {LEVEL_NAME[l]}
-          </button>
-        ))}
-      </div>
-      <p className="ck-hint">{LEVEL_HINT[level]}</p>
+      {onLevel ? (
+        <>
+          <div className="ck-levels" role="radiogroup" aria-label="Level">
+            {LEVELS.map((l) => (
+              <button
+                key={l}
+                type="button"
+                role="radio"
+                aria-checked={level === l}
+                className={level === l ? "is-on" : ""}
+                onClick={() => onLevel(l)}
+              >
+                {LEVEL_NAME[l]}
+              </button>
+            ))}
+          </div>
+          <p className="ck-hint">{LEVEL_HINT[level]}</p>
+        </>
+      ) : null}
       {onAssist ? (
         <>
           <div className="ck-levels" role="radiogroup" aria-label="How to play">
@@ -113,7 +119,11 @@ export function BoardHead({
   return (
     <div className="ck-head">
       <p className="ck-meta">
-        <strong>{assist ? `Learning · ${LEVEL_NAME[level]}` : LEVEL_NAME[level]}</strong>
+        {assist ? (
+          <strong>Learning · {LEVEL_NAME[level]}</strong>
+        ) : level !== "close" ? (
+          <strong>{LEVEL_NAME[level]}</strong>
+        ) : null}
         {!assist && record.you + record.mote + record.draw > 0 ? (
           <span>
             You {record.you} · Mote {record.mote}

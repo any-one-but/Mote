@@ -405,7 +405,7 @@ export const REACTIONS: Reaction[] = [
     group: "Checkers",
     name: "A new game",
     when: "You start a game of checkers",
-    then: "A happy hop, and something about the level you picked",
+    then: "A happy hop, and something about the game (or the level you picked)",
     status: "live",
   },
   {
@@ -551,7 +551,7 @@ export const REACTIONS: Reaction[] = [
     group: "Chess",
     name: "A new game",
     when: "You start a game of chess",
-    then: "A happy hop, and something about the level you picked",
+    then: "A happy hop, and something about the game (or the level you picked)",
     status: "live",
   },
   {
@@ -753,7 +753,7 @@ export const REACTIONS: Reaction[] = [
     group: "Tic-tac-toe",
     name: "A new game",
     when: "You start a game of tic-tac-toe and go first",
-    then: "A happy hop, and something about the level",
+    then: "A happy hop, and something about the game (or the level you picked)",
     status: "live",
   },
   {

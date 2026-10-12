@@ -14,7 +14,7 @@ import { listenBus, send } from "@/lib/companion/bus";
 /** Features that need a key. */
 export type KeyedId = "debug";
 /** Experimental features, switched on and off in the Debug window. */
-export type FeatureId = "diet" | "hunger" | "assist" | "sleep" | "gallery";
+export type FeatureId = "diet" | "hunger" | "levels" | "sleep" | "gallery";
 
 export const KEYED: Array<{ id: KeyedId; name: string; about: string; fingerprint: string }> = [
   {
@@ -37,9 +37,9 @@ export const FEATURES: Array<{ id: FeatureId; name: string; about: string }> = [
     about: "Mote gets hungry, the snack bowl to feed them, and hunger’s effect on their mood, face and what they say.",
   },
   {
-    id: "assist",
-    name: "Learn with Mote",
-    about: "The learning option for checkers and tic-tac-toe: tips, mistakes with a take-back, and Mote explaining their moves.",
+    id: "levels",
+    name: "Levels and learning",
+    about: "Picking how Mote plays board games: Easy, Normal or Hard (or Close, the usual), plus the Learn with Mote option for checkers and tic-tac-toe. Off, Mote always plays to keep it close and let you edge ahead.",
   },
   {
     id: "sleep",

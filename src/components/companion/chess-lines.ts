@@ -88,6 +88,7 @@ type Pool = string[] | Record<Level, string[]>;
 
 const LINES: Record<ChessEvent, Pool> = {
   start: {
+    close: ["Chess! Your move.", "Ooh, a proper game. White goes first.", "Let’s see your opening. I’ve been practicing."],
     easy: [
       "Chess! The horsey goes in an L, right?",
       "I’ve been reading about chess. A little.",
@@ -125,11 +126,13 @@ const LINES: Record<ChessEvent, Pool> = {
   hmm: ["Let me calculate…", "Hmm. Lots of options.", "Thinking… thinking…"],
   "in-check": ["Your king’s in check!", "You have to get out of check first."],
   "mote-win": {
+    close: ["Checkmate! I finally got you!", "Checkmate. That was a tough one!"],
     easy: ["Checkmate?! I did it!", "Is that checkmate? It is! Yay!"],
     normal: ["Checkmate! Good game.", "Checkmate. That was fun!"],
     hard: ["Checkmate. Good game, though.", "Checkmate! You made me work for it."],
   },
   "you-win": {
+    close: ["Checkmate… so close! Well played.", "You were always one move ahead. Good game.", "Aw. I nearly had you."],
     easy: ["Checkmate… you got me! Teach me?", "You win! I’ll study more."],
     normal: ["Checkmate. Well played!", "Aw, you got me. Good game."],
     hard: ["You checkmated me on Hard?! Wow.", "Checkmate. I’m genuinely impressed."],

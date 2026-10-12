@@ -14,6 +14,7 @@ import {
 } from "@/lib/tictactoe/game";
 import { explain, review, tip } from "@/lib/tictactoe/coach";
 import { featureOn, useFeatures } from "@/lib/companion/features";
+import { rollMayWin } from "@/lib/close-game";
 import { BoardHead, Coach, EndPanel, LevelPick, type CoachLine } from "./board-ui";
 import { addToStats, load, readStats, savedLevel, sleep, store, type Phase, type Stats, type Winner } from "./board-store";
 
@@ -22,7 +23,7 @@ type Props = {
   onClose: () => void;
 };
 
-type Saved = { grid: Grid; turn: "you" | "mote"; level: Level; assist?: boolean };
+type Saved = { grid: Grid; turn: "you" | "mote"; level: Level; assist?: boolean; mayWin?: boolean };
 
 const SAVE = "mote.tictactoe";
 const STATS = "mote.tictactoe.stats";
@@ -44,11 +45,14 @@ export function TicTacToe({ engine, onClose }: Props) {
   // Learning with Mote: their notes, the squares they've marked (shown on
   // "Show me"), a move of yours waiting on take-back-or-keep, and how many
   // mistakes so far.
-  // (Learning is a keyed feature: without it, every game is a real one.)
+  // (Levels and learning are an experimental feature: without it, every game
+  // is a real one, played the close way.)
   const [features] = useFeatures();
-  const canLearn = featureOn(features, "assist");
+  const canPick = featureOn(features, "levels");
   const [wantsAssist, setAssist] = useState(saved.current?.assist === true);
-  const assist = wantsAssist && canLearn;
+  const assist = wantsAssist && canPick;
+  // Whether this is one of the games Mote may win (see close-game.ts).
+  const mayWin = useRef(saved.current?.mayWin === true);
   const [notes, setNotes] = useState<CoachLine[]>([]);
   const [marks, setMarks] = useState<number[]>([]);
   const [showing, setShowing] = useState(false);
@@ -81,7 +85,7 @@ export function TicTacToe({ engine, onClose }: Props) {
   }, [engine, phase, turn, busy]);
 
   useEffect(() => {
-    if (phase === "playing") store(SAVE, { grid, turn, level, assist });
+    if (phase === "playing") store(SAVE, { grid, turn, level, assist, mayWin: mayWin.current });
   }, [phase, grid, turn, level, assist]);
 
   /** The game's over: say so, add it to the record, and let Mote remember it. */
@@ -131,7 +135,7 @@ export function TicTacToe({ engine, onClose }: Props) {
     setTurn("mote");
     await sleep(600 + Math.random() * 700);
     if (!alive.current) return;
-    const choice = chooseCell(g, levelRef.current);
+    const choice = chooseCell(g, levelRef.current, Math.random, { mayWin: mayWin.current });
     if (!choice) return;
     const next = g.slice();
     next[choice.cell] = "mote";
@@ -200,6 +204,10 @@ export function TicTacToe({ engine, onClose }: Props) {
     setPhase("playing");
     setPending(null);
     mistakes.current = 0;
+    const lvl = canPick ? level : "close";
+    setLevel(lvl);
+    levelRef.current = lvl;
+    mayWin.current = rollMayWin();
     if (assistRef.current) {
       tell("assist-start");
       setNotes([]);
@@ -256,9 +264,9 @@ export function TicTacToe({ engine, onClose }: Props) {
         title="Tic-tac-toe"
         lede="You’re X. You and Mote take turns going first."
         level={level}
-        onLevel={setLevel}
+        onLevel={canPick ? setLevel : undefined}
         assist={assist}
-        onAssist={canLearn ? setAssist : undefined}
+        onAssist={canPick ? setAssist : undefined}
         onPlay={begin}
         onClose={close}
       />

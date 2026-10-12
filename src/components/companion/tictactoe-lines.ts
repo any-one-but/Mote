@@ -64,6 +64,7 @@ type Pool = string[] | Record<Level, string[]>;
 
 const LINES: Record<TicTacToeEvent, Pool> = {
   start: {
+    close: ["Tic-tac-toe! Your move.", "X goes first. That’s you.", "Okay, I’m watching every square this time."],
     easy: ["Tic-tac-toe! You go first.", "Ooh, I like this one. Your turn.", "Three in a row wins, right? Okay!"],
     normal: ["Tic-tac-toe! Your move.", "X goes first. That’s you.", "Let’s see. Your turn."],
     hard: ["Hard? I don’t lose at this one. Your move.", "Fair warning: I know every trick.", "Go ahead. I’m ready."],
@@ -77,11 +78,13 @@ const LINES: Record<TicTacToeEvent, Pool> = {
   "mote-threat": ["Hmm hm hm.", "Watch that corner."],
   slip: ["Wait, was that a mistake?", "Oops. I didn’t see that."],
   "mote-win": {
+    close: ["Three in a row! Finally!", "I got one! Good game."],
     easy: ["Three in a row! I did it!", "I won?! Yay!"],
     normal: ["Three in a row! Good game.", "Got you! Again?"],
     hard: ["Told you. Good game, though.", "Three in a row. That’s how it goes."],
   },
   "you-win": {
+    close: ["Ugh, so close! You got me.", "I didn’t see that coming. Well played.", "You were one step ahead the whole time."],
     easy: ["You got three! Good game.", "Aw. You win! Again?"],
     normal: ["Three in a row. You got me!", "Well played. Rematch?"],
     hard: ["You beat me on Hard?! How?!", "That shouldn’t be possible. Well played."],

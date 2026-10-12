@@ -1,7 +1,8 @@
 import { chooseMove, type Choice, type Level } from "./ai.ts";
+import type { CloseInfo } from "../close-game.ts";
 import type { Board, Side } from "./rules.ts";
 
-type Ask = { board: Board; side: Side; level: Level };
+type Ask = { board: Board; side: Side; level: Level; close: CloseInfo };
 
 let worker: Worker | null = null;
 let seq = 0;
@@ -21,7 +22,7 @@ function getWorker(): Worker | null {
       worker = null;
       for (const [id, { ask, resolve }] of waiting) {
         waiting.delete(id);
-        resolve(chooseMove(ask.board, ask.side, ask.level));
+        resolve(chooseMove(ask.board, ask.side, ask.level, Math.random, ask.close));
       }
     };
     return worker;
@@ -31,12 +32,12 @@ function getWorker(): Worker | null {
 }
 
 /** Mote's move, worked out in the background when possible. */
-export function think(board: Board, side: Side, level: Level): Promise<Choice | null> {
+export function think(board: Board, side: Side, level: Level, close: CloseInfo): Promise<Choice | null> {
   const w = getWorker();
-  if (!w) return Promise.resolve(chooseMove(board, side, level));
+  if (!w) return Promise.resolve(chooseMove(board, side, level, Math.random, close));
   const id = ++seq;
   return new Promise((resolve) => {
-    waiting.set(id, { ask: { board, side, level }, resolve });
-    w.postMessage({ id, board, side, level });
+    waiting.set(id, { ask: { board, side, level, close }, resolve });
+    w.postMessage({ id, board, side, level, close });
   });
 }
