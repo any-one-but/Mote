@@ -464,13 +464,7 @@ standing up, soft and cartoony. It follows the face like the little mouth
 does (corners up when happy, a droop when glum, taller when surprised), and
 works its jaw while Mote talks. In dark mode it's inverted like everything
 else: a dark pumpkin with glowing orange eyes and grin. The expression sheet
-shows it with ?jack=1. **Snowman** (for winter) makes Mote snow white with a
-soft blue-grey outline (no texture), turns the eyes into lumps of coal (they
-still squint, scowl and blink), and gives them a little carrot nose that
-points the way they're looking (seen head-on, it's just its round end). With
-the mouth on, it's a smile of five bits of coal that follows the face and
-gathers into a little "o" when surprised. Snow stays snow in dark mode, just
-a touch dimmer. The expression sheet shows it with ?snow=1.
+shows it with ?jack=1.
 
 Text in the app calls Mote "Mote", or "they/them" when a pronoun is needed.
 
