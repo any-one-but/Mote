@@ -500,7 +500,7 @@ Quit Mote if it is open, then drag the new one into Applications and replace
 the old one:
 
 - `src-tauri/target/release/bundle/macos/Mote.app`
-- `src-tauri/target/release/bundle/dmg/Mote_0.10.4_aarch64.dmg` (an installer you can share)
+- `src-tauri/target/release/bundle/dmg/Mote_0.10.5_aarch64.dmg` (an installer you can share)
 
 Both are made by:
 
