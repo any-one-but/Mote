@@ -9,6 +9,10 @@ import type { Effects, LastingMood, MindValues } from "@/components/companion/mi
 // - "ask":    a question with a green (yes) and a red (no) button
 // - "move":   asks you to move the window somewhere; moving it is the answer
 // - "pet":    asks for a pet; petting is the answer
+// - "talk":   in a conversation, a question with a box to type the answer in
+// - "choose": in a conversation, a few choices (and the box, too)
+//
+// (Conversations themselves are in converse.ts.)
 //
 // Now and then, rarely, a question is a check-in on how you're doing (see
 // CHECK_INS): green always means you're doing fine. Left unanswered, Mote
@@ -19,7 +23,7 @@ import type { Effects, LastingMood, MindValues } from "@/components/companion/mi
 // Every bubble disappears after a while. Questions and requests you don't
 // answer in time count as ignored.
 
-export type BubbleKind = "flavor" | "ask" | "move" | "pet";
+export type BubbleKind = "flavor" | "ask" | "move" | "pet" | "talk" | "choose";
 export type Outcome = "yes" | "no" | "moved" | "petted" | "ignored" | "done";
 export type Direction = "left" | "right" | "up" | "down";
 
@@ -94,7 +98,7 @@ export type Line = {
   /** Never said in Friendly mode. */
   unkind?: boolean;
   /** Something Mote does about it (play the game again, open the link, or
-   * make the toy chest glow). */
+   * offer the games). */
   then?: Partial<Record<Outcome, "play-again" | "open-link" | "suggest-play">>;
   /** The face Mote makes after each outcome. */
   faces?: Partial<Record<Outcome, ReplyFace>>;
@@ -444,7 +448,7 @@ export const LINES: Line[] = [
     say: (c) => [
       ...(c.games
         ? [
-            "Chess? Checkers? Tic-tac-toe? The toy chest’s right there.",
+            "Chess? Checkers? Tic-tac-toe? Click me and tell me which.",
             "I’ve been practicing my checkers. Just saying.",
           ]
         : []),
@@ -567,7 +571,7 @@ export const LINES: Line[] = [
     say: ["I’m not sleepy yet!", "Bedtime? It’s way too early."],
   },
 
-  // Local Gallery, opened from Mote's button
+  // Local Gallery, opened by asking Mote
   {
     id: "gallery-opened",
     group: "Local Gallery",
@@ -712,7 +716,12 @@ export const LINES: Line[] = [
     kind: "flavor",
     when: never,
     cooldown: 10 * 60_000,
-    say: ["I’m getting hungry… is there a snack?", "My tummy’s rumbling. A snack, maybe?", "Could I have something to eat?"],
+    say: [
+      "I’m getting hungry… is there a snack?",
+      "My tummy’s rumbling. A snack, maybe?",
+      "Could I have something to eat?",
+      "Snack? Click me and say “snack”. Please?",
+    ],
   },
   {
     id: "tuck-me-in",
@@ -720,7 +729,7 @@ export const LINES: Line[] = [
     kind: "flavor",
     when: never,
     cooldown: 10 * 60_000,
-    say: ["I’m so sleepy… could you tuck me in?", "*yawn* I need a nap. The bed’s right there."],
+    say: ["I’m so sleepy… could you tuck me in?", "*yawn* I need a nap. Click me and say “bed”?"],
   },
   {
     id: "play-with-me",
@@ -728,7 +737,7 @@ export const LINES: Line[] = [
     kind: "flavor",
     when: never,
     cooldown: 10 * 60_000,
-    say: ["Want to play something? The toy chest is right there.", "It’s been quiet. A game, maybe?", "Could we play something? Anything."],
+    say: ["Want to play something? Click me and say “game”.", "It’s been quiet. A game, maybe?", "Could we play something? Anything."],
   },
   {
     id: "move-me",
@@ -814,13 +823,9 @@ const ASKED: CheckIn[] = [
     id: "check-fun",
     when: (c) => c.games,
     say: ["Having a good time over there?", "Is today being fun at all?", "Enjoying yourself?"],
+    // No: the games are offered (see converse.ts's funNo).
     replies: {
       yes: ["Yay! Good. Fun suits you.", "Excellent. Carry on having it.", "Good! I hope it’s catching. I want some."],
-      no: [
-        "Well, that won’t do. Game? I’ve been practicing.",
-        "Boo. Let’s fix that. The toy chest’s right there. I’ll even let you go first.",
-        "Not even a little? Okay. Liar’s Dice. I’ll bluff badly, I promise.",
-      ],
     },
     faces: { yes: "beam", no: "cute", ignored: "soothe" },
     then: { no: "suggest-play" },
@@ -1282,4 +1287,8 @@ export type Bubble = {
   ttl: number;
   /** A reply to an earlier bubble, rather than something new. */
   reply?: boolean;
+  /** In a conversation: choices to pick from (one per line), and a hint in
+   * the box to type in. */
+  choices?: Array<{ id: string; label: string }>;
+  placeholder?: string;
 };

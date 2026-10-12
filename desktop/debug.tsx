@@ -956,6 +956,8 @@ const KIND_NAME: Record<BubbleKind, string> = {
   ask: "Question",
   move: "Move me",
   pet: "Pet me",
+  talk: "Conversation",
+  choose: "Conversation: choices",
 };
 
 function SpeechTab({ snap, command }: Ctx) {

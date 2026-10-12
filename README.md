@@ -78,8 +78,9 @@ Settings lists your saved links with their history, and you can remove any.
 ## Mote themself
 
 Mote looks at your pointer, blinks, glances around, thinks, gets grumpy, gets
-surprised, and hops happily when poked (clicked right on the face). Four quick
-pokes in a row is too many, and Mote gets annoyed.
+surprised, and hops happily when poked (double-clicked right on the face; a
+single click starts a conversation, see "Talking to Mote"). Three quick pokes
+in a row is too many, and Mote gets annoyed.
 
 - **Petting:** press and keep stroking across Mote's face for a second or so.
   Mote melts into it and purrs. Stroke as fast as you like: moving with the
@@ -90,7 +91,7 @@ pokes in a row is too many, and Mote gets annoyed.
   just naps after a few quiet minutes left alone): Mote gets tired while awake (faster late at night and while
   playing). Once tired, left be for a few minutes with nothing interesting
   going on, they yawn, doze and fall asleep, and they sleep until rested.
-  Exhausted, they nod off even with things going on. A poke wakes them
+  Exhausted, they nod off even with things going on. A click wakes them
   (groggy, and a little put out, if they're still tired), and so does
   something starting to play (with a jolt) or something dropped on them.
   Petting a sleeping Mote gets a sleepy purr.
@@ -126,7 +127,7 @@ own, in how much they chat and what about, and they ask for what they need:
 a snack, bedtime, or a game.
 
 **Hunger** (an experimental feature, Mote eats too): fullness goes down while Mote is awake (about four hours from
-full to empty). Feed them from the snack bowl: a cookie, some berries, or a
+full to empty). Feed them by asking for a snack: a cookie, some berries, or a
 proper meal. Full, they politely say no.
 
 All of it carries over when Mote's app is closed: that time counts as
@@ -162,26 +163,56 @@ Green always means you're fine, and gets something glad. Red gets a
 concerned, soft look and a reply that fits the question, understanding
 first and maybe one small idea ("Late-night brain is the worst brain. Don't
 believe everything it tells you right now."). Not having fun isn't a worry,
-though: Mote offers a game instead, and the toy chest glows for a few
-minutes. Left unanswered, Mote says nothing at all: just a slow blink, a
+though: Mote offers the games instead, as a list to pick from. Left unanswered, Mote says nothing at all: just a slow blink, a
 gentle smile and a little nod. Answers never upset Mote, the same question
 doesn't come back within eight hours, and none come while Mote is cross
 (unless in Friendly mode).
 
-## The buttons
+## Talking to Mote
 
-Along the bottom of Mote's window (quiet until your pointer is over it):
+Almost everything you do with Mote starts with a click on them. Mote asks
+what you'd like to do (the words change with their mood: bright when happy,
+a yawn when sleepy, a little short when cross), with a box to type in. Type
+it however you like, and press Return:
 
-- **Toy chest:** the games (checkers, chess, tic-tac-toe and Liar's Dice). It can be switched off in Debug's Features tab.
-- **Carrot:** log calories, or see the days (only with the diet tracker switched on).
-- **Snack bowl:** feed Mote (only with "Mote eats too" switched on).
-- **Bed** (with Goodnight Mote switched on): tuck Mote in (if they're tired enough). While they sleep it turns
-  into a sun, to wake them.
-- **Picture frame** (with Local Gallery switched on): open Local Gallery
-  (Mote asks for the passcode first, if one is set).
+- "I want to play a game", "game", "I'm bored" — the games, as a list to
+  pick from (click one, type its name, or type "2")
+- "chess", "I want to play chess", "checkers", "tic tac toe", "liar's dice"
+  — that game, straight away
+- "calories", "log my lunch", "track my food", "diet" — the calorie card;
+  "my week", "calorie history" — the Days window (with the diet tracker
+  unlocked)
+- "gallery", "my photos" — Local Gallery (with it unlocked)
+- "help with files", "clean up a folder" — Mote tells you to drag a folder
+  or videos onto them (that's how the file help starts)
+- "bed", "goodnight", "nap" — tucks Mote in (with Goodnight Mote on)
+- "snack", "are you hungry?" — the snacks to pick from; "cookie",
+  "berries", "a proper meal" — that one (with Mote eats too on)
+- "a video", "something to watch", "my links" — one of your saved links
+  (or how to save one, if there are none)
+- "settings", "dark mode" — opens Settings
+- "what can you do", "help", "idk" — a list of everything Mote can do right
+  now, to pick from
+- and a few friendly ones: "hi", "thanks", "how are you", "never mind"
 
-A soft pulsing ring on a button means Mote would like that: hungry, sleepy,
-or wanting to play.
+Mote reads it with a big list of keywords for each thing, and is forgiving:
+plurals, words cut short ("calor"), words run together or split ("tictactoe",
+"tic tac toe"), extra or missing letters, swapped letters. If Mote is sure,
+they just do it. If it only matches with a typo or two ("I want to paaly a
+gatme"), they check first ("You want to play a game?"): yes does it, no asks
+what you meant. If nothing matches, Mote asks you to put it another way.
+"Don't" is understood ("I don't want to play" isn't a game). Each keyword
+belongs to one thing only ("track" and "log" are always the diet tracker),
+so new features join the thing they belong to rather than competing for
+words. Anything locked behind a key is as if Mote had never heard of it;
+anything switched off, Mote says so.
+
+A click always works, whatever's open: a game (it's saved for next time),
+the calorie card or the passcode pad go away and a new conversation starts.
+A click wakes a sleeping Mote instead (you can talk once they're up), and
+while Mote is busy with a file job, they say so. Leaving a question
+unanswered is fine: it goes away on its own, and Mote doesn't mind. Press
+Escape to close it.
 
 ## Try it as a Mac app
 
@@ -197,15 +228,15 @@ Drag the window by its top edge.
 ## Calories
 
 The diet tracker is locked behind its own **Feature Key** (see "Debug and
-experimental features"): until it's unlocked and on, there's no carrot
-button, no Calories section in Settings, and Mote keeps no count and says
-nothing about it.
+experimental features"): until it's unlocked and on, Mote doesn't know the
+word "calories", there's no Calories section in Settings, and Mote keeps no
+count and says nothing about it.
 
-Set a **daily goal** in Settings (0 turns this off). Press the carrot and
-choose **Log calories**: type an amount and press **+** (or Return) to add it,
+Set a **daily goal** in Settings (0 turns this off). Click Mote and say
+"calories" (or "log my lunch", "track food"…): type an amount and press **+** (or Return) to add it,
 or **−** to take it away. Click the big number to type today's total outright.
 
-**See the days** (in the same menu, or in Settings) opens a calendar of every
+**See the days** (ask Mote for "my week" or "calorie history", or use Settings) opens a calendar of every
 day you've logged, colored the way the old Diet Tracker did: cool while you're
 under the goal, hot once you pass it, nearly black when you're well past.
 
@@ -243,7 +274,7 @@ The thinking is in `src/lib/close-game.ts`.
 
 ## Checkers
 
-Open the toy chest and choose **Checkers**, then **Play** (with Levels and
+Click Mote and say "checkers" (or pick it from the games), then **Play** (with Levels and
 learning switched on, pick a level first: **Easy**: Mote is still learning;
 **Normal**: a fair game; **Hard**: Mote looks as far ahead as they can in
 about a second and always plays their best). Mote's window grows to fit the
@@ -284,7 +315,7 @@ says how many mistakes you made.
 
 ## Chess
 
-Open the toy chest and choose **Chess**. Same board, same
+Click Mote and say "chess". Same board, same
 record-keeping and saving as checkers. You're white and go first: click a
 piece and the dots show where it can go (rings mean a capture). All the rules
 are there: castling (move the king two squares), en passant, promotion (you
@@ -306,7 +337,7 @@ good-sport smile at the end.
 
 ## Tic-tac-toe
 
-Open the toy chest and choose **Tic-tac-toe**. Same record-keeping
+Click Mote and say "tic-tac-toe". Same record-keeping
 and saving as the other games. You're X; you and Mote take turns going first.
 Your X draws itself in ink; Mote's marks are tiny Motes that blink and glance
 at your latest move. With Levels and learning on, **Easy** Mote mostly plays wherever (though often grabs
@@ -317,7 +348,7 @@ to win at once.
 
 ## Liar's Dice
 
-Open the toy chest and choose **Liar's Dice**. It never ends: play a round
+Click Mote and say "liar's dice". It never ends: play a round
 or a hundred, and close it whenever you like (a round in progress is kept,
 dice and all, for next time).
 
@@ -345,7 +376,7 @@ either way). Rounds won and lost nudge their mood a little.
 ## Local Gallery
 
 Mote carries Local Gallery, the Mac app from the Local_Gallery repo, inside
-`Mote.app` and opens it from a picture-frame button (with Local Gallery
+`Mote.app` and opens it when you ask (click Mote and say "gallery"; with Local Gallery
 unlocked by its own Feature Key, and on). It's the real app, built from the same code with the same
 app ID and name, so it uses the same library, folders, settings and
 thumbnails as the Local Gallery you build from its own repo. Mote doesn't run
@@ -371,7 +402,7 @@ the gallery's own Passcode menu had:
   An open gallery closes for a moment while the folder is renamed, then opens
   again.
 
-With a passcode set, pressing the picture frame brings up a passcode pad on
+With a passcode set, asking for the gallery brings up a passcode pad on
 Mote's window (type it, or press the keys). Mote shuts their eyes tight and
 turns away while you type, flinching a little at each digit. Right: their eyes
 pop open, a hop, a nod and a wink, and the gallery opens. Wrong: a sorry-but-no
@@ -465,23 +496,23 @@ feature that's switched off (Links, Gallery) isn't shown.
     resting eyes (a scowl, a little smile, a droop, heavy lids, worried
     brows). Off, the eyes rest in their usual shape whatever the mood;
     expressions still play.
-  - **Toy chest**: the toy chest button and its games, and Mote asking for
-    or suggesting a game. Off, the button goes, an open game is put away,
-    and Mote never brings games up: a lonely Mote asks for a pet instead,
+  - **Games**: the games, and Mote asking for or suggesting a game. Off, an
+    open game is put away, Mote says the games are put away if you ask, and
+    never brings them up: a lonely Mote asks for a pet instead,
     and "not having fun" gets a nudge toward something fun rather than a
     game. Games already played are still remembered.
 
   and for the experimental features (all off until switched on):
-  - **Mote eats too**: Mote getting hungry, the snack bowl to feed them, and
+  - **Mote eats too**: Mote getting hungry, feeding them (ask for a snack), and
     hunger's effect on their mood, face and what they say. Off, Mote simply
     stays full.
   - **Levels and learning**: picking a level for board games (Easy, Normal,
     Hard, or the usual Close), and the Learn with Mote option for checkers and
     tic-tac-toe. Off, Mote always plays the close way.
   - **Goodnight Mote**: Mote getting tired and needing sleep (sleepy and
-    exhausted moods, asking for bed, the bed button, waking once rested).
+    exhausted moods, asking for bed, tucking them in by asking, waking once rested).
     Off, Mote stays rested and simply naps after a few quiet minutes left
-    alone, until poked.
+    alone, until clicked.
   - **Eyebrows**: two little soft eyebrows above Mote's eyes. They have no
     moves of their own: they follow the brow cut that every expression
     already shapes, so they come down and slant in when Mote is cross, tilt up
@@ -576,7 +607,7 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 - `desktop/passcode-settings.tsx` — Settings' Local Gallery section
 - `src/components/companion/mind.ts` — Mote's mood, hunger and rest, and how they change
 - `src/components/companion/memories.ts` — the games Mote remembers, and how they bring them up
-- `src/components/companion/Toolbar.tsx` — the buttons along the bottom of Mote's window
+- `src/components/companion/converse.ts` — talking to Mote: every keyword, how typing is understood, and what Mote says
 - `src/components/companion/reactions.ts` — every stimulus → response rule
 - `src/components/companion/speech.ts` — everything Mote can say, and when
 - `src/components/companion/SpeechBubble.tsx` — how the bubbles look

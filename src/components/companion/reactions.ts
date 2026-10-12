@@ -12,6 +12,7 @@ export type ReactionGroup =
   | "Interest"
   | "Helping you"
   | "Speech"
+  | "Talking"
   | "Eating"
   | "Checkers"
   | "Chess"
@@ -45,7 +46,7 @@ export const REACTIONS: Reaction[] = [
     id: "poke",
     group: "Touch",
     name: "Poke",
-    when: "You click right on Mote’s face",
+    when: "You double-click right on Mote’s face",
     then: "A happy little hop",
     effects: { joy: 0.3, peace: 0.1 },
     status: "live",
@@ -63,7 +64,7 @@ export const REACTIONS: Reaction[] = [
     id: "poke-spam",
     group: "Touch",
     name: "Too many pokes",
-    when: "Four pokes within about two seconds",
+    when: "Three pokes (double-clicks) within about three seconds",
     then: "Gets grumpy: scowls and stomps",
     effects: { joy: -2 },
     status: "live",
@@ -72,7 +73,7 @@ export const REACTIONS: Reaction[] = [
     id: "poke-giggle",
     group: "Touch",
     name: "Lots of pokes (Friendly mode)",
-    when: "Four pokes within about two seconds, with Friendly mode on",
+    when: "Three pokes (double-clicks) within about three seconds, with Friendly mode on",
     then: "It tickles! A giggly little wiggle",
     effects: { joy: 0.3 },
     status: "live",
@@ -84,6 +85,38 @@ export const REACTIONS: Reaction[] = [
     when: "You press and keep stroking across Mote’s face (each second)",
     then: "Melts into a relaxed purr, leaning into your hand",
     effects: { joy: 0.4, peace: 0.15 },
+    status: "live",
+  },
+  {
+    id: "talk",
+    group: "Talking",
+    name: "Starting a conversation",
+    when: "You click Mote’s face once (Mote waits a beat, in case it’s a double-click). Asleep, the click wakes them instead; busy with a file job, Mote says so",
+    then: "Puts away whatever was open (a game is saved), and asks what you’d like to do (the words depend on their mood), with a box to type in",
+    status: "live",
+  },
+  {
+    id: "talk-understood",
+    group: "Talking",
+    name: "Understood",
+    when: "What you typed clearly matches something Mote can do (the words, a plural, a word cut short, or near enough)",
+    then: "Does it straight away: opens the game, the calorie card, the gallery, puts themself to bed… Some things are a list (games, snacks, what Mote can do), shown as choices",
+    status: "live",
+  },
+  {
+    id: "talk-check",
+    group: "Talking",
+    name: "A guess",
+    when: "What you typed only matches with a typo or two",
+    then: "Checks first (“You want to play a game?”). Yes does it; no asks what you meant",
+    status: "live",
+  },
+  {
+    id: "talk-unknown",
+    group: "Talking",
+    name: "Didn’t understand",
+    when: "Nothing Mote can do matches what you typed",
+    then: "Asks you to put it another way",
     status: "live",
   },
   {
@@ -988,7 +1021,7 @@ export const REACTIONS: Reaction[] = [
     id: "gallery-opened",
     group: "Local Gallery",
     name: "Opening the gallery",
-    when: "You press the picture-frame button (Local Gallery unlocked and on)",
+    when: "You ask Mote for the gallery (Local Gallery unlocked and on)",
     then: "A happy hop, often a word, and Local Gallery opens as its own app",
     status: "live",
   },
@@ -1189,7 +1222,7 @@ export const REACTIONS: Reaction[] = [
     group: "Speech",
     name: "Check-in: not so good",
     when: "You press red on a check-in",
-    then: "A concerned, soft look and a reply that fits the question: understanding first, maybe one small idea. Not having fun gets a playful offer of a game instead, and the toy chest glows for a few minutes (with the toy chest off, a nudge to do something fun). Never upsets Mote",
+    then: "A concerned, soft look and a reply that fits the question: understanding first, maybe one small idea. Not having fun gets the games offered instead (with games off, a nudge to do something fun). Never upsets Mote",
     status: "live",
   },
   {
@@ -1205,7 +1238,7 @@ export const REACTIONS: Reaction[] = [
     group: "Speech",
     name: "Asking for what they need",
     when: "Mote notices a need and it lasts 8–25 seconds: hungry (Fullness 2½ or less), worn out (Rest 1½ or less), or lonely (Satisfied −4 or less). Never while helping you, playing, or asleep",
-    then: "Asks to be fed, to be tucked in, to play something, or (if they’re cross as well, or the toy chest is switched off) for a pet. If ignored, asks again only after a while",
+    then: "Asks to be fed, to be tucked in, to play something, or (if they’re cross as well, or games are switched off) for a pet. If ignored, asks again only after a while",
     status: "live",
   },
   {
@@ -1405,7 +1438,7 @@ export const REACTIONS: Reaction[] = [
     group: "Lasting moods",
     name: "Hungry",
     when: "Fullness is 3 or lower",
-    then: "Worried brows, fidgets; the snack button glows; asks to be fed",
+    then: "Worried brows, fidgets; asks to be fed",
     status: "live",
   },
   {
@@ -1421,7 +1454,7 @@ export const REACTIONS: Reaction[] = [
     group: "Lasting moods",
     name: "Sleepy",
     when: "Rest is 3 or lower",
-    then: "Heavy lids, yawns, slow blinks; naps come sooner; the bed button glows",
+    then: "Heavy lids, yawns, slow blinks; naps come sooner",
     status: "live",
   },
   {
@@ -1438,7 +1471,7 @@ export const REACTIONS: Reaction[] = [
     id: "fed",
     group: "Looking after Mote",
     name: "A snack",
-    when: "You give Mote something to eat from the snack button",
+    when: "You give Mote something to eat (ask them for a snack)",
     then: "Eats it happily (a cookie fills them a little, a proper meal a lot)",
     effects: { joy: 0.3, peace: 0.5 },
     status: "live",
@@ -1464,7 +1497,7 @@ export const REACTIONS: Reaction[] = [
     id: "tucked-in",
     group: "Looking after Mote",
     name: "Tucked in",
-    when: "You press the bed button while Mote is tired (Rest 7 or less)",
+    when: "You tuck Mote in (ask them for bed) while they’re tired (Rest 7 or less)",
     then: "Yawns, maybe says goodnight, and falls asleep",
     effects: { peace: 0.3 },
     status: "live",
@@ -1473,7 +1506,7 @@ export const REACTIONS: Reaction[] = [
     id: "tuck-not-sleepy",
     group: "Looking after Mote",
     name: "Not sleepy",
-    when: "You press the bed button while Mote is rested",
+    when: "You try to tuck Mote in while they’re rested",
     then: "Says it’s too early",
     status: "live",
   },
@@ -1531,6 +1564,7 @@ export const REACTION_GROUPS: ReactionGroup[] = [
   "Local Gallery",
   "Local Gallery passcode",
   "Speech",
+  "Talking",
   "Time",
   "Lasting moods",
   "Looking after Mote",

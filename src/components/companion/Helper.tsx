@@ -69,12 +69,17 @@ type Props = {
   pace: Pace;
   gift: Gift | null;
   onOpen: (open: boolean) => void;
+  /** Busy with a job (or installing what one needs): it can't be put away. */
+  onBusy: (busy: boolean) => void;
+  /** Goes up each time something else comes up (you clicked Mote): the
+   * options go away, unless a job is running. */
+  putAway: number;
   /** Helping with files, and reacting to apps (skills that can be switched off). */
   files: boolean;
   apps: boolean;
 };
 
-export function Helper({ engine, pace, gift, onOpen, files, apps }: Props) {
+export function Helper({ engine, pace, gift, onOpen, onBusy, putAway, files, apps }: Props) {
   const [phase, setPhase] = useState<Phase>({ at: "closed" });
   const [work, setWork] = useState<Work | null>(null);
   const [say, setSay] = useState("");
@@ -95,6 +100,8 @@ export function Helper({ engine, pace, gift, onOpen, files, apps }: Props) {
 
   const open = phase.at !== "closed";
   useEffect(() => onOpen(open), [open, onOpen]);
+  const busy = phase.at === "working" || phase.at === "installing";
+  useEffect(() => onBusy(busy), [busy, onBusy]);
 
   const helping = (state: "busy" | "talking" | null) => engine()?.setHelping(state);
 
@@ -119,6 +126,10 @@ export function Helper({ engine, pace, gift, onOpen, files, apps }: Props) {
   useEffect(() => {
     if (!files) close();
   }, [files, close]);
+
+  useEffect(() => {
+    if (putAway && phaseRef.current.at !== "installing") close();
+  }, [putAway, close]);
 
   // Something new to work on. (Apps aren't work: Mote plays the game or has
   // something to say about the app, and the options go away.)

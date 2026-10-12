@@ -246,9 +246,19 @@ export type EngineHooks = {
   onSpeech?: (bubble: Bubble | null) => void;
   /** You said yes to a saved link Mote suggested: open it. */
   onOpenLink?: (url: string) => void;
+  /** Mote would like a game (you weren't having fun): offer the games. */
+  onSuggestPlay?: () => void;
 };
 
 export type Energy = "calm" | "normal" | "lively";
+
+/** Something said in a conversation (see `talk`). */
+export type Talk = {
+  kind: "talk" | "choose" | "ask" | "flavor";
+  text: string;
+  choices?: Array<{ id: string; label: string }>;
+  placeholder?: string;
+};
 
 export type EngineOptions = {
   energy: Energy;
@@ -391,6 +401,16 @@ export type FaceEngine = {
   answer: (yes: boolean) => void;
   /** Close a remark bubble early. */
   dismissSpeech: () => void;
+  /** Talking with you (see converse.ts): a question with a box to type in,
+   * a few choices, a yes-or-no check, or just a remark. It replaces whatever
+   * was being said, and nothing counts as ignored. */
+  talk: (t: Talk) => void;
+  /** The conversation's over: the bubble goes. */
+  endTalk: () => void;
+  /** You're typing an answer: the bubble waits for you. */
+  stillTalking: () => void;
+  /** Asleep or nodding off: a click wakes Mote before anything else. */
+  drowsy: () => boolean;
   /** Debug: say a particular line now (or anything fitting, with no id). */
   say: (lineId?: string) => void;
   /** The pointer, out on the rest of the screen: where, from Mote's centre. */
@@ -647,7 +667,7 @@ const BAG: Mood[] = [
 ];
 
 const LABELS: Partial<Record<Mood, string>> = {
-  sleep: "Mote is sleeping. Poke to wake.",
+  sleep: "Mote is sleeping. Click to wake.",
   yawn: "Mote yawns.",
   startle: "Mote jolts awake!",
   think: "Mote is thinking.",
@@ -2035,6 +2055,9 @@ export function jackMouthShape(pose: Pose, gazeX: number, gazeY: number, talk = 
   return `M${pts.map(([px, py]) => `${f(px)} ${f(py)}`).join("L")}Z`;
 }
 
+/** The line id of everything said in a conversation. */
+export const TALK = "talk";
+
 function q<T extends Element>(svg: SVGSVGElement, name: string) {
   return svg.querySelector(`[data-part="${name}"]`) as T | null;
 }
@@ -2248,8 +2271,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   // Check-ins on how you're doing: the first 25–40 minutes in, then an hour
   // or two apart.
   let nextCheckInAt = (25 + Math.random() * 15) * 60_000;
-  // You weren't having fun: the toy chest glows for a while.
-  let playNudgeUntil = 0;
   const movedSince = { x: 0, y: 0 };
   let pettedSince = false;
   let wanting: { need: string; line: string; at: number } | null = null;
@@ -2403,7 +2424,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     else if (outcome !== "done") react(`answer-${outcome}`);
     const face = line.faces?.[outcome];
     if (face) start(face, now);
-    if (line.then?.[outcome] === "suggest-play") playNudgeUntil = clock + 3 * 60_000;
+    if (line.then?.[outcome] === "suggest-play") hooks.onSuggestPlay?.();
     if (line.then?.[outcome] === "play-again" && game) {
       react("play");
       start(game.mood, now);
@@ -2717,7 +2738,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (state === playing) return;
     const was = playing;
     playing = state;
-    if (state) playNudgeUntil = 0;
     engage();
     pendingEvent = null;
     wanting = null;
@@ -2823,7 +2843,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (mood === "sleep" || mood === "doze" || helping || playing) return null;
     if (feel.fullness <= 3.5) return "food";
     if (options.sleepNeed && feel.rest <= 2.5) return "sleep";
-    if (options.games && (feel.peace <= -2 || clock < playNudgeUntil)) return "play";
+    if (options.games && feel.peace <= -2) return "play";
     return null;
   };
 
@@ -3136,7 +3156,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     noticeYou();
     touch();
     pokes.push(now);
-    while (pokes.length && now - pokes[0] > 2200) pokes.shift();
+    // (A poke is a double-click, so three close together is a lot.)
+    while (pokes.length && now - pokes[0] > 3000) pokes.shift();
     if (mood === "sleep" || mood === "doze" || (mood === "yawn" && dozeNext)) {
       // Woken up: well rested, bright and breezy; still tired, groggy (and a
       // little put out about it).
@@ -3150,7 +3171,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       // Busy with a job: a quick happy look up, then back to work.
       react("poke-busy");
       return;
-    } else if (pokes.length >= 4 && mood !== "frustrate") {
+    } else if (pokes.length >= 3 && mood !== "frustrate") {
       pokes.length = 0;
       // Too many pokes: a moment of annoyance (it passes straight away).
       react("poke-spam");
@@ -3916,7 +3937,35 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     },
     dismissSpeech: () => {
       if (bubble?.kind === "flavor") resolve("done", clock);
+      else if (bubble?.lineId === TALK) showBubble(null);
     },
+    talk: (t) => {
+      rouse();
+      engage();
+      touch();
+      pendingEvent = null;
+      // A long time to answer in: there's a box to type in.
+      const ttl = t.kind === "talk" || t.kind === "choose" ? 60_000 : t.kind === "ask" ? lifetime("ask", t.text) : lifetime("flavor", t.text) + 1200;
+      showBubble({
+        id: ++bubbleSeq,
+        lineId: TALK,
+        kind: t.kind,
+        text: t.text,
+        choices: t.choices,
+        placeholder: t.placeholder,
+        born: clock,
+        ttl,
+      });
+      react("speak");
+      log(`says “${t.text}”`);
+    },
+    endTalk: () => {
+      if (bubble?.lineId === TALK) showBubble(null);
+    },
+    stillTalking: () => {
+      if (bubble?.lineId === TALK) bubble.ttl = clock - bubble.born + 60_000;
+    },
+    drowsy: () => mood === "sleep" || mood === "doze" || (mood === "yawn" && dozeNext),
     pointerElsewhere: (dx, dy, inside) => {
       const d = pointerOut.has ? Math.hypot(dx - pointerOut.dx, dy - pointerOut.dy) : 0;
       if (d > 0) noticeYou();

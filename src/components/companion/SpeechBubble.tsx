@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { Bubble, Direction } from "@/components/companion/speech";
 
 type Props = {
@@ -7,6 +7,11 @@ type Props = {
   anchor: { x: number; y: number };
   onAnswer: (yes: boolean) => void;
   onDismiss: () => void;
+  /** In a conversation: what you typed (Enter), a choice clicked, and each
+   * keystroke (so Mote waits). */
+  onSubmit: (text: string) => void;
+  onChoose: (id: string) => void;
+  onTyping: () => void;
 };
 
 const TYPE_MS = 32;
@@ -14,14 +19,20 @@ const LEAVE_MS = 200;
 
 /**
  * Mote's speech bubble. Words type out, questions get a green and a red
- * button, and requests show a small hint. Bubbles swap with a little exit
- * animation so a reply never jumps straight over the last thing said.
+ * button, and requests show a small hint. In a conversation there's a box to
+ * type in, and sometimes choices, one per line. Bubbles swap with a little
+ * exit animation so a reply never jumps straight over the last thing said.
  */
-export function SpeechBubble({ bubble, anchor, onAnswer, onDismiss }: Props) {
+export function SpeechBubble({ bubble, anchor, onAnswer, onDismiss, onSubmit, onChoose, onTyping }: Props) {
   const [shown, setShown] = useState<Bubble | null>(bubble);
   const [leaving, setLeaving] = useState(false);
   const [typed, setTyped] = useState(0);
+  const [text, setText] = useState("");
+  // A tall bubble would go off the top of the window: it comes down a bit
+  // (over Mote's face) instead.
+  const [nudge, setNudge] = useState(0);
   const timer = useRef<number | null>(null);
+  const self = useRef<HTMLDivElement>(null);
 
   // Swap bubbles with a short exit in between.
   useEffect(() => {
@@ -59,14 +70,29 @@ export function SpeechBubble({ bubble, anchor, onAnswer, onDismiss }: Props) {
     };
   }, [shown]);
 
+  useEffect(() => setText(""), [shown?.id]);
+
+  useLayoutEffect(() => {
+    const el = self.current;
+    if (!el) return setNudge(0);
+    // Where its top would be without the nudge (layout only, so the pop-in
+    // animation's scaling doesn't count).
+    const top = el.offsetTop - nudge;
+    const want = top < 8 ? 8 - top : 0;
+    if (Math.abs(want - nudge) > 0.5) setNudge(want);
+  });
+
   if (!shown) return null;
   const done = typed >= plain(shown.text).length;
-  const timed = shown.kind !== "flavor";
+  const talking = shown.kind === "talk" || shown.kind === "choose";
+  const timed = shown.kind !== "flavor" && !talking;
+  const choices = shown.choices ?? [];
 
   return (
     <div
-      className={`speech is-${shown.kind}${leaving ? " is-leaving" : ""}`}
-      style={{ left: anchor.x, bottom: `calc(100% - ${anchor.y}px)` }}
+      ref={self}
+      className={`speech is-${shown.kind}${leaving ? " is-leaving" : ""}${nudge ? " is-nudged" : ""}`}
+      style={{ left: anchor.x, bottom: `calc(100% - ${anchor.y}px)`, marginBottom: -nudge }}
       role="status"
       aria-live="polite"
       // Moving the window is the answer to a move request, so the bubble
@@ -102,6 +128,52 @@ export function SpeechBubble({ bubble, anchor, onAnswer, onDismiss }: Props) {
             </svg>
           </button>
         </div>
+      ) : null}
+
+      {shown.kind === "choose" && done && choices.length ? (
+        <div className={`speech-choices${choices.length > 4 ? " is-two" : ""}`}>
+          {choices.map((c, i) => (
+            <button
+              key={c.id}
+              type="button"
+              className="speech-choice"
+              style={{ animationDelay: `${i * 40}ms` }}
+              onClick={() => onChoose(c.id)}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {talking ? (
+        <form
+          className="speech-type"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (text.trim()) onSubmit(text);
+          }}
+        >
+          <input
+            // A fresh box for each thing Mote says.
+            key={shown.id}
+            className="speech-input"
+            aria-label={plain(shown.text)}
+            placeholder={shown.placeholder ?? "Tell me…"}
+            autoFocus
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              onTyping();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") onDismiss();
+            }}
+          />
+        </form>
       ) : null}
 
       {shown.kind === "move" && done ? (

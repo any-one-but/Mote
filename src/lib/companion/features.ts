@@ -41,13 +41,13 @@ export const KEYED: Array<{ id: KeyedId; name: string; about: string; fingerprin
   {
     id: "diet",
     name: "Diet tracker",
-    about: "Calorie logging, the Days window, the carrot button, and everything Mote says about food you eat.",
+    about: "Calorie logging (ask Mote for “calories”), the Days window, and everything Mote says about food you eat.",
     fingerprint: "529ae584fe8563a4e8ec4701330d2de99ea399aa3f58ddcb22cdf72c0aca4e98",
   },
   {
     id: "gallery",
     name: "Local Gallery",
-    about: "A button that opens Local Gallery, which Mote carries with them (the same app, with the same library and settings).",
+    about: "Opening Local Gallery by asking Mote for it. Mote carries it with them (the same app, with the same library and settings).",
     fingerprint: "58410d02ab9bdb3c0ed5d08fdcc5557f27ef308e10489e982b964ad60205305c",
   },
 ];
@@ -86,8 +86,8 @@ export const FEATURES: Array<{
   },
   {
     id: "games",
-    name: "Toy chest",
-    about: "The toy chest button and its games (checkers, chess, tic-tac-toe, Liar’s Dice), and Mote asking for or suggesting a game. Off, the button goes, a game that’s open is put away, and Mote never brings games up (games you’ve played are still remembered).",
+    name: "Games",
+    about: "Games with Mote (checkers, chess, tic-tac-toe, Liar’s Dice: ask Mote for one), and Mote asking for or suggesting a game. Off, a game that’s open is put away, Mote says the games are put away if you ask, and never brings them up (games you’ve played are still remembered).",
     usual: true,
   },
   {
@@ -99,7 +99,7 @@ export const FEATURES: Array<{
   {
     id: "hunger",
     name: "Mote eats too",
-    about: "Mote gets hungry, the snack bowl to feed them, and hunger’s effect on their mood, face and what they say.",
+    about: "Mote gets hungry, feeding them (ask Mote for a snack), and hunger’s effect on their mood, face and what they say.",
   },
   {
     id: "levels",
@@ -109,7 +109,7 @@ export const FEATURES: Array<{
   {
     id: "sleep",
     name: "Goodnight Mote",
-    about: "Mote getting tired and needing sleep: sleepy and exhausted moods, asking for bed, the bed button, and waking when rested. Off, Mote still naps when left alone.",
+    about: "Mote getting tired and needing sleep: sleepy and exhausted moods, asking for bed, tucking them in (ask Mote for “bed”), and waking when rested. Off, Mote still naps when left alone.",
   },
   {
     id: "brows",

@@ -7,12 +7,29 @@ import { Helper, type Gift } from "@/components/companion/Helper";
 import { SpeechBubble } from "@/components/companion/SpeechBubble";
 import type { Bubble } from "@/components/companion/speech";
 import { GEO } from "@/lib/companion/theme";
-import type { EngineOptions, FaceEngine, Want } from "@/components/companion/engine";
+import { TALK, type EngineOptions, type FaceEngine, type Talk } from "@/components/companion/engine";
+import {
+  AFTER_NO,
+  LINES,
+  RETRY,
+  checkLine,
+  howAmI,
+  introLine,
+  isGame,
+  isSnack,
+  placeholder,
+  say,
+  understand,
+  type IntentId,
+} from "@/components/companion/converse";
+import { loadLinks } from "@/components/companion/links";
+import { SNACKS } from "@/components/companion/mind";
 import { DEBUG_DEFAULTS, listenBus, send, type DebugState } from "@/lib/companion/bus";
 import {
   onDropped,
   openCaloriesWindow,
   openLink,
+  openSettingsWindow,
   onMediaElsewhere,
   onPointerElsewhere,
   onTypingElsewhere,
@@ -34,7 +51,6 @@ import { Checkers } from "@/components/companion/Checkers";
 import { Chess } from "@/components/companion/Chess";
 import { TicTacToe } from "@/components/companion/TicTacToe";
 import { LiarsDice } from "@/components/companion/LiarsDice";
-import { Toolbar } from "@/components/companion/Toolbar";
 import { applyToBook, dateKey, readBook } from "@/lib/companion/calories";
 import { markCalorieCare, useCalorieBook } from "@/lib/companion/calorie-store";
 
@@ -50,8 +66,6 @@ export function Companion() {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [settings] = useSettings();
   const [book, commitBook] = useCalorieBook();
-  // What the buttons show: asleep (the bed becomes a sun), and what Mote would like.
-  const [status, setStatus] = useState<{ asleep: boolean; wants: Want | null }>({ asleep: false, wants: null });
   const [logging, setLogging] = useState(false);
   const [playing, setPlaying] = useState<"checkers" | "chess" | "tictactoe" | "liarsdice" | null>(null);
   const debugState = useRef<DebugState>({ ...DEBUG_DEFAULTS });
@@ -329,14 +343,6 @@ export function Companion() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debug]);
 
-  useEffect(() => {
-    const t = window.setInterval(() => {
-      const snap = engineRef.current?.snapshot();
-      if (!snap) return;
-      setStatus((s) => (s.asleep === snap.asleep && s.wants === snap.wants ? s : { asleep: snap.asleep, wants: snap.wants }));
-    }, 1000);
-    return () => window.clearInterval(t);
-  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -410,9 +416,258 @@ export function Companion() {
     engineRef.current?.noteCalories(result.moment);
   };
 
-  // A quick press on Mote's body is a poke; pressing and dragging across it is
-  // petting. Presses on the empty window around Mote do nothing. The buttons
-  // along the bottom hold games, calories, snacks and bedtime.
+  // Talking with Mote (see converse.ts). A click on Mote puts away whatever
+  // was open and Mote asks what you'd like to do; you type it, and Mote does
+  // it (or checks a guess first, or asks you to say it another way).
+  const [putAwaySeq, setPutAwaySeq] = useState(0);
+  const helperBusy = useRef(false);
+  const noteHelperBusy = useCallback((busy: boolean) => {
+    helperBusy.current = busy;
+  }, []);
+  /** Choices on offer right now, and a guess waiting for a yes or no. */
+  const menu = useRef<IntentId[] | null>(null);
+  const checking = useRef<IntentId | null>(null);
+
+  // What Mote can be talked into. Anything still locked behind a key is left
+  // out, as if Mote had never heard of it; anything switched off, Mote knows
+  // about but says so.
+  const known = new Set<IntentId>([
+    "games",
+    "chess",
+    "checkers",
+    "tictactoe",
+    "liarsdice",
+    "files",
+    "bed",
+    "feed",
+    "cookie",
+    "berries",
+    "meal",
+    "links",
+    "saveLink",
+    "settings",
+    "help",
+    "greet",
+    "thanks",
+    "howAreYou",
+    "pet",
+    "cancel",
+  ]);
+  if (features.unlocked.includes("diet")) {
+    known.add("diet");
+    known.add("dietDays");
+  }
+  if (features.unlocked.includes("gallery")) known.add("gallery");
+  /** Is this one switched on? */
+  const on = (i: IntentId) =>
+    isGame(i) || i === "games"
+      ? games
+      : i === "diet" || i === "dietDays"
+        ? diet
+        : i === "gallery"
+          ? gallery
+          : i === "files"
+            ? files
+            : i === "bed"
+              ? sleepNeed
+              : i === "feed" || isSnack(i)
+                ? hunger
+                : i === "links" || i === "saveLink"
+                  ? links
+                  : true;
+  const ready = new Set([...known].filter(on));
+
+  const mind = () => ({
+    moods: engineRef.current?.snapshot().moods ?? [],
+    friendly,
+    hour: new Date().getHours(),
+  });
+  const talk = (t: Talk) => engineRef.current?.talk(t);
+  const hint = () => placeholder(ready);
+  const question = (text: string) => talk({ kind: "talk", text, placeholder: hint() });
+  const remark = (lines: readonly string[]) => talk({ kind: "flavor", text: say(lines) });
+  const offer = (text: string, ids: IntentId[], labels: Partial<Record<IntentId, string>>) => {
+    menu.current = ids;
+    talk({
+      kind: "choose",
+      text,
+      choices: ids.map((id) => ({ id, label: labels[id] ?? id })),
+      placeholder: "Or type it…",
+    });
+  };
+  const GAME_NAMES: Partial<Record<IntentId, string>> = {
+    checkers: "Checkers",
+    chess: "Chess",
+    tictactoe: "Tic-tac-toe",
+    liarsdice: "Liar’s Dice",
+  };
+  const offerGames = (text: string = say(LINES.games)) =>
+    offer(text, ["checkers", "chess", "tictactoe", "liarsdice"], GAME_NAMES);
+
+  /** Whatever was open goes away: a game (it's saved), the calorie card,
+   * the passcode pad, the file options. */
+  const putAway = () => {
+    setPlaying(null);
+    setLogging(false);
+    dropAsking();
+    setPutAwaySeq((n) => n + 1);
+  };
+
+  const startTalking = () => {
+    menu.current = null;
+    checking.current = null;
+    question(introLine(mind()));
+  };
+
+  /** Doing what was asked for. */
+  const act = (intent: IntentId) => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    menu.current = null;
+    checking.current = null;
+    if (!on(intent)) {
+      const off = LINES.off;
+      return remark(
+        isGame(intent) || intent === "games"
+          ? off.games
+          : intent === "diet" || intent === "dietDays"
+            ? off.diet
+            : intent === "gallery"
+              ? off.gallery
+              : intent === "files"
+                ? off.files
+                : intent === "bed"
+                  ? off.bed
+                  : intent === "links" || intent === "saveLink"
+                    ? off.links
+                    : off.feed,
+      );
+    }
+    if (isGame(intent)) {
+      engine.endTalk();
+      putAway();
+      setPlaying(intent);
+      return;
+    }
+    if (isSnack(intent)) {
+      engine.endTalk();
+      engine.feed(intent);
+      return;
+    }
+    switch (intent) {
+      case "games":
+        return offerGames();
+      case "diet":
+        putAway();
+        setLogging(true);
+        markCalorieCare();
+        return remark(LINES.diet);
+      case "dietDays":
+        markCalorieCare();
+        openCaloriesWindow();
+        return remark(LINES.dietDays);
+      case "gallery":
+        engine.endTalk();
+        return void openLocalGallery();
+      case "files":
+        return remark(LINES.files);
+      case "bed":
+        engine.endTalk();
+        return engine.tuckIn();
+      case "feed":
+        return offer(
+          say(LINES.snacks),
+          SNACKS.map((s) => s.id as IntentId),
+          Object.fromEntries(SNACKS.map((s) => [s.id, s.name])),
+        );
+      case "links":
+        if (!loadLinks().length) return remark(LINES.noLinks);
+        engine.endTalk();
+        return engine.suggestLink();
+      case "saveLink":
+        return remark(LINES.saveLink);
+      case "settings":
+        openSettingsWindow();
+        return remark(LINES.settings);
+      case "help": {
+        const labels: Partial<Record<IntentId, string>> = {
+          games: "Play a game",
+          diet: "Log calories",
+          dietDays: "See the days",
+          gallery: "Open Local Gallery",
+          feed: "Give me a snack",
+          bed: "Tuck me in",
+          links: "Something you saved",
+          files: "Help with files",
+          settings: "Settings",
+        };
+        const ids = (Object.keys(labels) as IntentId[]).filter((i) => ready.has(i));
+        return offer(say(LINES.help), ids, labels);
+      }
+      case "greet":
+        return question(say(LINES.greet));
+      case "howAreYou":
+        return question(howAmI(mind()));
+      case "thanks":
+        return remark(LINES.thanks);
+      case "pet":
+        return remark(LINES.pet);
+      case "cancel":
+        return remark(LINES.cancel);
+    }
+  };
+
+  /** Something typed (or a choice picked by typing it). */
+  const heard = (text: string) => {
+    const h = understand(text, { known, choices: menu.current ?? undefined });
+    engineRef.current?.react(h.kind === "do" ? "talk-understood" : h.kind === "check" ? "talk-check" : "talk-unknown");
+    if (h.kind === "do") return act(h.intent);
+    menu.current = null;
+    if (h.kind === "check") {
+      checking.current = h.intent;
+      return talk({ kind: "ask", text: checkLine(h.intent) });
+    }
+    question(say(RETRY));
+  };
+
+  /** Yes or no to a guess. */
+  const answered = (yes: boolean) => {
+    const guess = checking.current;
+    checking.current = null;
+    if (guess && yes) return act(guess);
+    question(say(AFTER_NO));
+  };
+
+  // A click on Mote does what fits: wakes them if they're asleep, waits if
+  // they're busy with a job, and otherwise starts a conversation. Two clicks
+  // close together are a poke instead (a happy hop), so a click waits a beat
+  // to see if another follows.
+  const clickTimer = useRef<number | null>(null);
+  const clicked = () => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    if (engine.drowsy()) return engine.poke();
+    if (helperBusy.current) return engine.say("busy");
+    putAway();
+    engine.react("talk");
+    startTalking();
+  };
+  const tapped = () => {
+    if (clickTimer.current !== null) {
+      window.clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+      engineRef.current?.poke();
+      return;
+    }
+    clickTimer.current = window.setTimeout(() => {
+      clickTimer.current = null;
+      clicked();
+    }, 260);
+  };
+
+  // A click on Mote's body starts a conversation and a double-click is a
+  // poke; pressing and dragging across it is petting. Presses on the empty
+  // window around Mote do nothing.
   return (
     <div
       className={`stage${eyesOnly ? " is-eyes" : ""}${helping ? " is-helping" : ""}${logging ? " is-logging" : ""}${asking && !helping ? " is-asking" : ""}${playing && !helping ? " is-playing" : ""}`}
@@ -462,14 +717,14 @@ export function Companion() {
         onPointerUp={() => {
           const p = press.current;
           press.current = null;
-          if (p && p.moved < 8) engineRef.current?.poke();
+          if (p && p.moved < 8) tapped();
         }}
         onPointerCancel={() => {
           press.current = null;
         }}
         onClick={(e) => {
-          // Enter or Space on the focused window counts as a poke too.
-          if (e.detail === 0) engineRef.current?.poke();
+          // Enter or Space on the focused window counts as a click too.
+          if (e.detail === 0) clicked();
         }}
       >
         <Face
@@ -490,6 +745,9 @@ export function Companion() {
             if (events.current.length > 200) events.current.shift();
           }}
           onOpenLink={openLink}
+          onSuggestPlay={() => {
+            if (games) offerGames(say(LINES.funNo));
+          }}
           onSpeech={(b) => {
             if (b) measure();
             setBubble(b);
@@ -502,6 +760,8 @@ export function Companion() {
         gift={gift}
         files={files}
         apps={apps}
+        putAway={putAwaySeq}
+        onBusy={noteHelperBusy}
         onOpen={(open) => {
           setHelping(open);
           if (open) {
@@ -510,38 +770,6 @@ export function Companion() {
             // The game is saved; it'll be there when you open the board again.
             setPlaying(null);
           }
-        }}
-      />
-      <Toolbar
-        games={games}
-        diet={diet}
-        hunger={hunger}
-        sleepNeed={sleepNeed}
-        gallery={gallery}
-        onGallery={() => void openLocalGallery()}
-        asleep={status.asleep}
-        wants={status.wants}
-        onGame={(game) => {
-          setLogging(false);
-          dropAsking();
-          setPlaying(game);
-        }}
-        onLogCalories={() => {
-          setPlaying(null);
-          dropAsking();
-          setLogging(true);
-          markCalorieCare();
-        }}
-        onDays={() => {
-          markCalorieCare();
-          openCaloriesWindow();
-        }}
-        onFeed={(snack) => engineRef.current?.feed(snack)}
-        onBed={() => {
-          const engine = engineRef.current;
-          if (!engine) return;
-          if (status.asleep) engine.poke();
-          else engine.tuckIn();
         }}
       />
       {playing === "checkers" && !helping ? <Checkers engine={getEngine} onClose={() => setPlaying(null)} /> : null}
@@ -576,8 +804,11 @@ export function Companion() {
       <SpeechBubble
         bubble={bubble}
         anchor={anchor}
-        onAnswer={(yes) => engineRef.current?.answer(yes)}
+        onAnswer={(yes) => (bubble?.lineId === TALK ? answered(yes) : engineRef.current?.answer(yes))}
         onDismiss={() => engineRef.current?.dismissSpeech()}
+        onSubmit={heard}
+        onChoose={(id) => act(id as IntentId)}
+        onTyping={() => engineRef.current?.stillTalking()}
       />
     </div>
   );

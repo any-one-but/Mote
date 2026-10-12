@@ -12,10 +12,10 @@ type FaceProps = EngineHooks & {
   onEngine: (engine: FaceEngine | null) => void;
 };
 
-export function Face({ onEngine, onMood, onEvent, onSpeech, onOpenLink }: FaceProps) {
+export function Face({ onEngine, onMood, onEvent, onSpeech, onOpenLink, onSuggestPlay }: FaceProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const hooks = useRef({ onEngine, onMood, onEvent, onSpeech, onOpenLink });
-  hooks.current = { onEngine, onMood, onEvent, onSpeech, onOpenLink };
+  const hooks = useRef({ onEngine, onMood, onEvent, onSpeech, onOpenLink, onSuggestPlay });
+  hooks.current = { onEngine, onMood, onEvent, onSpeech, onOpenLink, onSuggestPlay };
 
   useEffect(() => {
     const svg = svgRef.current;
@@ -25,6 +25,7 @@ export function Face({ onEngine, onMood, onEvent, onSpeech, onOpenLink }: FacePr
       onEvent: (text) => hooks.current.onEvent?.(text),
       onSpeech: (bubble) => hooks.current.onSpeech?.(bubble),
       onOpenLink: (url) => hooks.current.onOpenLink?.(url),
+      onSuggestPlay: () => hooks.current.onSuggestPlay?.(),
     });
     hooks.current.onEngine(engine);
     return () => {
