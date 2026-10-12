@@ -283,9 +283,11 @@ app ID and name, so it uses the same library, folders, settings and
 thumbnails as the Local Gallery you build from its own repo. Mote doesn't run
 any of it; it only opens it, as if you'd double-clicked it.
 
-Its code is kept apart in `local-gallery/` (only the core app: no
-safekeeping, docs or release tools), with its own notes on where it came from
-and how to update it. `npm run mac:build` builds it and tucks it in.
+Its code is kept apart in `local-gallery/` (the core app, plus its design
+docs for keeping), with its own notes on where it came from and how to
+update it. The files Local Gallery kept for safekeeping (clean.sh, the
+userscripts, Automator workflows and so on) are in `safekeeping/`, at the top
+of Mote's folder; nothing in Mote or the gallery uses them. `npm run mac:build` builds it and tucks it in.
 
 ## Settings and debug mode
 

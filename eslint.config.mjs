@@ -17,6 +17,9 @@ export default tseslint.config(
       ".nitro/**",
       "node_modules/**",
       "src/routeTree.gen.ts",
+      // Not Mote's code: Local Gallery's own app, and files kept for keeping.
+      "local-gallery/**",
+      "safekeeping/**",
     ],
   },
   js.configs.recommended,
