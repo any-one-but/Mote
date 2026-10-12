@@ -8,8 +8,13 @@ Mote only ever *launches* the built app.
 What's here is exactly what Local Gallery's own build packs into its app:
 `electron/`, `frontend/`, `tauri-bridge.js`, `tauri-fs-shim.js`,
 `package.json` (the same app ID and name, so it shares Local Gallery's
-settings, thumbnails and library) and `build/icon.icns`. Nothing else from
-that repo (safekeeping, docs, scripts, release tooling) came over.
+settings, thumbnails and library) and `build/icon.icns`.
+
+Also here, only for keeping (never built into the app, which packs just the
+files above): `safekeeping/` (clean.sh, the userscripts, Automator workflows,
+the dev launcher script, mod_merge.js, compare.html, the old icon) and
+`docs/VARIATIONS_DESIGN_LANGUAGE.html`, both copied as they were. Local
+Gallery's scripts, release tooling and notes didn't come over.
 
 Mote's `npm run mac:build` builds this (`npm run gallery:build`) and tucks the
 finished `Local Gallery.app` inside `Mote.app/Contents/Resources`. The Local
