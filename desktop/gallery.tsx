@@ -5,7 +5,7 @@ import "../src/styles.css";
 
 // A tuning sheet: every expression frozen side by side. Open /gallery.html.
 // ?only=a,b picks shots by name, ?size=600 makes them bigger, ?acc=1 puts the
-// accessories on every face.
+// accessories on every face, ?brows=1 draws the eyebrows.
 type Shot = [
   name: string,
   mood: Mood | null,
@@ -33,6 +33,14 @@ const ALL: Shot[] = [
   ["working", "work", 800, 0.9],
   ["job done", "tada", 700, 0.9],
   ["job trouble", "uhoh", 600, 0.9],
+  ["sleep", "sleep", 0, 0.9],
+  ["yawn", "yawn", 600, 0.9],
+  ["huff", "huff", 600, 0.9],
+  ["sulk", "sulk", 600, 0.9],
+  ["worried", "worry", 1200, 0.9],
+  ["upset", "plead", 1500, 0.9],
+  ["lost a piece", "ck-ouch", 1300, 0.9],
+  ["sly check", "ch-check", 1000, 0.9],
   ["not peeking", "pc-away", 2000, 0.9],
   ["passcode right", "pc-right", 1200, 0.9],
   ["passcode wrong", "pc-wrong", 700, 0.9],
@@ -43,6 +51,7 @@ const params = new URLSearchParams(location.search);
 const only = params.get("only");
 const size = Number(params.get("size") ?? 300);
 const allAcc = params.get("acc") === "1";
+const brows = params.get("brows") === "1";
 const SHOTS = only ? ALL.filter(([name]) => only.split(",").includes(name)) : ALL;
 
 function Still({
@@ -130,6 +139,7 @@ function Still({
               height={GEO.vbH}
             />
           ))}
+          {brows ? eyes.map((e) => <path key={`b${e.side}`} className="brow" d={e.brow} />) : null}
         </g>
       </g>
     </svg>

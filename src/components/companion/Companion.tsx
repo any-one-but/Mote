@@ -142,6 +142,7 @@ export function Companion() {
   const hunger = featureOn(features, "hunger");
   const sleepNeed = featureOn(features, "sleep");
   const gallery = featureOn(features, "gallery");
+  const brows = featureOn(features, "brows");
   const debugOn = featureOn(features, "debug");
   // Debug switched off or locked: its window closes.
   useEffect(() => {
@@ -165,8 +166,8 @@ export function Companion() {
     [],
   );
   useEffect(() => {
-    engineRef.current?.configure({ followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed });
-  }, [followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed]);
+    engineRef.current?.configure({ followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed, brows });
+  }, [followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed, brows]);
 
   useEffect(
     () =>
@@ -417,7 +418,7 @@ export function Companion() {
         <Face
           onEngine={(engine) => {
             engineRef.current = engine;
-            engine?.configure({ followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed });
+            engine?.configure({ followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed, brows });
             applyAudio();
           }}
           onMood={(label) => {

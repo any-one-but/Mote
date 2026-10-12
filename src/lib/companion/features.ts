@@ -14,7 +14,7 @@ import { listenBus, send } from "@/lib/companion/bus";
 /** Features that need a key. */
 export type KeyedId = "debug";
 /** Experimental features, switched on and off in the Debug window. */
-export type FeatureId = "diet" | "hunger" | "levels" | "sleep" | "gallery";
+export type FeatureId = "diet" | "hunger" | "levels" | "sleep" | "gallery" | "brows";
 
 export const KEYED: Array<{ id: KeyedId; name: string; about: string; fingerprint: string }> = [
   {
@@ -50,6 +50,11 @@ export const FEATURES: Array<{ id: FeatureId; name: string; about: string }> = [
     id: "gallery",
     name: "Local Gallery",
     about: "A button that opens Local Gallery, which Mote carries with them (the same app, with the same library and settings).",
+  },
+  {
+    id: "brows",
+    name: "Eyebrows",
+    about: "Two little eyebrows above Mote’s eyes. They follow every expression: down and slanted when cross, up when surprised or worried, relaxed when sleepy.",
   },
 ];
 

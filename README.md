@@ -404,6 +404,11 @@ Once it's unlocked, a wrench button on Mote's window opens the Debug window:
     alone, until poked.
   - **Local Gallery**: a picture-frame button that opens Local Gallery,
     which Mote carries with them (see above).
+  - **Eyebrows**: two little soft eyebrows above Mote's eyes. They have no
+    moves of their own: they follow the brow cut that every expression
+    already shapes, so they come down and slant in when Mote is cross, tilt up
+    when worried, shoot up when surprised, relax when sleepy, and slide along
+    when Mote looks around. They stay put while Mote blinks.
 - **Moods**: play any mood on demand, blink, poke, turn off automatic moods, loop a mood
 - **Mind**: the mood chart, hunger and rest (with buttons to nudge them), the
   games Mote remembers, and every reaction with what it does to the mood
@@ -436,6 +441,20 @@ Both are made by:
 npm run mac:build
 ```
 
+### Releasing a new version
+
+```bash
+npm run release:patch
+```
+
+Works like Local Gallery's: it moves the version up one (0.10.0 to 0.10.1)
+everywhere Mote keeps it, checks everything first (types, Mote's tests, the
+Mac side's tests, and that Local Gallery still has Mote's changes), builds the
+app and installer, and only then saves it all to git as `release: v0.10.1`
+and pushes it. If a check or the build fails, nothing is changed, saved or
+pushed. Add `-- --dry-run` to see what it would do without doing it. The
+script is `scripts/release-patch.mjs`.
+
 With Local Gallery inside, the app is about 340 MB and the installer about
 155 MB, too big for GitHub (it refuses files over 100 MB). So the project on
 GitHub keeps only Mote's own part of the built app, and the installer is only
@@ -445,11 +464,12 @@ on this computer. Build again to get the full one anywhere else.
 
 While `npm run mac` is running, open http://127.0.0.1:1420/gallery.html in a browser.
 Each face there is one expression frozen in place, handy for tweaking how they look.
+Add `?brows=1` to see them with eyebrows.
 
 ## Where things live
 
 - `src/components/companion/engine.ts` — every expression and how Mote moves between them
-- `src/components/companion/Face.tsx` — how the face is drawn
+- `src/components/companion/Face.tsx` — how the face is drawn (the eyebrows' shape is in `eyeShape`, in engine.ts)
 - `src/lib/companion/theme.ts` — sizes and positions of the face and eyes
 - `desktop/` — the Mac app's pages: Mote (`index.html`), Settings, Debug, and the gallery
 - `desktop/ui.tsx` and `desktop/ui.css` — the soft buttons, switches and sliders

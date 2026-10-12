@@ -80,6 +80,11 @@ export function Face({ onEngine, onMood, onEvent, onSpeech, onOpenLink }: FacePr
           <g mask="url(#mote-eye-r)">
             <rect className="ink" x={GEO.eyeRX - 60} y={GEO.eyeY - 72} width={120} height={144} />
           </g>
+          {/* Eyebrows (an experimental feature): soft strokes that follow the brow cuts. */}
+          <g data-part="brows" style={{ display: "none" }}>
+            <path data-part="brow-l" className="brow" />
+            <path data-part="brow-r" className="brow" />
+          </g>
         </g>
 
         {/* Debug only: outlines of the pills and the brow / cheek cuts. */}

@@ -261,6 +261,8 @@ export type EngineOptions = {
   /** Mote gets tired and needs sleep (a keyed feature). Off, they stay rested
    * and just nap now and then when left alone. */
   sleepNeed: boolean;
+  /** Eyebrows (an experimental feature). */
+  brows: boolean;
 };
 
 /** An app dropped on Mote: its name, its ID (com.apple.safari…), and
@@ -1685,7 +1687,15 @@ export type EyeShape = {
   /** Just the cut edges, for the debug guides. */
   lidEdge: string;
   cheekEdge: string;
+  /** The eyebrow above the eye (drawn only with Eyebrows switched on). */
+  brow: string;
 };
+
+/** Eyebrows: how far above the open eye they sit, how much of the eye's
+ * width they span, how strongly they follow the brow cut (its depth, slant
+ * and curve, in eye heights), their arch, and how far they shoot up as the
+ * eyes open wide. */
+const BROW = { gap: 12, span: 0.74, drop: 0.36, tilt: 0.5, curve: 0.3, arch: 2.6, raise: 24 };
 
 const f = (n: number) => n.toFixed(2);
 
@@ -1757,12 +1767,37 @@ export function eyeShape(
     cheekEdge +
     `L${f(cx + inward * span)} ${f(bottom + far)}L${f(cx - inward * span)} ${f(bottom + far)}Z`;
 
+  // The eyebrow rides above the eye and follows the brow cut: it comes down
+  // as the cut does (cross, sleepy), slants with it (inner ends down when
+  // cross, up when worried), flattens as it curves, rises when the eye opens
+  // wide, and slides with the gaze. It ignores blinks, so it stays put while
+  // the eye closes under it. With nothing of its own to animate, it fits
+  // every expression there is.
+  const browH = GEO.eyeH;
+  const restCy = cy - (baseH - h) * 0.14;
+  const browBase =
+    restCy -
+    baseH / 2 -
+    BROW.gap +
+    browH * BROW.drop * clamp(lid, 0, 1) -
+    BROW.raise * clamp(pose.open - 1, 0, 0.5);
+  const browW = GEO.eyeW * pose.wide * BROW.span;
+  const browY = (s: number) => browBase + browH * BROW.tilt * lidTilt * (s - 0.5);
+  const bx0 = cx - inward * (browW / 2);
+  const bx1 = cx + inward * (browW / 2);
+  const by0 = browY(0);
+  const by1 = browY(1);
+  // Through a middle point arched up a little (less, the more the lid curves).
+  const midY = (by0 + by1) / 2 - BROW.arch + browH * BROW.curve * lidCurve * 0.5;
+  const brow = `M${f(bx0)} ${f(by0)}Q${f(cx)} ${f(2 * midY - (by0 + by1) / 2)} ${f(bx1)} ${f(by1)}`;
+
   return {
     pill: { x: cx - w / 2, y: top, w, h, r: Math.min(w, h) / 2 },
     lid: lidPath,
     cheek: cheekPath,
     lidEdge: `M${f(xs[0])} ${f(lidY[0])}C${f(xs[1])} ${f(lidY[1])} ${f(xs[2])} ${f(lidY[2])} ${f(xs[3])} ${f(lidY[3])}`,
     cheekEdge,
+    brow,
   };
 }
 
@@ -1790,6 +1825,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     lidR: q<SVGPathElement>(svg, "lid-r"),
     cheekL: q<SVGPathElement>(svg, "cheek-l"),
     cheekR: q<SVGPathElement>(svg, "cheek-r"),
+    brows: q<SVGGElement>(svg, "brows"),
+    browL: q<SVGPathElement>(svg, "brow-l"),
+    browR: q<SVGPathElement>(svg, "brow-r"),
     guides: q<SVGGElement>(svg, "guides"),
     gPillL: q<SVGRectElement>(svg, "guide-pill-l"),
     gPillR: q<SVGRectElement>(svg, "guide-pill-r"),
@@ -1816,6 +1854,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     calorieGoal: 0,
     hunger: false,
     sleepNeed: false,
+    brows: false,
   };
   const debug = {
     timeScale: 1,
@@ -3334,6 +3373,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     parts.lidR?.setAttribute("d", r.lid);
     parts.cheekL?.setAttribute("d", l.cheek);
     parts.cheekR?.setAttribute("d", r.cheek);
+    if (parts.brows) parts.brows.style.display = options.brows ? "" : "none";
+    if (options.brows) {
+      parts.browL?.setAttribute("d", l.brow);
+      parts.browR?.setAttribute("d", r.brow);
+    }
 
     // The pawn, the controller, the Minecraft block and creeper.
     const at = clock - moodStart;
