@@ -143,7 +143,13 @@ export function Companion() {
   const sleepNeed = featureOn(features, "sleep");
   const gallery = featureOn(features, "gallery");
   const brows = featureOn(features, "brows");
+  const mouth = featureOn(features, "mouth");
+  const links = featureOn(features, "links");
+  const files = featureOn(features, "files");
+  const apps = featureOn(features, "apps");
   const debugOn = featureOn(features, "debug");
+  const linksOn = useRef(links);
+  linksOn.current = links;
   // Debug switched off or locked: its window closes.
   useEffect(() => {
     if (!debugOn && settings.debug) {
@@ -166,8 +172,19 @@ export function Companion() {
     [],
   );
   useEffect(() => {
-    engineRef.current?.configure({ followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed, brows });
-  }, [followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed, brows]);
+    engineRef.current?.configure({
+      followPointer,
+      naps,
+      energy,
+      calorieGoal,
+      friendly,
+      hunger,
+      sleepNeed,
+      brows,
+      mouth,
+      links,
+    });
+  }, [followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed, brows, mouth, links]);
 
   useEffect(
     () =>
@@ -205,7 +222,11 @@ export function Companion() {
       onDropped(
         (over) => engineRef.current?.dragHover(over),
         (paths) => give(paths),
-        (link) => engineRef.current?.saveLink(link.url, link.title),
+        (link) => {
+          // Saved links switched off: Mote doesn't take it.
+          if (linksOn.current) engineRef.current?.saveLink(link.url, link.title);
+          else engineRef.current?.declined();
+        },
       ),
     [give],
   );
@@ -418,7 +439,18 @@ export function Companion() {
         <Face
           onEngine={(engine) => {
             engineRef.current = engine;
-            engine?.configure({ followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed, brows });
+            engine?.configure({
+              followPointer,
+              naps,
+              energy,
+              calorieGoal,
+              friendly,
+              hunger,
+              sleepNeed,
+              brows,
+              mouth,
+              links,
+            });
             applyAudio();
           }}
           onMood={(label) => {
@@ -443,6 +475,8 @@ export function Companion() {
         engine={getEngine}
         pace={pace}
         gift={gift}
+        files={files}
+        apps={apps}
         onOpen={(open) => {
           setHelping(open);
           if (open) {

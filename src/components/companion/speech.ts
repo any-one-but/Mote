@@ -564,6 +564,13 @@ export const LINES: Line[] = [
     say: ["Hmm, I can’t find the gallery in this copy of me."],
   },
   {
+    id: "drop-declined",
+    group: "After something happens",
+    kind: "flavor",
+    when: never,
+    say: ["Hmm, I don’t do anything with those right now.", "Not that, sorry. That’s switched off."],
+  },
+  {
     id: "passcode-already-open",
     group: "Local Gallery",
     kind: "flavor",

@@ -1,11 +1,11 @@
 import { createRoot } from "react-dom/client";
-import { REST, eyeShape, poseFor, type Mood, type Pose } from "@/components/companion/engine";
+import { REST, eyeShape, mouthShape, poseFor, type Mood, type Pose } from "@/components/companion/engine";
 import { GEO, INK } from "@/lib/companion/theme";
 import "../src/styles.css";
 
 // A tuning sheet: every expression frozen side by side. Open /gallery.html.
 // ?only=a,b picks shots by name, ?size=600 makes them bigger, ?acc=1 puts the
-// accessories on every face, ?brows=1 draws the eyebrows.
+// accessories on every face, ?brows=1 draws the eyebrows, ?mouth=1 the mouth.
 type Shot = [
   name: string,
   mood: Mood | null,
@@ -52,6 +52,7 @@ const only = params.get("only");
 const size = Number(params.get("size") ?? 300);
 const allAcc = params.get("acc") === "1";
 const brows = params.get("brows") === "1";
+const mouth = params.get("mouth") === "1";
 const SHOTS = only ? ALL.filter(([name]) => only.split(",").includes(name)) : ALL;
 
 function Still({
@@ -140,6 +141,7 @@ function Still({
             />
           ))}
           {brows ? eyes.map((e) => <path key={`b${e.side}`} className="brow" d={e.brow} />) : null}
+          {mouth ? <path className="mouth" d={mouthShape(pose, gx, gy)} /> : null}
         </g>
       </g>
     </svg>

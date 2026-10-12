@@ -64,6 +64,14 @@
   fill: var(--color-face);
 }
 
+.mouth {
+  fill: var(--color-ink);
+  stroke: var(--color-ink);
+  stroke-width: 7.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
 .brow {
   fill: none;
   stroke: var(--color-ink);

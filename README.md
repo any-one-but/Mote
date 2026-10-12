@@ -388,8 +388,17 @@ of the key is kept in the app, never the key itself.
 
 Once it's unlocked, a wrench button on Mote's window opens the Debug window:
 
-- **Features**: switches for the experimental features (all off until
-  switched on):
+- **Features**: switches for Mote's usual skills (all on until switched off):
+  - **Saved links**: saving links dragged onto Mote, and Mote suggesting
+    them. Off, a dropped link gets a polite "not right now", no link is
+    brought up, and Settings hides the list (saved ones are kept).
+  - **Helping with files**: the cleanup jobs for folders and videos dragged
+    onto Mote. Off, they get the same "not right now", and Settings hides the
+    Pace. A job already running finishes first.
+  - **Reacting to apps**: playing games and reacting to the Mac's own apps
+    dragged onto Mote. Off, apps get the same "not right now".
+
+  and for the experimental features (all off until switched on):
   - **Diet tracker**: calorie logging, the Days window, the carrot button,
     and everything Mote says about food you eat.
   - **Mote eats too**: Mote getting hungry, the snack bowl to feed them, and
@@ -409,6 +418,11 @@ Once it's unlocked, a wrench button on Mote's window opens the Debug window:
     already shapes, so they come down and slant in when Mote is cross, tilt up
     when worried, shoot up when surprised, relax when sleepy, and slide along
     when Mote looks around. They stay put while Mote blinks.
+  - **Mouth**: a little mouth under the eyes, made the same way as the
+    eyebrows: no moves of its own, it reads the face every expression already
+    makes. Happy cheeks make it smile, a cross or worried slant makes a small
+    frown, eyes opened wide make a little "o", and at rest it's a tiny
+    contented line.
 - **Moods**: play any mood on demand, blink, poke, turn off automatic moods, loop a mood
 - **Mind**: the mood chart, hunger and rest (with buttons to nudge them), the
   games Mote remembers, and every reaction with what it does to the mood
@@ -464,7 +478,7 @@ on this computer. Build again to get the full one anywhere else.
 
 While `npm run mac` is running, open http://127.0.0.1:1420/gallery.html in a browser.
 Each face there is one expression frozen in place, handy for tweaking how they look.
-Add `?brows=1` to see them with eyebrows.
+Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 
 ## Where things live
 

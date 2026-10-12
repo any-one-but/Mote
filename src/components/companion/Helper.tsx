@@ -69,9 +69,12 @@ type Props = {
   pace: Pace;
   gift: Gift | null;
   onOpen: (open: boolean) => void;
+  /** Helping with files, and reacting to apps (skills that can be switched off). */
+  files: boolean;
+  apps: boolean;
 };
 
-export function Helper({ engine, pace, gift, onOpen }: Props) {
+export function Helper({ engine, pace, gift, onOpen, files, apps }: Props) {
   const [phase, setPhase] = useState<Phase>({ at: "closed" });
   const [work, setWork] = useState<Work | null>(null);
   const [say, setSay] = useState("");
@@ -111,17 +114,31 @@ export function Helper({ engine, pace, gift, onOpen }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Helping with files switched off: the options go away (a job that's
+  // already running finishes first).
+  useEffect(() => {
+    if (!files) close();
+  }, [files, close]);
+
   // Something new to work on. (Apps aren't work: Mote plays the game or has
   // something to say about the app, and the options go away.)
   useEffect(() => {
     if (!gift) return;
     const busy = phaseRef.current.at === "working" || phaseRef.current.at === "installing";
     if (gift.paths.some((p) => /\.app\/?$/i.test(p))) {
+      if (!apps) {
+        engine()?.declined();
+        return;
+      }
       void inspect(gift.paths).then((g) => {
         if (g.kind !== "app") return;
         if (!busy) close();
         engine()?.offerApp({ name: g.name, bundle: g.bundle, game: g.game });
       });
+      return;
+    }
+    if (!files) {
+      engine()?.declined();
       return;
     }
     if (busy) {
@@ -140,7 +157,8 @@ export function Helper({ engine, pace, gift, onOpen }: Props) {
       setDone([]);
       if (g.kind === "app") {
         close();
-        engine()?.offerApp({ name: g.name, bundle: g.bundle, game: g.game });
+        if (apps) engine()?.offerApp({ name: g.name, bundle: g.bundle, game: g.game });
+        else engine()?.declined();
         return;
       }
       if (g.kind === "other") {

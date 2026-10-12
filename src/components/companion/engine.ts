@@ -263,6 +263,10 @@ export type EngineOptions = {
   sleepNeed: boolean;
   /** Eyebrows (an experimental feature). */
   brows: boolean;
+  /** A little mouth (an experimental feature). */
+  mouth: boolean;
+  /** Saved links: Mote brings one up now and then (on unless switched off). */
+  links: boolean;
 };
 
 /** An app dropped on Mote: its name, its ID (com.apple.safari…), and
@@ -382,6 +386,9 @@ export type FaceEngine = {
   jobDone: (ok: boolean) => void;
   /** An app dropped on Mote: a game gets played, anything else gets a reaction. */
   offerApp: (app: AppOffer) => void;
+  /** Something dropped on Mote that they don't take (its feature is off):
+   * a polite little "no thanks". */
+  declined: () => void;
   /** A link dropped on Mote, to save for suggesting some day. */
   saveLink: (url: string, title: string | null) => void;
   /** Debug: suggest a saved link right now (this one, or Mote's pick). */
@@ -1801,6 +1808,34 @@ export function eyeShape(
   };
 }
 
+/** The mouth: how far below the eyes it sits, its width, how deep it smiles
+ * or frowns, and how far it opens into an "o". */
+const MOUTH = { y: 40, w: 20, curve: 12, open: 13, rest: 0.15 };
+
+/**
+ * The little mouth (an experimental feature). Like the eyebrows it has no
+ * moves of its own: it reads the face every expression already makes. Cheeks
+ * pushed up make it smile, a slanted brow (cross or worried) turns it into a
+ * small frown, and eyes opened wide (surprise, a start) round it into an "o".
+ * It slides a little with the gaze, and rests as a tiny contented curve.
+ */
+export function mouthShape(pose: Pose, gazeX: number, gazeY: number): string {
+  const smile = clamp(
+    MOUTH.rest + 1.5 * pose.cheek + 0.7 * pose.cheekCurve - 1.3 * Math.abs(pose.lidTilt),
+    -1,
+    1,
+  );
+  const o = clamp((pose.open - 1.08) / 0.2, 0, 1);
+  const w = MOUTH.w * (1 + 0.15 * smile) * (1 - 0.35 * o);
+  const x = GEO.cx + gazeX * 8;
+  const y = GEO.eyeY + MOUTH.y + gazeY * 5 - smile * 1.5;
+  // The top and bottom edges meet at the corners: together (a line) when
+  // closed, apart (an "o") when open.
+  const top = y + smile * MOUTH.curve - o * MOUTH.open * 0.5;
+  const bottom = y + smile * MOUTH.curve + o * MOUTH.open;
+  return `M${f(x - w / 2)} ${f(y)}Q${f(x)} ${f(top)} ${f(x + w / 2)} ${f(y)}Q${f(x)} ${f(bottom)} ${f(x - w / 2)} ${f(y)}Z`;
+}
+
 function q<T extends Element>(svg: SVGSVGElement, name: string) {
   return svg.querySelector(`[data-part="${name}"]`) as T | null;
 }
@@ -1828,6 +1863,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     brows: q<SVGGElement>(svg, "brows"),
     browL: q<SVGPathElement>(svg, "brow-l"),
     browR: q<SVGPathElement>(svg, "brow-r"),
+    mouth: q<SVGPathElement>(svg, "mouth"),
     guides: q<SVGGElement>(svg, "guides"),
     gPillL: q<SVGRectElement>(svg, "guide-pill-l"),
     gPillR: q<SVGRectElement>(svg, "guide-pill-r"),
@@ -1855,6 +1891,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     hunger: false,
     sleepNeed: false,
     brows: false,
+    mouth: false,
+    links: true,
   };
   const debug = {
     timeScale: 1,
@@ -2286,7 +2324,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     // around to say yes (you've done something in the last couple of
     // minutes), never more than once every 12 minutes, and on average about
     // every 20 minutes of that.
-    if (now >= nextLinkCheck) {
+    if (options.links && now >= nextLinkCheck) {
       nextLinkCheck = now + 60_000;
       const around = clock - lastYou < 2 * 60_000;
       const quietScreen = interest !== "media" && options.media === null;
@@ -3378,6 +3416,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       parts.browL?.setAttribute("d", l.brow);
       parts.browR?.setAttribute("d", r.brow);
     }
+    if (parts.mouth) parts.mouth.style.display = options.mouth ? "" : "none";
+    if (options.mouth) parts.mouth?.setAttribute("d", mouthShape(view, gaze.x, gaze.y));
 
     // The pawn, the controller, the Minecraft block and creeper.
     const at = clock - moodStart;
@@ -3643,6 +3683,13 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       typingUntil = clock + 3000;
       typingSpot.dx = dx;
       typingSpot.dy = dy;
+    },
+    declined: () => {
+      rouse();
+      engage();
+      react("drop-declined");
+      start("pc-wrong", clock);
+      sayNow("drop-declined");
     },
     dragHover: (over) => {
       hovering = over && helping !== "busy";

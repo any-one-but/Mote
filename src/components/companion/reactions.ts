@@ -862,6 +862,15 @@ export const REACTIONS: Reaction[] = [
     status: "live",
   },
 
+  {
+    id: "drop-declined",
+    group: "Helping you",
+    name: "Not taking that",
+    when: "Something is dropped on Mote whose skill is switched off (links, files or apps, in Debug’s Features tab)",
+    then: "A sorry-but-no shake of the head, and says so",
+    status: "live",
+  },
+
   // Local Gallery
   {
     id: "gallery-opened",

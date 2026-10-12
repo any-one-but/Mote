@@ -85,6 +85,8 @@ export function Face({ onEngine, onMood, onEvent, onSpeech, onOpenLink }: FacePr
             <path data-part="brow-l" className="brow" />
             <path data-part="brow-r" className="brow" />
           </g>
+          {/* The mouth (an experimental feature): reads the face like the brows do. */}
+          <path data-part="mouth" className="mouth" style={{ display: "none" }} />
         </g>
 
         {/* Debug only: outlines of the pills and the brow / cheek cuts. */}

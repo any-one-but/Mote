@@ -1284,18 +1284,21 @@ function LogTab({ log, clearLog }: Ctx) {
 /** Experimental features: each one switched on and off here. */
 function FeaturesTab() {
   const [features, { setOn }] = useFeatures();
+  const list = (usual: boolean) =>
+    FEATURES.filter((f) => !!f.usual === usual).map((f) => (
+      <Row key={f.id} label={f.name} hint={f.about}>
+        <Toggle
+          label={f.name}
+          checked={featureOn(features, f.id)}
+          onChange={(on) => setOn(f.id, on)}
+        />
+      </Row>
+    ));
   return (
-    <Section title="Experimental features">
-      {FEATURES.map((f) => (
-        <Row key={f.id} label={f.name} hint={f.about}>
-          <Toggle
-            label={f.name}
-            checked={featureOn(features, f.id)}
-            onChange={(on) => setOn(f.id, on)}
-          />
-        </Row>
-      ))}
-    </Section>
+    <>
+      <Section title="Mote’s skills">{list(true)}</Section>
+      <Section title="Experimental features">{list(false)}</Section>
+    </>
   );
 }
 

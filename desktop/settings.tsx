@@ -45,6 +45,8 @@ function SettingsWindow() {
   const [features] = useFeatures();
   const diet = featureOn(features, "diet");
   const gallery = featureOn(features, "gallery");
+  const links = featureOn(features, "links");
+  const files = featureOn(features, "files");
   const [hop, setHop] = useState(0);
 
   // Every change makes the little Mote in the corner do a happy hop.
@@ -129,20 +131,24 @@ function SettingsWindow() {
 
       {gallery ? <LocalGallerySection onChange={() => setHop((n) => n + 1)} /> : null}
 
-      <Section title="Helping with files">
-        <Row label="Pace" hint={PACE_HINT[settings.pace]} stacked>
-          <Segmented
-            label="Pace"
-            options={PACE}
-            value={settings.pace}
-            onChange={(pace) => set({ pace })}
-          />
-        </Row>
-      </Section>
+      {files ? (
+        <Section title="Helping with files">
+          <Row label="Pace" hint={PACE_HINT[settings.pace]} stacked>
+            <Segmented
+              label="Pace"
+              options={PACE}
+              value={settings.pace}
+              onChange={(pace) => set({ pace })}
+            />
+          </Row>
+        </Section>
+      ) : null}
 
-      <Section title="Saved links">
-        <SavedLinks />
-      </Section>
+      {links ? (
+        <Section title="Saved links">
+          <SavedLinks />
+        </Section>
+      ) : null}
 
       {isDesktopApp() ? (
         <Section title="On your Mac">
