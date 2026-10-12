@@ -5,13 +5,15 @@ import { SNACKS } from "@/components/companion/mind";
 // The little row of buttons along the bottom of Mote's window: a toy chest
 // of games, a carrot for calorie tracking (when the diet tracker is
 // unlocked), a snack bowl to feed Mote (when "Mote eats too" is), and a bed
-// to tuck them in. A soft glow on a button means Mote would like that.
+// to tuck them in (when "Goodnight Mote" is). A soft glow on a button means Mote would like that.
 
 type Props = {
   /** The diet tracker is unlocked and on: show the carrot. */
   diet: boolean;
   /** Mote eats too: show the snack bowl. */
   hunger: boolean;
+  /** Goodnight Mote: show the bed. */
+  sleepNeed: boolean;
   asleep: boolean;
   wants: Want | null;
   onGame: (game: "checkers" | "chess" | "tictactoe") => void;
@@ -23,7 +25,7 @@ type Props = {
 
 type MenuId = "toys" | "carrot" | "snack";
 
-export function Toolbar({ diet, hunger, asleep, wants, onGame, onLogCalories, onDays, onFeed, onBed }: Props) {
+export function Toolbar({ diet, hunger, sleepNeed, asleep, wants, onGame, onLogCalories, onDays, onFeed, onBed }: Props) {
   const [open, setOpen] = useState<MenuId | null>(null);
   const root = useRef<HTMLDivElement>(null);
 
@@ -89,15 +91,17 @@ export function Toolbar({ diet, hunger, asleep, wants, onGame, onLogCalories, on
           ))}
         </ToolButton>
       ) : null}
-      <ToolButton
-        label={asleep ? "Wake Mote" : "Tuck Mote in"}
-        glow={wants === "sleep"}
-        onClick={() => {
-          setOpen(null);
-          onBed();
-        }}
-        icon={asleep ? <SunIcon /> : <MoonIcon />}
-      />
+      {sleepNeed ? (
+        <ToolButton
+          label={asleep ? "Wake Mote" : "Tuck Mote in"}
+          glow={wants === "sleep"}
+          onClick={() => {
+            setOpen(null);
+            onBed();
+          }}
+          icon={asleep ? <SunIcon /> : <MoonIcon />}
+        />
+      ) : null}
     </div>
   );
 }

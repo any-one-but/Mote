@@ -214,6 +214,9 @@ export type EngineOptions = {
   calorieGoal: number;
   /** Mote gets hungry and can be fed (a keyed feature). Off, they stay full. */
   hunger: boolean;
+  /** Mote gets tired and needs sleep (a keyed feature). Off, they stay rested
+   * and just nap now and then when left alone. */
+  sleepNeed: boolean;
 };
 
 /** An app dropped on Mote: its name, its ID (com.apple.safari…), and
@@ -1658,6 +1661,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     friendly: false,
     calorieGoal: 0,
     hunger: false,
+    sleepNeed: false,
   };
   const debug = {
     timeScale: 1,
@@ -1757,9 +1761,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   // they wait before nodding off, and whether the yawn underway leads into
   // a doze.
   let touchedAt = 0;
-  // Only a tired Mote naps: rested, never; a bit tired, after 4–7 quiet
-  // minutes; sleepy, after a minute and a half or so.
+  // Without tiredness, Mote naps after 4–7 quiet minutes. With it, only a
+  // tired Mote naps: rested, never; a bit tired, after 4–7 quiet minutes;
+  // sleepy, after a minute and a half or so.
   const newNapAfter = () => {
+    if (!options.sleepNeed) return 4 * 60_000 + Math.random() * 3 * 60_000;
     if (feel.rest > 6) return Number.POSITIVE_INFINITY;
     const base = feel.rest < 3 ? 90_000 : 4 * 60_000;
     return base + Math.random() * base * 0.75;
@@ -1992,7 +1998,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   const currentNeed = (): string | null => {
     if (helping || playing || mood === "sleep" || mood === "doze") return null;
     if (feel.fullness <= 2.5) return "feed-me";
-    if (feel.rest <= 1.5) return "tuck-me-in";
+    if (options.sleepNeed && feel.rest <= 1.5) return "tuck-me-in";
     if (feel.peace <= -4) return feel.joy >= -2 ? "play-with-me" : "pet-me";
     return null;
   };
@@ -2338,7 +2344,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   const wants = (): Want | null => {
     if (mood === "sleep" || mood === "doze" || helping || playing) return null;
     if (feel.fullness <= 3.5) return "food";
-    if (feel.rest <= 2.5) return "sleep";
+    if (options.sleepNeed && feel.rest <= 2.5) return "sleep";
     if (feel.peace <= -2) return "play";
     return null;
   };
@@ -2366,7 +2372,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
 
   /** Bedtime: tired enough, Mote yawns and drifts off. */
   const tuckIn = () => {
-    if (mood === "sleep" || mood === "doze" || helping || playing) return;
+    if (!options.sleepNeed || mood === "sleep" || mood === "doze" || helping || playing) return;
     engage();
     touch();
     if (feel.rest > 7) {
@@ -2624,7 +2630,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (mood === "sleep" || mood === "doze" || (mood === "yawn" && dozeNext)) {
       // Woken up: well rested, bright and breezy; still tired, groggy (and a
       // little put out about it).
-      const rested = mood === "sleep" && feel.rest >= 6;
+      const rested = mood === "sleep" && (!options.sleepNeed || feel.rest >= 6);
       tucked = false;
       dozeNext = false;
       react(rested ? "wake-rested" : "wake-groggy");
@@ -2672,12 +2678,14 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       mindTick = 0;
       // Hunger switched off: always full, so it never touches mood or face.
       if (!options.hunger) feel = { ...feel, fullness: 10 };
+      // Tiredness switched off: always rested.
+      if (!options.sleepNeed) feel = { ...feel, rest: 10 };
       // Getting tired: naps come sooner.
       if (feel.rest < before.rest || napAfter === Number.POSITIVE_INFINITY) {
         napAfter = Math.min(napAfter, newNapAfter());
       }
       // Slept enough: up and about.
-      if (mood === "sleep" && feel.rest >= 9.8) {
+      if (options.sleepNeed && mood === "sleep" && feel.rest >= 9.8) {
         react("wake-rested");
         mention("woke-rested", 0.8);
         start("wake", now);
@@ -2784,7 +2792,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const quiet = !interest && !helping && !playing && !typing && !pointerOutThere && !bubble;
     // Exhausted, Mote nods off even with things going on (just not mid-game
     // or mid-job).
-    const spent = feel.rest <= 1 && !helping && !playing && now - touchedAt > 60_000;
+    const spent = options.sleepNeed && feel.rest <= 1 && !helping && !playing && now - touchedAt > 60_000;
     if (
       debug.autoMoods &&
       options.naps &&
@@ -3291,6 +3299,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       if (before.media === null && options.media !== null) react("sound-start");
       // Naps just switched off: a Mote who nodded off on their own wakes up.
       // (Not one you tucked in, and not on every other settings update.)
+      // Tiredness switched on or off: naps come on a different clock.
+      if (before.sleepNeed !== options.sleepNeed) napAfter = newNapAfter();
       const napsOff = before.naps && !options.naps;
       if (napsOff && !putToBed && (mood === "doze" || mood === "sleep")) start("wake", clock);
     },

@@ -326,6 +326,9 @@ const FEELING_NAME: Record<Feeling, string> = { joy: "Joy", peace: "Satisfied" }
 /** Reactions that are about hunger, hidden while "Mote eats too" is off. */
 const HUNGER_REACTIONS = new Set(["fed", "fed-hungry", "fed-full", "mind-hunger", "mood-hungry", "mood-starving"]);
 
+/** Reactions that are about tiredness, hidden while "Goodnight Mote" is off. */
+const SLEEP_REACTIONS = new Set(["mind-tired", "mind-sleep", "mood-sleepy", "mood-exhausted", "tucked-in", "tuck-not-sleepy"]);
+
 const seconds = (ms: number) => `${Math.max(0, Math.ceil(ms / 1000))}s`;
 
 /** Joy across, Satisfied up: where Mote's mood sits, as a dot on a chart. */
@@ -365,6 +368,7 @@ function MindTab({ snap, command, settings }: Ctx) {
   const [features] = useFeatures();
   const diet = featureOn(features, "diet");
   const hunger = featureOn(features, "hunger");
+  const sleepNeed = featureOn(features, "sleep");
   const [memories, setMemories] = useState(loadMemories);
   useEffect(() => {
     const t = window.setInterval(() => setMemories(loadMemories()), 3000);
@@ -377,7 +381,8 @@ function MindTab({ snap, command, settings }: Ctx) {
     (r) =>
       (show === "all" || r.status === show) &&
       (diet || r.group !== "Eating") &&
-      (hunger || !HUNGER_REACTIONS.has(r.id)),
+      (hunger || !HUNGER_REACTIONS.has(r.id)) &&
+      (sleepNeed || !SLEEP_REACTIONS.has(r.id)),
   );
   const { joy, peace } = snap.mind;
   const set = (attr: "joy" | "peace" | "fullness" | "rest", value: number) => command({ do: "feeling", attr, value });
@@ -409,7 +414,7 @@ function MindTab({ snap, command, settings }: Ctx) {
       </Section>
 
       <Section title="Needs">
-        {NEEDS.filter((n) => hunger || n.key !== "fullness").map((n) => {
+        {NEEDS.filter((n) => (hunger || n.key !== "fullness") && (sleepNeed || n.key !== "rest")).map((n) => {
           const v = snap.mind[n.key];
           const note =
             n.key === "rest"

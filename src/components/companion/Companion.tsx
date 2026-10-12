@@ -118,12 +118,13 @@ export function Companion() {
   const diet = featureOn(features, "diet");
   const calorieGoal = diet ? settings.calorieGoal : 0;
   const hunger = featureOn(features, "hunger");
+  const sleepNeed = featureOn(features, "sleep");
   useEffect(() => {
     if (!diet) setLogging(false);
   }, [diet]);
   useEffect(() => {
-    engineRef.current?.configure({ followPointer, naps, energy, calorieGoal, friendly, hunger });
-  }, [followPointer, naps, energy, calorieGoal, friendly, hunger]);
+    engineRef.current?.configure({ followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed });
+  }, [followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed]);
 
   useEffect(
     () =>
@@ -318,7 +319,7 @@ export function Companion() {
         <Face
           onEngine={(engine) => {
             engineRef.current = engine;
-            engine?.configure({ followPointer, naps, energy, calorieGoal, friendly, hunger });
+            engine?.configure({ followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed });
             applyAudio();
           }}
           onMood={(label) => {
@@ -355,6 +356,7 @@ export function Companion() {
       <Toolbar
         diet={diet}
         hunger={hunger}
+        sleepNeed={sleepNeed}
         asleep={status.asleep}
         wants={status.wants}
         onGame={(game) => {

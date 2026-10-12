@@ -9,7 +9,7 @@ import { listenBus, send } from "@/lib/companion/bus";
 // Only a fingerprint of each key (its SHA-256) lives in the app, never the
 // key itself.
 
-export type FeatureId = "diet" | "hunger";
+export type FeatureId = "diet" | "hunger" | "assist" | "sleep";
 
 export const FEATURES: Array<{ id: FeatureId; name: string; about: string; fingerprint: string }> = [
   {
@@ -23,6 +23,18 @@ export const FEATURES: Array<{ id: FeatureId; name: string; about: string; finge
     name: "Mote eats too",
     about: "Mote gets hungry, the snack bowl to feed them, and hunger’s effect on their mood, face and what they say.",
     fingerprint: "e5e8ceb72ba60ed777f80f2533aec3d07634d1f8bbb7c4d334f07346bac36db7",
+  },
+  {
+    id: "assist",
+    name: "Learn with Mote",
+    about: "The learning option for checkers and tic-tac-toe: tips, mistakes with a take-back, and Mote explaining their moves.",
+    fingerprint: "f49a470f2508e08b6877ad2fe6e9e5f42eb1916dfe4cff501edb0e1250333c84",
+  },
+  {
+    id: "sleep",
+    name: "Goodnight Mote",
+    about: "Mote getting tired and needing sleep: sleepy and exhausted moods, asking for bed, the bed button, and waking when rested. Off, Mote still naps when left alone.",
+    fingerprint: "664add0a6b65db0b80c0ba78fbf710a5c8b8dfc14761f4af85a98225aeb86862",
   },
 ];
 

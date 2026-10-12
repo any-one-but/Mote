@@ -19,6 +19,7 @@ import {
 } from "@/lib/checkers/rules";
 import { think } from "@/lib/checkers/think";
 import { explain, review, tip, type Mark as CoachMark } from "@/lib/checkers/coach";
+import { featureOn, useFeatures } from "@/lib/companion/features";
 import { BoardHead, Coach, EndPanel, LevelPick, type CoachLine } from "./board-ui";
 import {
   addToStats,
@@ -69,7 +70,11 @@ export function Checkers({ engine, onClose }: Props) {
   // Learning with Mote: their notes, the squares they've marked (shown on
   // "Show me"), a move of yours waiting on take-back-or-keep, and how many
   // mistakes so far.
-  const [assist, setAssist] = useState(saved.current?.assist === true);
+  // (Learning is a keyed feature: without it, every game is a real one.)
+  const [features] = useFeatures();
+  const canLearn = featureOn(features, "assist");
+  const [wantsAssist, setAssist] = useState(saved.current?.assist === true);
+  const assist = wantsAssist && canLearn;
   const [notes, setNotes] = useState<CoachLine[]>([]);
   const [marks, setMarks] = useState<CoachMark[]>([]);
   const [showing, setShowing] = useState(false);
@@ -429,7 +434,7 @@ export function Checkers({ engine, onClose }: Props) {
         level={level}
         onLevel={setLevel}
         assist={assist}
-        onAssist={setAssist}
+        onAssist={canLearn ? setAssist : undefined}
         onPlay={begin}
         onClose={close}
       />

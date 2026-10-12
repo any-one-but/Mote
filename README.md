@@ -86,7 +86,8 @@ pokes in a row is too many, and Mote gets annoyed.
   button held down never counts as shaking.
 - **Dizzy:** shaking the pointer around wildly (without holding the button),
   or throwing the window around the screen, makes Mote dizzy for a moment.
-- **Sleep:** Mote gets tired while awake (faster late at night and while
+- **Sleep** (tiredness is a keyed feature, Goodnight Mote; without it, Mote
+  just naps after a few quiet minutes left alone): Mote gets tired while awake (faster late at night and while
   playing). Once tired, left be for a few minutes with nothing interesting
   going on, they yawn, doze and fall asleep, and they sleep until rested.
   Exhausted, they nod off even with things going on. A poke wakes them
@@ -161,7 +162,7 @@ Along the bottom of Mote's window (quiet until your pointer is over it):
 - **Toy chest:** the games (checkers, chess and tic-tac-toe).
 - **Carrot:** log calories, or see the days (only with the diet tracker unlocked and on).
 - **Snack bowl:** feed Mote (only with "Mote eats too" unlocked and on).
-- **Bed:** tuck Mote in (if they're tired enough). While they sleep it turns
+- **Bed** (with Goodnight Mote unlocked and on): tuck Mote in (if they're tired enough). While they sleep it turns
   into a sun, to wake them.
 
 A soft pulsing ring on a button means Mote would like that: hungry, sleepy,
@@ -221,8 +222,8 @@ record against Mote at each level sits at the top of the board.
 
 ### Learning with Mote
 
-Checkers and tic-tac-toe have a **Learn with Mote** option on the level
-picker. Mote's notes appear under the board, in their own words:
+With the **Learn with Mote** feature unlocked (see Feature Keys), checkers
+and tic-tac-toe have a **Learn with Mote** option on the level picker. Mote's notes appear under the board, in their own words:
 
 - **On your turn**, a tip about what matters right now (a win to take, a
   threat to block, a piece in danger, a king to be had, the value of the
@@ -312,6 +313,11 @@ each key is kept in the app, never the key itself.
 - **Mote eats too**: Mote getting hungry, the snack bowl to feed them, and
   hunger's effect on their mood, face and what they say. Off, Mote simply
   stays full.
+- **Learn with Mote**: the learning option for checkers and tic-tac-toe.
+- **Goodnight Mote**: Mote getting tired and needing sleep (sleepy and
+  exhausted moods, asking for bed, the bed button, waking once rested). Off,
+  Mote stays rested and simply naps after a few quiet minutes left alone,
+  until poked.
 
 ## Install Mote
 
@@ -319,7 +325,7 @@ The current Mac app is already built and kept in the project. Quit Mote if it
 is open, then drag the new one into Applications and replace the old one.
 
 - `src-tauri/target/release/bundle/macos/Mote.app`
-- `src-tauri/target/release/bundle/dmg/Mote_0.8.0_aarch64.dmg` (an installer you can share)
+- `src-tauri/target/release/bundle/dmg/Mote_0.8.1_aarch64.dmg` (an installer you can share)
 
 To build a fresh copy later:
 
