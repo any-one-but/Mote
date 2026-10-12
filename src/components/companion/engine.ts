@@ -74,6 +74,12 @@ import {
   TICTACTOE_FACE,
   type TicTacToeEvent,
 } from "@/components/companion/tictactoe-lines";
+import {
+  LIARSDICE_CHANCE,
+  LIARSDICE_FACE,
+  pickLiarsDiceLine,
+  type LiarsDiceEvent,
+} from "@/components/companion/liarsdice-lines";
 import type { Level } from "@/lib/checkers/ai";
 
 export type BoardGameState = "you" | "mote" | "idle" | null;
@@ -402,6 +408,9 @@ export type FaceEngine = {
   checkers: (event: CheckersEvent, level: Level) => void;
   chess: (event: ChessEvent, level: Level, words?: { piece?: string; yours?: string }) => void;
   tictactoe: (event: TicTacToeEvent, level: Level) => void;
+  /** Liar's Dice, which never ends: a round's moments. `bid` is the bid in
+   * words, for Mote to say. */
+  liarsDice: (event: LiarsDiceEvent, bid?: string) => void;
   snapshot: () => EngineSnapshot;
 };
 
@@ -2528,6 +2537,14 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       pickChessLine(event, level, recentGameLines, words),
     );
 
+  const liarsDiceEvent = (event: LiarsDiceEvent, bid?: string) => {
+    // Sitting down to play counts as playing together, like starting a board game.
+    if (event === "start" || event === "resume") react("game-start");
+    gameMoment(`liarsdice-${event}`, LIARSDICE_FACE[event], LIARSDICE_CHANCE[event], () =>
+      pickLiarsDiceLine(event, recentGameLines, { bid }),
+    );
+  };
+
   const ticTacToeEvent = (event: TicTacToeEvent, level: Level) =>
     gameMoment(`tictactoe-${event}`, TICTACTOE_FACE[event], TICTACTOE_CHANCE[event], () =>
       pickTicTacToeLine(event, level, recentGameLines),
@@ -3707,6 +3724,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     checkers: checkersEvent,
     chess: chessEvent,
     tictactoe: ticTacToeEvent,
+    liarsDice: liarsDiceEvent,
     say: (lineId) => {
       if (bubble) showBubble(null);
       const line = lineId ? lineById.get(lineId) : chooseLine(speechContext(), new Map(), clock);

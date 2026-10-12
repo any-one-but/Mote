@@ -16,6 +16,7 @@ export type ReactionGroup =
   | "Checkers"
   | "Chess"
   | "Tic-tac-toe"
+  | "Liar’s Dice"
   | "Local Gallery"
   | "Local Gallery passcode"
   | "Time"
@@ -862,6 +863,117 @@ export const REACTIONS: Reaction[] = [
     status: "live",
   },
 
+  // Liar’s Dice
+  {
+    id: "liarsdice-start",
+    group: "Liar’s Dice",
+    name: "Sitting down to dice",
+    when: "You open Liar’s Dice",
+    then: "A happy hop and a word",
+    status: "live",
+  },
+  {
+    id: "liarsdice-resume",
+    group: "Liar’s Dice",
+    name: "Back to the dice",
+    when: "You open Liar’s Dice with a round still going",
+    then: "Something cute",
+    status: "live",
+  },
+  {
+    id: "liarsdice-mote-bids",
+    group: "Liar’s Dice",
+    name: "Bidding",
+    when: "Mote makes a bid",
+    then: "Sometimes says it out loud",
+    status: "live",
+  },
+  {
+    id: "liarsdice-mote-bluffs",
+    group: "Liar’s Dice",
+    name: "Bluffing",
+    when: "Mote bids on a number they don’t have",
+    then: "A sly look, and they sound very sure",
+    status: "live",
+  },
+  {
+    id: "liarsdice-mote-calls",
+    group: "Liar’s Dice",
+    name: "Calling liar",
+    when: "Mote thinks your bid is too much",
+    then: "A sly nod: “Liar!”",
+    status: "live",
+  },
+  {
+    id: "liarsdice-you-call",
+    group: "Liar’s Dice",
+    name: "Called a liar",
+    when: "You call Mote’s bid",
+    then: "Eyes wide: “Let’s see, then.”",
+    status: "live",
+  },
+  {
+    id: "liarsdice-mote-caught-you",
+    group: "Liar’s Dice",
+    name: "Caught you",
+    when: "Mote called, and your bid didn’t hold",
+    then: "Looks pleased with themself",
+    effects: { joy: 0.1 },
+    status: "live",
+  },
+  {
+    id: "liarsdice-mote-called-wrong",
+    group: "Liar’s Dice",
+    name: "Wrong call",
+    when: "Mote called, but your bid held",
+    then: "A wince",
+    effects: { joy: -0.05 },
+    status: "live",
+  },
+  {
+    id: "liarsdice-you-caught-mote",
+    group: "Liar’s Dice",
+    name: "Busted",
+    when: "You called Mote’s bid, and it didn’t hold",
+    then: "An uh-oh face and a sheepish word",
+    effects: { joy: -0.05 },
+    status: "live",
+  },
+  {
+    id: "liarsdice-you-called-wrong",
+    group: "Liar’s Dice",
+    name: "Told you",
+    when: "You called Mote’s bid, but it held",
+    then: "Looks pleased with themself",
+    effects: { joy: 0.1 },
+    status: "live",
+  },
+  {
+    id: "liarsdice-mote-streak",
+    group: "Liar’s Dice",
+    name: "On a roll",
+    when: "Mote wins three rounds in a row",
+    then: "Two big hops and a wink",
+    effects: { joy: 0.1 },
+    status: "live",
+  },
+  {
+    id: "liarsdice-you-streak",
+    group: "Liar’s Dice",
+    name: "Your roll",
+    when: "You win three rounds in a row",
+    then: "A droop, then a good-sport smile",
+    status: "live",
+  },
+  {
+    id: "liarsdice-pause",
+    group: "Liar’s Dice",
+    name: "Cups down",
+    when: "You put the dice away mid-round",
+    then: "Promises to keep their dice hidden",
+    status: "live",
+  },
+
   {
     id: "drop-declined",
     group: "Helping you",
@@ -1383,6 +1495,7 @@ export const REACTION_GROUPS: ReactionGroup[] = [
   "Checkers",
   "Chess",
   "Tic-tac-toe",
+  "Liar’s Dice",
   "Local Gallery",
   "Local Gallery passcode",
   "Speech",

@@ -23,7 +23,7 @@ type Props = {
   onDebug: () => void;
   asleep: boolean;
   wants: Want | null;
-  onGame: (game: "checkers" | "chess" | "tictactoe") => void;
+  onGame: (game: "checkers" | "chess" | "tictactoe" | "liarsdice") => void;
   onLogCalories: () => void;
   onDays: () => void;
   onFeed: (snack: string) => void;
@@ -85,6 +85,7 @@ export function Toolbar({
         <MenuItem onClick={choose(() => onGame("checkers"))}>Checkers</MenuItem>
         <MenuItem onClick={choose(() => onGame("chess"))}>Chess</MenuItem>
         <MenuItem onClick={choose(() => onGame("tictactoe"))}>Tic-tac-toe</MenuItem>
+        <MenuItem onClick={choose(() => onGame("liarsdice"))}>Liar’s Dice</MenuItem>
       </ToolButton>
       {diet ? (
         <ToolButton

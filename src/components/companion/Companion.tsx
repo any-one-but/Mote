@@ -34,6 +34,7 @@ import { PasscodePad } from "@/components/companion/PasscodePad";
 import { Checkers } from "@/components/companion/Checkers";
 import { Chess } from "@/components/companion/Chess";
 import { TicTacToe } from "@/components/companion/TicTacToe";
+import { LiarsDice } from "@/components/companion/LiarsDice";
 import { Toolbar } from "@/components/companion/Toolbar";
 import { applyToBook, dateKey, readBook } from "@/lib/companion/calories";
 import { markCalorieCare, useCalorieBook } from "@/lib/companion/calorie-store";
@@ -53,7 +54,7 @@ export function Companion() {
   // What the buttons show: asleep (the bed becomes a sun), and what Mote would like.
   const [status, setStatus] = useState<{ asleep: boolean; wants: Want | null }>({ asleep: false, wants: null });
   const [logging, setLogging] = useState(false);
-  const [playing, setPlaying] = useState<"checkers" | "chess" | "tictactoe" | null>(null);
+  const [playing, setPlaying] = useState<"checkers" | "chess" | "tictactoe" | "liarsdice" | null>(null);
   const debugState = useRef<DebugState>({ ...DEBUG_DEFAULTS });
   const events = useRef<string[]>([]);
   const realMedia = useRef<MediaInfo>(null);
@@ -526,6 +527,7 @@ export function Companion() {
       {playing === "checkers" && !helping ? <Checkers engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "chess" && !helping ? <Chess engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "tictactoe" && !helping ? <TicTacToe engine={getEngine} onClose={() => setPlaying(null)} /> : null}
+      {playing === "liarsdice" && !helping ? <LiarsDice engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {asking && !helping ? (
         <PasscodePad
           title="Local Gallery"

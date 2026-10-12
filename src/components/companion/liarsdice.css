@@ -1,0 +1,237 @@
+/* Liar's Dice in Mote's window: the same cream card as the board games. Your
+   dice are ink with cream pips (like your checkers); Mote's are cream, and
+   face down they're blank with a little pair of Mote eyes. */
+
+.ld {
+  padding: 12px 14px 14px;
+}
+
+.ld-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.ld-die {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ld-die.is-you .ld-body {
+  fill: var(--ck-ink);
+}
+
+.ld-die.is-you .ld-pip {
+  fill: #fff1e4;
+}
+
+.ld-die.is-mote .ld-body,
+.ld-die.is-hidden .ld-body {
+  fill: #fff1e4;
+  stroke: #ead8c5;
+  stroke-width: 3;
+}
+
+.ld-die.is-mote .ld-pip,
+.ld-die.is-hidden .ck-eyes rect {
+  fill: var(--ck-ink);
+}
+
+/* Mote's dice turn over when they're shown. */
+.ld-die.is-mote {
+  animation: ld-flip 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes ld-flip {
+  from {
+    transform: rotateY(90deg) scale(0.9);
+  }
+}
+
+/* Dice showing the number in play lift up, with an accent ring. */
+.ld-die.is-match {
+  transform: translateY(-5px);
+}
+
+.ld-die.is-match .ld-body {
+  stroke: var(--ck-accent);
+  stroke-width: 7;
+}
+
+.ld-bid {
+  margin: 14px 0;
+  padding: 12px 10px;
+  border-radius: 16px;
+  background: var(--ck-light);
+  text-align: center;
+}
+
+.ld-who {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ck-soft);
+}
+
+.ld-big {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 2px 0 0;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.ld-big.is-quiet {
+  font-size: 19px;
+  font-weight: 500;
+}
+
+.ld-big .ld-mini {
+  width: 30px;
+  height: 30px;
+}
+
+.ld-of {
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ck-soft);
+}
+
+.ld-point {
+  margin: 4px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ld-point.is-you {
+  color: var(--ck-accent-deep);
+}
+
+.ld-point.is-mote {
+  color: var(--ck-soft);
+}
+
+.ld-mini {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+
+.ld-mini .ld-body {
+  fill: var(--ck-ink);
+}
+
+.ld-mini .ld-pip {
+  fill: #fff1e4;
+}
+
+/* Your bid: how many, and which number. */
+.ld-pick {
+  margin-top: 14px;
+}
+
+.ld-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ld-count {
+  display: flex;
+  align-items: center;
+  flex: none;
+  border-radius: 14px;
+  background: var(--ck-sunk);
+}
+
+.ld-count button {
+  width: 34px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--ck-ink);
+  font-size: 20px;
+  line-height: 1;
+  transition: background 0.15s ease;
+}
+
+.ld-count button:hover:not(:disabled) {
+  background: #e4d9ca;
+}
+
+.ld-count button:disabled {
+  color: #c4b6a8;
+  cursor: default;
+}
+
+.ld-count span {
+  min-width: 22px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ld-faces {
+  display: flex;
+  gap: 4px;
+}
+
+.ld-faces button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  opacity: 0.55;
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease,
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ld-faces button:hover:not(:disabled) {
+  opacity: 0.85;
+  background: var(--ck-light);
+}
+
+.ld-faces button.is-on {
+  opacity: 1;
+  background: var(--ck-sunk);
+  transform: translateY(-2px);
+}
+
+.ld-faces button:disabled {
+  opacity: 0.18;
+  cursor: default;
+}
+
+.ld .ck-primary:disabled {
+  background: var(--ck-sunk);
+  color: var(--ck-soft);
+  cursor: default;
+}
+
+.ld-liar {
+  font-weight: 700;
+}
+
+.ld-next {
+  margin-top: 14px;
+}

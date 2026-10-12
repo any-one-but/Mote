@@ -159,7 +159,7 @@ Normal), and their mood.
 
 Along the bottom of Mote's window (quiet until your pointer is over it):
 
-- **Toy chest:** the games (checkers, chess and tic-tac-toe).
+- **Toy chest:** the games (checkers, chess, tic-tac-toe and Liar's Dice).
 - **Carrot:** log calories, or see the days (only with the diet tracker switched on).
 - **Snack bowl:** feed Mote (only with "Mote eats too" switched on).
 - **Bed** (with Goodnight Mote switched on): tuck Mote in (if they're tired enough). While they sleep it turns
@@ -302,6 +302,33 @@ a win or a block); **Normal** always takes a win and nearly always blocks;
 **Hard** plays perfectly, so the best you can do is a draw. Mote reacts when
 you block them, when they block you, and when either of you sets up two ways
 to win at once.
+
+## Liar's Dice
+
+Open the toy chest and choose **Liar's Dice**. It never ends: play a round
+or a hundred, and close it whenever you like (a round in progress is kept,
+dice and all, for next time).
+
+You and Mote each roll five dice and keep them hidden. Yours are the ink ones
+along the bottom; Mote's are face down along the top, blank with a little
+pair of Mote eyes. Taking turns, you bid on how many of one number are
+showing across all ten dice: pick how many and which number, and press
+**Bid**. Each bid has to go higher: more dice, or as many of a higher
+number. Instead of bidding, you can call **Liar!** Mote's dice turn over,
+the dice showing that number lift up, and if there are at least as many as
+the bid said, whoever bid it gets the point; if not, the caller does. Then
+**Next round**; whoever lost opens the bidding. The score along the top just
+keeps counting.
+
+Mote plays by the odds: they know their own dice, guess at yours (if you bid
+on a number, you probably have some), call when a bid looks unlikely, and
+bluff now and then. Like the board games, they keep it close: ahead of you
+over the last few rounds, they get careless (a call on a bid that was
+probably fine, a bid a little too bold); level or behind, they play their
+best. Mote says their bids out loud now and then, sounds very sure of
+themself when bluffing, looks sly when calling you a liar and alarmed when
+you call them one, and has a word for who was right (and for three in a row
+either way). Rounds won and lost nudge their mood a little.
 
 ## Local Gallery
 
@@ -511,6 +538,7 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 - `src/lib/close-game.ts` — how Mote keeps games close (the usual way they play)
 - `src/lib/checkers/coach.ts` and `src/lib/tictactoe/coach.ts` — Learn with Mote: tips, mistakes and Mote's explanations
 - `src/components/companion/TicTacToe.tsx` and `tictactoe-lines.ts`, and `src/lib/tictactoe/game.ts` — tic-tac-toe
+- `src/components/companion/LiarsDice.tsx`, `liarsdice.css` and `liarsdice-lines.ts`, and `src/lib/liarsdice/game.ts` — Liar's Dice (the rules and how Mote bids)
 - `src/components/companion/board-ui.tsx` and `board.css` — what both games share (level picker, header, end panel, the board's look)
 - `src/components/companion/links.ts` — saved links, their history, and how Mote picks one to suggest
 - `src-tauri/src/links.rs` — reading a dragged link, and opening one in your browser
