@@ -13,7 +13,6 @@ import {
   onDropped,
   openCaloriesWindow,
   openLink,
-  openLocalGallery,
   onMediaElsewhere,
   onPointerElsewhere,
   onTypingElsewhere,
@@ -23,8 +22,15 @@ import {
   windowPlacement,
 } from "@/lib/companion/desktop";
 import { featureOn, useFeatures } from "@/lib/companion/features";
+import {
+  galleryStatus,
+  openGallery,
+  type GalleryOpened,
+  type PasscodeCheck,
+} from "@/lib/companion/gallery";
 import { useSettings } from "@/lib/companion/settings";
 import { CaloriePad } from "@/components/companion/CaloriePad";
+import { PasscodePad } from "@/components/companion/PasscodePad";
 import { Checkers } from "@/components/companion/Checkers";
 import { Chess } from "@/components/companion/Chess";
 import { TicTacToe } from "@/components/companion/TicTacToe";
@@ -57,14 +63,28 @@ export function Companion() {
   const [bubble, setBubble] = useState<Bubble | null>(null);
   const [gift, setGift] = useState<Gift | null>(null);
   const [helping, setHelping] = useState(false);
+  // Asking for Local Gallery's passcode: how many wrong so far, what to say
+  // under the dots, and whether a try is being checked.
+  type Asking = { wrong: number; message: string | null; busy: boolean };
+  const [asking, setAsking] = useState<Asking | null>(null);
+  const askingNow = useRef(false);
+  askingNow.current = !!asking;
+  /** Puts the passcode pad away without a word (something else came up). */
+  const dropAsking = useCallback(() => {
+    if (!askingNow.current) return;
+    setAsking(null);
+    engineRef.current?.passcode("cancel", { quiet: true });
+  }, []);
   const getEngine = useCallback(() => engineRef.current, []);
   // Mote's own resizing moves the window; that isn't someone flinging it.
   const ownMoveUntil = useRef(0);
   useEffect(() => {
     ownMoveUntil.current = performance.now() + 800;
-    // The board needs a taller window than the file options do.
-    setHelpingSize(helping || !!playing, playing ? { width: 430, height: 740 } : undefined);
-  }, [helping, playing]);
+    // The board needs a taller window than the file options do; the
+    // passcode pad, room for its keys with Mote above them.
+    const size = playing ? { width: 430, height: 740 } : asking ? { width: 380, height: 640 } : undefined;
+    setHelpingSize(helping || !!playing || !!asking, size);
+  }, [helping, playing, !!asking]); // eslint-disable-line react-hooks/exhaustive-deps
   const [anchor, setAnchor] = useState({ x: 0, y: 0 });
 
   // The bubble's tail points down at Mote, just above the eyes.
@@ -133,6 +153,17 @@ export function Companion() {
   useEffect(() => {
     if (!diet) setLogging(false);
   }, [diet]);
+  useEffect(() => {
+    if (!gallery) dropAsking();
+  }, [gallery, dropAsking]);
+  // Settings did something with the passcode: Mote reacts here.
+  useEffect(
+    () =>
+      listenBus((msg) => {
+        if (msg.type === "gallery") engineRef.current?.passcode(msg.event, msg.info);
+      }),
+    [],
+  );
   useEffect(() => {
     engineRef.current?.configure({ followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed });
   }, [followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed]);
@@ -257,6 +288,62 @@ export function Companion() {
     return () => window.removeEventListener("keydown", onKey);
   }, [logging]);
 
+  // Local Gallery: straight open with no passcode (or when it's open
+  // already), otherwise Mote asks for it first, and without it, it stays shut.
+  const ask = () => {
+    setLogging(false);
+    setPlaying(null);
+    setAsking({ wrong: 0, message: null, busy: false });
+    engineRef.current?.passcode("ask");
+  };
+  const refused = (check: PasscodeCheck) => {
+    if (check.result === "refused" || check.result === "waiting") {
+      engineRef.current?.passcode(check.result === "refused" ? "refuse" : "waiting", { wait: check.wait });
+    }
+  };
+  const opened = (result: GalleryOpened) => {
+    const engine = engineRef.current;
+    if (result.result === "opened") engine?.openedGallery(true);
+    else if (result.result === "alreadyOpen") engine?.passcode("already-open");
+    else if (result.result === "needPasscode") ask();
+    else if (result.result === "failed") engine?.openedGallery(false);
+    else refused(result.check);
+  };
+  const openLocalGallery = async () => {
+    const status = await galleryStatus();
+    if (!status?.carried) {
+      engineRef.current?.openedGallery(false);
+      return;
+    }
+    if (status.passcode && !status.open) {
+      if (status.wait > 0) engineRef.current?.passcode("waiting", { wait: status.wait });
+      else ask();
+      return;
+    }
+    opened(await openGallery());
+  };
+  const tryPasscode = async (pin: string) => {
+    setAsking((a) => a && { ...a, busy: true });
+    const result = await openGallery(pin);
+    const engine = engineRef.current;
+    if (result.result === "denied" && result.check.result === "wrong") {
+      const left = result.check.triesLeft;
+      const message =
+        left === 1 ? "That’s not it. One try left." : left === 2 ? "That’s not it. Two tries left." : "That’s not it.";
+      engine?.passcode("wrong", { triesLeft: left });
+      setAsking((a) => a && { wrong: a.wrong + 1, busy: false, message });
+      return;
+    }
+    if (result.result === "opened") {
+      engine?.passcode("right");
+      // A beat with the dots full, then the pad goes.
+      window.setTimeout(() => setAsking(null), 450);
+      return;
+    }
+    setAsking(null);
+    opened(result);
+  };
+
   const todayTotal = book.days[dateKey()]?.total ?? 0;
   const changeCalories = (kind: "add" | "sub" | "set", amount: number) => {
     const result = applyToBook(readBook(), calorieGoal, { kind, amount });
@@ -270,7 +357,7 @@ export function Companion() {
   // along the bottom hold games, calories, snacks and bedtime.
   return (
     <div
-      className={`stage${helping ? " is-helping" : ""}${logging ? " is-logging" : ""}${playing && !helping ? " is-playing" : ""}`}
+      className={`stage${helping ? " is-helping" : ""}${logging ? " is-logging" : ""}${asking && !helping ? " is-asking" : ""}${playing && !helping ? " is-playing" : ""}`}
       onContextMenu={(e) => {
         const target = e.target;
         if (target instanceof Element && target.closest("input, textarea")) return;
@@ -359,6 +446,7 @@ export function Companion() {
           setHelping(open);
           if (open) {
             setLogging(false);
+            dropAsking();
             // The game is saved; it'll be there when you open the board again.
             setPlaying(null);
           }
@@ -374,17 +462,17 @@ export function Companion() {
           updateSettings({ debug: true });
           showDebugWindow(true);
         }}
-        onGallery={() => {
-          void openLocalGallery().then((ok) => engineRef.current?.openedGallery(ok));
-        }}
+        onGallery={() => void openLocalGallery()}
         asleep={status.asleep}
         wants={status.wants}
         onGame={(game) => {
           setLogging(false);
+          dropAsking();
           setPlaying(game);
         }}
         onLogCalories={() => {
           setPlaying(null);
+          dropAsking();
           setLogging(true);
           markCalorieCare();
         }}
@@ -403,6 +491,21 @@ export function Companion() {
       {playing === "checkers" && !helping ? <Checkers engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "chess" && !helping ? <Chess engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "tictactoe" && !helping ? <TicTacToe engine={getEngine} onClose={() => setPlaying(null)} /> : null}
+      {asking && !helping ? (
+        <PasscodePad
+          title="Local Gallery"
+          prompt="Enter your passcode"
+          message={asking.message}
+          wrong={asking.wrong}
+          busy={asking.busy}
+          onDigit={() => engineRef.current?.passcode("digit")}
+          onEnter={(pin) => void tryPasscode(pin)}
+          onCancel={() => {
+            setAsking(null);
+            engineRef.current?.passcode("cancel");
+          }}
+        />
+      ) : null}
       {logging && diet ? (
         <CaloriePad
           total={todayTotal}

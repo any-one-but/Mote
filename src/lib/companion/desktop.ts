@@ -32,17 +32,6 @@ export function setHelpingSize(helping: boolean, size?: { width: number; height:
   }
 }
 
-/** Opens Local Gallery (a separate app Mote carries). Resolves to whether it opened. */
-export async function openLocalGallery(): Promise<boolean> {
-  if (!isDesktopApp()) return false;
-  try {
-    await invoke("open_local_gallery");
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 /** Whether Mote opens when you log in to your Mac. */
 export async function opensAtLogin(): Promise<boolean> {
   if (!isDesktopApp()) return false;

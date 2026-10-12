@@ -21,6 +21,23 @@ Mote's `npm run mac:build` builds this (`npm run gallery:build`) and tucks the
 finished `Local Gallery.app` inside `Mote.app/Contents/Resources`. The Local
 Gallery feature (Feature Key) adds a button that opens it.
 
+## Mote's changes to it
+
+Mote keeps the passcode for this copy (see Mote's README), so a few small
+changes here are Mote's own, each marked with a `Mote:` comment:
+
+- `electron/mote.js` (new): only opens when Mote hands it a one-time ticket,
+  tells Mote while it's open, closes when Mote asks (Lock now, hiding the
+  folder), and tells the page Mote keeps the passcode.
+- `electron/main.js`: loads `mote.js`, checks the ticket before anything opens.
+- `frontend/index.html`: skips its own passcode screen (and its
+  `lock.log.json`) and drops its Passcode menu when Mote keeps the passcode.
+  Anywhere else (the browser version, the app from its own repo) these do
+  nothing.
+
+`npm run gallery:build` checks these are still there (with
+`scripts/check-gallery-mote.sh`) and refuses to build without them.
+
 ## Updating it
 
 Copy the same files over again from the Local_Gallery repo, then run
@@ -34,3 +51,7 @@ cp frontend/index.html frontend/variations.html ../Mote/local-gallery/frontend/
 
 (Keep this folder's `package.json` scripts as they are: `build` here makes
 only the app, no installer.)
+
+Copying `electron/` and `frontend/index.html` over wipes Mote's changes
+(`electron/mote.js` stays, since Local Gallery has no file by that name). Put
+them back from git before building: `git diff` shows exactly what they were.

@@ -110,19 +110,22 @@
   overflow: hidden;
 }
 
-.stage.is-logging {
+.stage.is-logging,
+.stage.is-asking {
   display: flex;
   flex-direction: column;
 }
 
-.stage.is-logging .window {
+.stage.is-logging .window,
+.stage.is-asking .window {
   position: relative;
   height: auto;
   flex: 1;
   min-height: 0;
 }
 
-.stage.is-logging .face {
+.stage.is-logging .face,
+.stage.is-asking .face {
   position: absolute;
   left: 50%;
   bottom: 0;
@@ -1106,6 +1109,7 @@
 /* Hidden while something else has the bottom of the window. */
 .stage.is-helping .toolbar,
 .stage.is-logging .toolbar,
+.stage.is-asking .toolbar,
 .stage.is-playing .toolbar {
   display: none;
 }

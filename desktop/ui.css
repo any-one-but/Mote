@@ -1110,3 +1110,49 @@ input:focus-visible {
   padding: 0 2px;
   font-size: 13.5px;
 }
+
+/* Settings: Local Gallery's passcode */
+
+.passcode-flow {
+  padding: calc(var(--unit) * 1.5) 0;
+}
+
+.passcode-flow .pc-pad {
+  box-shadow: none;
+  background: transparent;
+  padding: 0;
+}
+
+.passcode-state {
+  display: inline-block;
+  min-width: 44px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--sunk);
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.passcode-state.is-on {
+  background: var(--accent-wash);
+  color: var(--accent-deep);
+}
+
+.passcode-library {
+  margin: 0;
+  padding: calc(var(--unit) * 1.5) 0 0;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.passcode-fine {
+  margin: 0;
+  padding: var(--unit) 0 calc(var(--unit) * 1.5);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}

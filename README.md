@@ -164,7 +164,8 @@ Along the bottom of Mote's window (quiet until your pointer is over it):
 - **Snack bowl:** feed Mote (only with "Mote eats too" switched on).
 - **Bed** (with Goodnight Mote switched on): tuck Mote in (if they're tired enough). While they sleep it turns
   into a sun, to wake them.
-- **Picture frame** (with Local Gallery switched on): open Local Gallery.
+- **Picture frame** (with Local Gallery switched on): open Local Gallery
+  (Mote asks for the passcode first, if one is set).
 - **Wrench** (with the Debug window unlocked): open the Debug window.
 
 A soft pulsing ring on a button means Mote would like that: hungry, sleepy,
@@ -313,7 +314,57 @@ any of it; it only opens it, as if you'd double-clicked it.
 
 Its code is kept apart in `local-gallery/` (the core app, plus its design
 docs for keeping), with its own notes on where it came from and how to
-update it. The files Local Gallery kept for safekeeping (clean.sh, the
+update it.
+
+### Mote keeps the passcode
+
+Local Gallery's passcode lives in Mote now, not in the gallery. With Local
+Gallery switched on, Settings has a **Local Gallery** section with everything
+the gallery's own Passcode menu had:
+
+- **Set a passcode** (four digits, typed twice so a slip can't lock you out),
+  or **Change passcode** (the current one first).
+- **Lock now**: if the gallery is open, it saves what it's doing and closes,
+  so it needs the passcode to open again.
+- **Turn passcode off** (the current one first).
+- **Hide gallery folder**: renames the library in Documents to
+  `.Local Gallery`, so Finder doesn't show it (the current passcode first).
+  An open gallery closes for a moment while the folder is renamed, then opens
+  again.
+
+With a passcode set, pressing the picture frame brings up a passcode pad on
+Mote's window (type it, or press the keys). Mote shuts their eyes tight and
+turns away while you type, flinching a little at each digit. Right: their eyes
+pop open, a hop, a nod and a wink, and the gallery opens. Wrong: a sorry-but-no
+shake of the head (and a warning when you're down to the last two tries).
+Five wrong in a row and Mote refuses outright, turning away with their chin
+up, and won't take any tries for 30 seconds (then a minute, two, and so on up
+to 15 minutes; quitting Mote doesn't reset it). Close the pad or press Escape
+and the gallery simply stays shut. If the gallery is already open, the frame
+just brings it to the front. Mote reacts in their own window to what you do in
+Settings too.
+
+The same care as the gallery took: Mote keeps only a salted, slowly worked
+fingerprint of the passcode (the same kind the gallery used), never the
+digits, in `~/Library/Application Support/com.anyonebut.mote/gallery-passcode.json`.
+It keeps the gallery shut; it doesn't lock the pictures in Documents.
+**Forgot it?** Quit Mote and delete that file; the passcode is then off.
+
+In the copy Mote carries, the gallery's own passcode screen and Passcode menu
+are switched off, and its `lock.log.json` is ignored. So it can't be opened
+from inside Mote.app to get round Mote, it only starts when Mote hands it a
+one-time ticket; opened any other way, it says to open it from Mote and quits
+before showing anything. (The Local Gallery built from its own repo is
+unchanged and still uses its own passcode.)
+
+### Reading the gallery's logs
+
+Mote reads the library's log folder (`Documents/Local Gallery/.local-gallery`,
+or the hidden `.Local Gallery`): each log's size, when it was saved, and how
+many entries it holds (folders tagged, scored, journal days, what's in the
+trash, thumbnails), never the names, tags or anything else inside. Settings
+shows a line of it under the passcode; Debug's **Gallery** tab shows every
+file. The files Local Gallery kept for safekeeping (clean.sh, the
 userscripts, Automator workflows and so on) are in `safekeeping/`, at the top
 of Mote's folder; nothing in Mote or the gallery uses them. `npm run mac:build` builds it and tucks it in.
 
@@ -322,7 +373,8 @@ of Mote's folder; nothing in Mote or the gallery uses them. `npm run mac:build` 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. You can choose
 whether Mote follows your pointer, Friendly mode, whether Mote naps, how lively Mote is, the pace
 for helping with files, whether Mote opens when you log in, and whether the
-window floats above others.
+window floats above others. With Local Gallery switched on, it also has the
+gallery's passcode (see above).
 
 Text in the app calls Mote "Mote", or "they/them" when a pronoun is needed.
 
@@ -360,6 +412,9 @@ Once it's unlocked, a wrench button on Mote's window opens the Debug window:
 - **Motion**: slow time down, freeze Mote, show outlines of the eye cuts, pretend
   another window is playing sound, give Mote a folder or video by typing its path
   (or pretend ones, in a browser), live numbers
+- **Gallery**: Local Gallery as Mote sees it: whether it's carried and open,
+  the passcode and tries left, where the library is, and every file in its
+  log folder (size, when saved, how many entries)
 - **Links**: every saved link with its history (when it was saved, how often
   Mote has suggested it and you've opened it), its weight and its chance of
   coming up next; add, rename, open, reset or remove links, or have Mote
@@ -373,7 +428,7 @@ Quit Mote if it is open, then drag the new one into Applications and replace
 the old one:
 
 - `src-tauri/target/release/bundle/macos/Mote.app`
-- `src-tauri/target/release/bundle/dmg/Mote_0.9.1_aarch64.dmg` (an installer you can share)
+- `src-tauri/target/release/bundle/dmg/Mote_0.10.0_aarch64.dmg` (an installer you can share)
 
 Both are made by:
 
@@ -400,7 +455,11 @@ Each face there is one expression frozen in place, handy for tweaking how they l
 - `desktop/ui.tsx` and `desktop/ui.css` — the soft buttons, switches and sliders
 - `src/lib/companion/settings.ts` — the list of settings and their defaults
 - `src/lib/companion/features.ts` — the Feature Key (for the Debug window) and the experimental features
-- `local-gallery/` — Local Gallery's own code, kept separate; `src-tauri/src/gallery.rs` opens it
+- `local-gallery/` — Local Gallery's own code, kept separate; `src-tauri/src/gallery.rs` opens it,
+  keeps its passcode and reads its logs
+- `src/lib/companion/gallery.ts` — talking to that from Mote's windows (and a pretend gallery, passcode 1234, in a browser)
+- `src/components/companion/PasscodePad.tsx` and `passcode.css` — the passcode pad, on Mote's window and in Settings
+- `desktop/passcode-settings.tsx` — Settings' Local Gallery section
 - `src/components/companion/mind.ts` — Mote's mood, hunger and rest, and how they change
 - `src/components/companion/memories.ts` — the games Mote remembers, and how they bring them up
 - `src/components/companion/Toolbar.tsx` — the buttons along the bottom of Mote's window

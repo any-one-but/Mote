@@ -26,6 +26,8 @@ const commands = require("./commands");
 const { devMode } = require("./dev");
 const embedded = require("./embedded");
 const media = require("./media");
+// Mote: Mote keeps the passcode, and opens this copy with a ticket (mote.js).
+const mote = require("./mote");
 const session = require("./session");
 
 app.setName("Local Gallery");
@@ -39,6 +41,8 @@ media.registerSchemes();
 const devWindowed = devMode() && !!process.env.LG_DEV_WINDOWED;
 
 let mainWindow = null;
+// Mote: set once Mote's ticket checks out; nothing opens before that.
+let admitted = false;
 
 function runInPage(js) {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -163,10 +167,18 @@ function createMainWindow() {
 }
 
 commands.registerCommands(embedded.commands);
+commands.registerCommands(mote.commands);
 
 ipcMain.handle("lg:invoke", (event, cmd, args) => commands.dispatch(cmd, args, event));
 
 app.whenReady().then(() => {
+  // Mote: not opened from Mote, no window and no library, just a word and out.
+  if (!mote.admit()) {
+    app.quit();
+    return;
+  }
+  admitted = true;
+  mote.watch(() => mainWindow);
   media.handleProtocols(require("electron").session.defaultSession);
   installMenu();
   createMainWindow();
@@ -195,5 +207,5 @@ app.on("before-quit", () => {
 });
 
 app.on("activate", () => {
-  if (!mainWindow) createMainWindow();
+  if (admitted && !mainWindow) createMainWindow();
 });

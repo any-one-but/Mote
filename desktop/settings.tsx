@@ -19,6 +19,7 @@ import {
   removeLink,
   type SavedLink,
 } from "@/components/companion/links";
+import { LocalGallerySection } from "./passcode-settings";
 import { MiniMote, Page, Row, Section, Segmented, Toggle } from "./ui";
 
 const ENERGY: Array<{ value: Energy; label: string }> = [
@@ -43,6 +44,7 @@ function SettingsWindow() {
   const [settings, update] = useSettings();
   const [features] = useFeatures();
   const diet = featureOn(features, "diet");
+  const gallery = featureOn(features, "gallery");
   const [hop, setHop] = useState(0);
 
   // Every change makes the little Mote in the corner do a happy hop.
@@ -124,6 +126,8 @@ function SettingsWindow() {
           </div>
         </Section>
       ) : null}
+
+      {gallery ? <LocalGallerySection onChange={() => setHop((n) => n + 1)} /> : null}
 
       <Section title="Helping with files">
         <Row label="Pace" hint={PACE_HINT[settings.pace]} stacked>

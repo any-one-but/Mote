@@ -33,6 +33,10 @@ const ALL: Shot[] = [
   ["working", "work", 800, 0.9],
   ["job done", "tada", 700, 0.9],
   ["job trouble", "uhoh", 600, 0.9],
+  ["not peeking", "pc-away", 2000, 0.9],
+  ["passcode right", "pc-right", 1200, 0.9],
+  ["passcode wrong", "pc-wrong", 700, 0.9],
+  ["refusing", "pc-refuse", 1500, 0.9],
 ];
 
 const params = new URLSearchParams(location.search);

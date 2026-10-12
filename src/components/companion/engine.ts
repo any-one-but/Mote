@@ -78,6 +78,44 @@ import type { Level } from "@/lib/checkers/ai";
 
 export type BoardGameState = "you" | "mote" | "idle" | null;
 
+/** Local Gallery's passcode: Mote asking for it (and each digit you type),
+ * how it went, and what Settings did with it. */
+export type PasscodeEvent =
+  | "ask"
+  | "digit"
+  | "right"
+  | "wrong"
+  | "refuse"
+  | "waiting"
+  | "cancel"
+  | "already-open"
+  | "set"
+  | "changed"
+  | "off"
+  | "locked"
+  | "was-locked"
+  | "hidden"
+  | "shown";
+
+export type PasscodeInfo = { triesLeft?: number; wait?: number; quiet?: boolean };
+
+/** The face for each passcode moment (none: Mote just settles). */
+const PASSCODE_FACE: Partial<Record<PasscodeEvent, Mood>> = {
+  ask: "pc-away",
+  right: "pc-right",
+  wrong: "pc-wrong",
+  refuse: "pc-refuse",
+  waiting: "pc-refuse",
+  "already-open": "delight",
+  set: "cute",
+  changed: "delight",
+  off: "surprise",
+  locked: "ck-smug",
+  "was-locked": "glance",
+  hidden: "cute",
+  shown: "glance",
+};
+
 /** What Mote would like, shown as a glow on the matching button. */
 export type Want = "food" | "sleep" | "play";
 import {
@@ -138,7 +176,13 @@ export type Mood =
   | "ch-check"
   | "ch-checked"
   // Eating something you gave them.
-  | "munch";
+  | "munch"
+  // Local Gallery's passcode: not peeking while you type it, then right,
+  // wrong, or refusing outright.
+  | "pc-away"
+  | "pc-right"
+  | "pc-wrong"
+  | "pc-refuse";
 
 /**
  * Everything Mote can do with their face. The eyes are pills; expression comes
@@ -306,6 +350,9 @@ export type FaceEngine = {
   tuckIn: () => void;
   /** You opened Local Gallery from Mote (or tried to). */
   openedGallery: (ok: boolean) => void;
+  /** Local Gallery's passcode (see PasscodeEvent): `triesLeft` after a wrong
+   * one, `wait` (seconds) when Mote stops taking tries; `quiet`, no line. */
+  passcode: (event: PasscodeEvent, info?: PasscodeInfo) => void;
   /** A board game starts (Mote may remember the last one) and ends (Mote
    * remembers this one, and it moves their mood). `event` is the game's own
    * end line to use if there's nothing more personal to say. */
@@ -390,6 +437,10 @@ export const MOOD_LIST: Mood[] = [
   "ch-check",
   "ch-checked",
   "munch",
+  "pc-away",
+  "pc-right",
+  "pc-wrong",
+  "pc-refuse",
 ];
 
 export const REST: Pose = {
@@ -478,6 +529,11 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   "ch-check": { dur: 2200, tempo: 1 },
   "ch-checked": { dur: 2400, tempo: 1.1 },
   munch: { dur: 2600, tempo: 1.1 },
+  "pc-right": { dur: 1900, tempo: 1.1 },
+  "pc-wrong": { dur: 2100, tempo: 1.05 },
+  "pc-refuse": { dur: 3400, tempo: 0.95 },
+  // Held while the passcode pad is up (see `passcode`).
+  "pc-away": { dur: Number.POSITIVE_INFINITY, tempo: 0.8 },
   // Purring lasts as long as the petting does; see `PURR_AFTER`. Looking at
   // the options and working last as long as they do (see `setHelping`).
   purr: { dur: Number.POSITIVE_INFINITY, tempo: 0.8 },
@@ -520,6 +576,10 @@ const BUSY: Mood[] = [
   "ch-check",
   "ch-checked",
   "munch",
+  "pc-away",
+  "pc-right",
+  "pc-wrong",
+  "pc-refuse",
 ];
 
 type GameMood = "chess" | "minecraft" | "gaming";
@@ -573,6 +633,10 @@ const LABELS: Partial<Record<Mood, string>> = {
   "ch-check": "Mote puts your king in check.",
   "ch-checked": "Mote's king is in check!",
   munch: "Mote is eating.",
+  "pc-away": "Mote isn’t looking while you type the passcode.",
+  "pc-right": "Mote: that’s the passcode!",
+  "pc-wrong": "Mote: that’s not the passcode.",
+  "pc-refuse": "Mote refuses to open the gallery.",
   chess: "Mote is playing chess.",
   minecraft: "Mote is playing Minecraft.",
   gaming: "Mote is gaming.",
@@ -604,6 +668,8 @@ function keyed(t: number, keys: Keys): Partial<Pose> {
 export type PoseExtras = {
   /** ms since the last petting stroke (negative while still petting). */
   sincePet?: number;
+  /** ms since the last digit of a passcode was typed. */
+  sinceTap?: number;
 };
 
 /**
@@ -1348,6 +1414,92 @@ export function poseFor(
       const chew = Math.sin(((t - 300) / 1000) * Math.PI * 2 * 3.2);
       wobble = { sy: chew * 0.035, sx: -chew * 0.025, y: Math.abs(chew) * 1.2 };
     }
+  } else if (mood === "pc-away") {
+    // Not peeking: eyes shut tight in two little arcs, head turned away,
+    // swaying gently. Each digit typed gets a tiny flinch, eyes still
+    // firmly shut.
+    const shut: Partial<Pose> = {
+      open: 0.96,
+      wide: 1.08,
+      lid: 0.06,
+      cheek: 0.7,
+      cheekCurve: 0.2,
+      rot: dir * 9,
+      x: dir * 3,
+      sy: 1.01,
+    };
+    keys = [
+      [0, { open: 1.08, y: -2 }],
+      [160, { ...shut, y: 1 }],
+      [420, shut],
+    ];
+    const w = t / 1000;
+    const tap = extras.sinceTap ?? Infinity;
+    const flinch = tap < 260 ? Math.sin((tap / 260) * Math.PI) : 0;
+    wobble = {
+      rot: Math.sin(w * 0.9) * 1.6 + dir * flinch * 2,
+      y: Math.sin(w * 1.8) * 0.5 - flinch * 1.5,
+      sy: flinch * 0.025,
+      lid: flinch * 0.05,
+    };
+  } else if (mood === "pc-right") {
+    // That's it: eyes pop open, a happy hop, a firm nod, and a wink.
+    const glad: Partial<Pose> = { cheek: 0.7, cheekCurve: 0.26, open: 1.04, wide: 1.06 };
+    keys = [
+      [0, { open: 1.2, wide: 0.95, y: -3, sy: 1.04 }],
+      [140, { ...glad, sy: 0.92, sx: 1.06, y: 3 }],
+      [260, { ...glad, y: -13, sy: 1.07, sx: 0.95 }],
+      [540, { ...glad, y: 1.5, sy: 0.95, sx: 1.04 }],
+      [720, { ...glad, y: 4, lookY: 0.2, lookMix: 1 }],
+      [900, { ...glad, y: -1 }],
+      [1080, { ...glad, cheek: 0.62, winkL: dir > 0 ? 1 : 0, winkR: dir > 0 ? 0 : 1, lookX: 0, lookY: 0, lookMix: 1 }],
+      [1600, {}],
+    ];
+  } else if (mood === "pc-wrong") {
+    // Not it: eyes open, a little wince, then a slow, sorry-but-no shake of
+    // the head, looking right at you.
+    const no: Partial<Pose> = {
+      lid: 0.16,
+      lidTilt: 0.18,
+      lidCurve: 0.04,
+      open: 0.96,
+      cheek: 0.08,
+      lookX: 0,
+      lookY: 0,
+      lookMix: 1,
+    };
+    keys = [
+      [0, { open: 1.16, wide: 0.95, y: -2 }],
+      [200, { ...no, sy: 0.96, sx: 1.03, y: 2 }],
+      [400, no],
+      [1700, {}],
+    ];
+    if (t > 400 && t < 1550) {
+      const u = (t - 400) / 1150;
+      const shake = Math.sin(u * Math.PI * 2 * 2.5) * (1 - u * 0.6);
+      wobble = { rot: shake * 7, x: shake * 2.5 };
+    }
+  } else if (mood === "pc-refuse") {
+    // No more tries: a cross breath out, then chin up and turned right away,
+    // eyes narrowed, not budging.
+    const firm: Partial<Pose> = {
+      lid: 0.32,
+      lidTilt: 0.5,
+      lidCurve: -0.04,
+      open: 0.92,
+      wide: 1.04,
+    };
+    keys = [
+      [0, { open: 1.12, y: -2, sy: 1.04 }],
+      [220, { ...firm, sy: 0.93, sx: 1.06, y: 3 }],
+      [600, { ...firm, rot: dir * 11, x: dir * 3.5, y: -3, sy: 1.03, sx: 0.98, lookX: -dir * 0.7, lookY: -0.25, lookMix: 1 }],
+      [2900, { ...firm, lid: 0.24, lidTilt: 0.4 }],
+      [3200, {}],
+    ];
+    if (t > 220 && t < 520) {
+      const decay = 1 - (t - 220) / 300;
+      shakeX = Math.sin(((t - 220) / 1000) * Math.PI * 2 * 12) * 1.4 * decay;
+    }
   } else if (mood === "purr") {
     // Melts into the petting: blissful arcs, sinking and leaning in, a soft rumble.
     const bliss: Partial<Pose> = {
@@ -1817,6 +1969,10 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   // Helping you with files: talking it over, or busy with a job.
   let helping: "busy" | "talking" | null = null;
   let playing: BoardGameState = null;
+  // The passcode pad is up: Mote keeps their eyes shut (see `passcode`).
+  let asking = false;
+  let passcodeInfo: SpeechContext["passcode"] = null;
+  let tapAt = -Infinity;
   let recentGameLines: string[] = [];
   // The app just dropped on Mote, and the game being played (and how it went).
   let offered: SpeechContext["offering"] = null;
@@ -1904,6 +2060,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     game: game?.name ?? null,
     gameKind: game ? (game.mood === "gaming" ? "game" : game.mood) : null,
     gameWon: game?.won ?? false,
+    passcode: passcodeInfo,
     link: talkingLink
       ? {
           name: linkName(talkingLink),
@@ -2026,7 +2183,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       return;
     }
     // Helping you, Mote keeps their own chatter to themself.
-    if (debug.manual || helping || playing || BUSY.includes(mood)) return;
+    if (debug.manual || helping || playing || asking || BUSY.includes(mood)) return;
     if (pendingEvent) {
       const line = chooseLine(speechContext(), lastSaid, now, 2 * 60_000, options.friendly);
       pendingEvent = null;
@@ -2428,6 +2585,30 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (!line) return;
     if (bubble) showBubble(null);
     say(line, clock);
+  };
+
+  /**
+   * Local Gallery's passcode. While the pad is up (from "ask" until it's
+   * right, refused or put away) Mote keeps their eyes shut and their chatter
+   * to themself; everything else is a moment with a face and a line.
+   */
+  const passcode = (event: PasscodeEvent, info: PasscodeInfo = {}) => {
+    if (event === "digit") {
+      tapAt = clock;
+      touch();
+      return;
+    }
+    rouse();
+    engage();
+    passcodeInfo = { triesLeft: info.triesLeft ?? 0, wait: info.wait ?? 0 };
+    // A wrong try keeps the pad up; anything else puts it away.
+    if (event === "ask") asking = true;
+    else if (event !== "wrong") asking = false;
+    react(`passcode-${event}`);
+    const face = PASSCODE_FACE[event];
+    if (face && !debug.manual) start(face, clock);
+    else if (mood === "pc-away") start("settle", clock);
+    if (!info.quiet) sayNow(`passcode-${event}`);
   };
 
   /** An app dropped on Mote: play the game, or have a say about the app. */
@@ -2833,6 +3014,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         tucked = false;
         start("settle", now);
         nextAct = now + actGap(watchingMedia, you || typing);
+      } else if (asking) {
+        // Back to not peeking while you type.
+        start("pc-away", now);
       } else if (helping) {
         // Back to looking at the options, or to the job.
         start(helping === "busy" ? "work" : "present", now);
@@ -2871,6 +3055,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       purr,
     } = poseFor(mood, t, moodSeed, {
       sincePet: sincePet < 350 ? -1 : sincePet - 350,
+      sinceTap: now - tapAt,
     });
     swirlNow = swirl;
     // Petting a sleeping Mote gets a sleepy little purr without waking them.
@@ -3368,6 +3553,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       start(ok ? "delight" : "uhoh", clock);
       if (!ok || Math.random() < 0.6) sayNow(ok ? "gallery-opened" : "gallery-missing");
     },
+    passcode,
     gameStart,
     gameOver,
     answer: (yes) => {

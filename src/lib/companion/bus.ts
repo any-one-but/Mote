@@ -1,5 +1,11 @@
 import { emit, listen } from "@tauri-apps/api/event";
-import type { EngineSnapshot, ManualFace, Mood } from "@/components/companion/engine";
+import type {
+  EngineSnapshot,
+  ManualFace,
+  Mood,
+  PasscodeEvent,
+  PasscodeInfo,
+} from "@/components/companion/engine";
 import type { MindKey } from "@/components/companion/mind";
 import type { CalorieBook } from "@/lib/companion/calories";
 import type { FeatureState } from "@/lib/companion/features";
@@ -53,6 +59,8 @@ export type BusMessage =
   | { type: "calories"; book: CalorieBook }
   | { type: "features"; features: FeatureState }
   | { type: "debug"; cmd: DebugCommand }
+  /** Settings did something with Local Gallery's passcode: Mote reacts. */
+  | { type: "gallery"; event: PasscodeEvent; info?: PasscodeInfo }
   | { type: "state"; snap: EngineSnapshot; debug: DebugState; events: string[] };
 
 type Packet = BusMessage & { from: string };

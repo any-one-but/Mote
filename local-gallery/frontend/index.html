@@ -39709,6 +39709,7 @@ function lgSessionInvoke(cmd, args) {
 /* Read the process's memory of this session before the library is opened. Must
    be awaited ahead of the lock gate, since it is what lets the gate skip. */
 async function initSessionRecovery() {
+  await lgMoteKeepsPasscode();
   const p = lgSessionInvoke("session_status");
   if (!p) return;
   let status = null;
@@ -39792,6 +39793,27 @@ function consumeSessionResumeView() {
   } catch {
     return null;
   }
+}
+
+/* Mote: in the copy Mote carries, Mote keeps the passcode (asked for before
+   this app is even opened), so this page's own passcode screen, its Passcode
+   menu and the library's lock.log.json are all left alone. The app answers
+   `mote_keeps_passcode` only there (electron/mote.js); anywhere else the call
+   fails and everything below works as it always has. */
+let LG_MOTE_KEEPS_PASSCODE = false;
+let LG_MOTE_ASKED = false;
+
+async function lgMoteKeepsPasscode() {
+  if (LG_MOTE_ASKED) return LG_MOTE_KEEPS_PASSCODE;
+  LG_MOTE_ASKED = true;
+  const p = lgSessionInvoke("mote_keeps_passcode");
+  if (!p) return false;
+  try {
+    LG_MOTE_KEEPS_PASSCODE = (await p) === true;
+  } catch {
+    LG_MOTE_KEEPS_PASSCODE = false;
+  }
+  return LG_MOTE_KEEPS_PASSCODE;
 }
 
 /* The launch gate runs once per app run. `record` is the parsed file (or null),
@@ -40115,6 +40137,13 @@ async function lockGateBeforeLibraryOpens(rootHandle = null, { record = null } =
   try {
     await applyLibraryLookFromDisk(rootHandle);
   } catch {}
+  // Mote: Mote asked for the passcode already; lock.log.json is not read.
+  if (await lgMoteKeepsPasscode()) {
+    LOCK_STATE.record = null;
+    LOCK_STATE.unlocked = true;
+    markSessionUnlocked(true);
+    return true;
+  }
   if (LOCK_STATE.unlocked) {
     // A resumed run skipped the gate entirely, so the record was never read and
     // the Passcode menu would think none was set. Read it once, here, and only
@@ -40386,6 +40415,8 @@ async function toggleHiddenLibraryFromMenu() {
 }
 
 function buildAppMenuPasscodeSubmenu() {
+  // Mote: the passcode (and hiding the folder) are in Mote's Settings instead.
+  if (LG_MOTE_KEEPS_PASSCODE) return null;
   const isSet = lockPasscodeIsSet();
   const items = [
     appMenuChoiceButton(

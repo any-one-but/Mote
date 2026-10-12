@@ -50,6 +50,9 @@ export type SpeechContext = {
   game: string | null;
   gameKind: "chess" | "minecraft" | "game" | null;
   gameWon: boolean;
+  /** Local Gallery's passcode, just tried: tries left before Mote stops
+   * taking them, and how long (seconds) they won't take any. */
+  passcode: { triesLeft: number; wait: number } | null;
   /** A saved link being talked about: what it's called, whether it's a
    * video, and its history with you. */
   link: {
@@ -91,6 +94,14 @@ export type Line = {
 };
 
 const never = () => false;
+
+/** "30 seconds", "a minute", "4 minutes": how long Mote won't take tries. */
+export function waitWords(seconds: number) {
+  if (seconds < 55) return `${Math.max(5, Math.ceil(seconds / 5) * 5)} seconds`;
+  const minutes = Math.round(seconds / 60);
+  return minutes <= 1 ? "a minute" : `${minutes} minutes`;
+}
+const wait = (c: SpeechContext) => waitWords(c.passcode?.wait ?? 30);
 const name = (c: SpeechContext) => c.offering?.name ?? "that";
 
 /** Which way to ask to go: toward the roomier side of the screen. */
@@ -551,6 +562,121 @@ export const LINES: Line[] = [
     kind: "flavor",
     when: never,
     say: ["Hmm, I can’t find the gallery in this copy of me."],
+  },
+  {
+    id: "passcode-already-open",
+    group: "Local Gallery",
+    kind: "flavor",
+    when: never,
+    say: ["It’s already open. Here!", "Still open. Bringing it up."],
+  },
+
+  // Local Gallery's passcode, which Mote keeps
+  {
+    id: "passcode-ask",
+    group: "Local Gallery passcode",
+    kind: "flavor",
+    when: never,
+    say: [
+      "What’s the passcode? I won’t look.",
+      "Passcode, please. Eyes shut, promise.",
+      "Go ahead, I’m not peeking.",
+    ],
+  },
+  {
+    id: "passcode-right",
+    group: "Local Gallery passcode",
+    kind: "flavor",
+    when: never,
+    say: ["That’s the one! Opening it now.", "Yep, that’s it. Here you go.", "Correct! Gallery time."],
+  },
+  {
+    id: "passcode-wrong",
+    group: "Local Gallery passcode",
+    kind: "flavor",
+    when: never,
+    say: (c) => {
+      const left = c.passcode?.triesLeft ?? 0;
+      if (left === 1) return ["That’s not it. One more try, then I stop.", "Not it. Last try before I stop asking."];
+      if (left === 2) return ["That’s not it either. Two tries left.", "Still not it. Two more tries."];
+      return ["Hmm, that’s not it.", "Nope, not that one.", "Not quite. Try again?"];
+    },
+  },
+  {
+    id: "passcode-refuse",
+    group: "Local Gallery passcode",
+    kind: "flavor",
+    when: never,
+    say: (c) => [
+      `That’s too many wrong tries. I’m not opening it. Ask me again in ${wait(c)}.`,
+      `No. It stays shut. Try again in ${wait(c)}.`,
+    ],
+  },
+  {
+    id: "passcode-waiting",
+    group: "Local Gallery passcode",
+    kind: "flavor",
+    when: never,
+    say: (c) => [`Not yet. No more tries for ${wait(c)}.`, `Still no. Give it ${wait(c)}.`],
+  },
+  {
+    id: "passcode-cancel",
+    group: "Local Gallery passcode",
+    kind: "flavor",
+    when: never,
+    say: ["Okay. It stays shut.", "Never mind, then. It stays closed."],
+  },
+  {
+    id: "passcode-set",
+    group: "Local Gallery passcode",
+    kind: "flavor",
+    when: never,
+    say: [
+      "Got it. Nobody opens the gallery without it now.",
+      "Passcode set. I didn’t look, but I’ll know it when I see it.",
+    ],
+  },
+  {
+    id: "passcode-changed",
+    group: "Local Gallery passcode",
+    kind: "flavor",
+    when: never,
+    say: ["New passcode, noted.", "Changed. The old one won’t work now."],
+  },
+  {
+    id: "passcode-off",
+    group: "Local Gallery passcode",
+    kind: "flavor",
+    when: never,
+    say: ["Passcode off. I’ll just open the gallery now.", "No more passcode. Anyone can open it."],
+  },
+  {
+    id: "passcode-locked",
+    group: "Local Gallery passcode",
+    kind: "flavor",
+    when: never,
+    say: ["Locked. It needs the passcode again now.", "Shut tight."],
+  },
+  {
+    id: "passcode-was-locked",
+    group: "Local Gallery passcode",
+    kind: "flavor",
+    when: never,
+    say: ["It wasn’t open, so it’s locked already."],
+  },
+  {
+    id: "passcode-hidden",
+    group: "Local Gallery passcode",
+    kind: "flavor",
+    when: never,
+    say: ["Tucked away. Finder won’t show the gallery folder now.", "Hidden out of sight."],
+  },
+  {
+    id: "passcode-shown",
+    group: "Local Gallery passcode",
+    kind: "flavor",
+    when: never,
+    say: ["The gallery folder’s back where Finder can see it."],
   },
 
   // Needs: Mote asks for these on their own, when they need them
