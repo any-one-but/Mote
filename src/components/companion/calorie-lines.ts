@@ -572,10 +572,10 @@ const ASIDES: Aside[] = expandAside([
     parts: ["afternoon"],
     say: [
       "Eaten anything yet? Tell me!",
-      "Nothing logged today. Click me and say “calories” when you have.",
+      "Nothing logged today. Double-click me and say “calories” when you have.",
       "Hungry? Or did you forget to tell me?",
       "No calories logged yet today.",
-      "What’s today looking like? Click me and say “calories”.",
+      "What’s today looking like? Double-click me and say “calories”.",
     ],
   },
   {

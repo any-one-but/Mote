@@ -22,7 +22,7 @@ export type Settings = {
 
 export type Pace = "normal" | "turbo" | "gentle";
 export type Theme = "light" | "dark" | "system";
-export type Mode = "neutral" | "jack";
+export type Mode = "neutral" | "jack" | "snow";
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
@@ -57,7 +57,7 @@ export function readSettings(): Settings {
   const bool = (v: unknown, fb: boolean) => (typeof v === "boolean" ? v : fb);
   return {
     theme: pick(raw.theme, ["light", "dark", "system"] as const, d.theme),
-    mode: pick(raw.mode, ["neutral", "jack"] as const, d.mode),
+    mode: pick(raw.mode, ["neutral", "jack", "snow"] as const, d.mode),
     friendly: bool(raw.friendly, d.friendly),
     energy: pick(raw.energy, ["calm", "normal", "lively"] as const, d.energy),
     pace: pick(raw.pace, ["normal", "turbo", "gentle"] as const, d.pace),

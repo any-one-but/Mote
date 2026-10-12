@@ -46,11 +46,13 @@ const THEME: Array<{ value: Theme; label: string }> = [
 const MODE: Array<{ value: Mode; label: string }> = [
   { value: "neutral", label: "Neutral" },
   { value: "jack", label: "Jack-o’-lantern" },
+  { value: "snow", label: "Snowman" },
 ];
 
 const MODE_HINT: Record<Mode, string> = {
   neutral: "Just Mote.",
   jack: "Pumpkin orange, triangle eyes, and a carved, toothy grin if the mouth is on. Happy Halloween!",
+  snow: "Snow white, coal eyes, a carrot nose, and a smile of coal if the mouth is on. Brr!",
 };
 
 const PACE: Array<{ value: Pace; label: string }> = [

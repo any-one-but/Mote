@@ -298,8 +298,9 @@ export type EngineOptions = {
   glint: boolean;
   /** Lasting moods shape the resting eyes (on unless switched off). */
   moodShape: boolean;
-  /** Jack-o'-lantern mode: triangle eyes and a carved, toothy mouth. */
-  jack: boolean;
+  /** A special look (Settings' Mode): triangle eyes and a carved grin, or
+   * coal eyes, a coal smile and a carrot nose. */
+  look: Look;
 };
 
 /** An app dropped on Mote: its name, its ID (com.apple.safari…), and
@@ -1815,7 +1816,8 @@ const f = (n: number) => n.toFixed(2);
  * lags its gaze a touch, as a real reflection would, and shrinks and fades
  * away as the eye closes.
  */
-export function glintAt(pill: EyeShape["pill"], gazeX: number, gazeY: number, jack = false) {
+export function glintAt(pill: EyeShape["pill"], gazeX: number, gazeY: number, look: Look = "neutral") {
+  const jack = look === "jack";
   const open = clamp((pill.h - 12) / 22, 0, 1);
   return {
     // A triangle eye is narrow at the top: the reflection sits lower.
@@ -1831,11 +1833,12 @@ export function glintAt(pill: EyeShape["pill"], gazeX: number, gazeY: number, ja
  * colour), with the faintest red as they get frustrated and blue as they get
  * low; both together read as a little purple.
  */
-export function glintColor(feel: Pick<MindValues, "joy" | "peace">, dark: boolean, jack = false) {
+export function glintColor(feel: Pick<MindValues, "joy" | "peace">, dark: boolean, look: Look = "neutral") {
   const ramp = (n: number) => clamp(n, 0, 1);
   const red = ramp((-feel.joy - 1) / 6) * 0.15;
   const blue = ramp((-feel.peace - 1) / 6) * 0.15;
-  const base = dark ? [35, 28, 24] : jack ? [245, 173, 110] : [255, 241, 228];
+  const base =
+    look === "snow" ? [251, 253, 255] : dark ? [35, 28, 24] : look === "jack" ? [245, 173, 110] : [255, 241, 228];
   const tint = (c: number[], to: number[], k: number) => c.map((v, i) => v + (to[i] - v) * k);
   const c = tint(tint(base, [232, 96, 90], red), [92, 124, 230], blue);
   return `rgb(${c.map(Math.round).join(" ")})`;
@@ -1970,24 +1973,38 @@ export function mouthShape(pose: Pose, gazeX: number, gazeY: number): string {
   return `M${f(x - w / 2)} ${f(y)}Q${f(x)} ${f(top)} ${f(x + w / 2)} ${f(y)}Q${f(x)} ${f(bottom)} ${f(x - w / 2)} ${f(y)}Z`;
 }
 
+/** Mote's special looks (Settings' Mode): plain Mote, a jack-o'-lantern,
+ * or a snowman. */
+export type Look = "neutral" | "jack" | "snow";
+
 /** Jack-o'-lantern mode: how much wider the eyes are (triangles are wider
- * than tall), and the carved mouth's place, size, opening and teeth. */
-export const JACK = { wide: 1.45, cheek: 0.55 };
+ * than tall), how much less the cheeks and a wink squeeze them, and the
+ * carved mouth's place, size, opening and teeth. */
+export const JACK = { wide: 1.45, cheek: 0.45, curve: 0.45, wink: 0.5 };
 const JACK_MOUTH = { y: 42, w: 86, open: 26, tooth: 10, toothW: 15 };
+
+/** The pose the triangle eyes are cut from: wider, and less squeezed by the
+ * cheeks, with flatter cuts (a triangle is narrow at the top, so a full,
+ * curved smile would leave only a hooked tip). */
+export function jackLook(pose: Pose): Pose {
+  return {
+    ...pose,
+    wide: pose.wide * JACK.wide,
+    cheek: pose.cheek * JACK.cheek,
+    cheekCurve: pose.cheekCurve * JACK.curve,
+    winkL: pose.winkL * JACK.wink,
+    winkR: pose.winkR * JACK.wink,
+  };
+}
 
 /**
  * A jack-o'-lantern eye: a triangle, point up, filling the eye's box. The
  * sides bow out a touch and the soft filter rounds the corners, so it reads
  * carved but cartoony. The same brow and cheek cuts as ever shape it, so it
- * still scowls, smiles and blinks.
+ * still scowls, smiles and blinks. As it gets short (a blink, a squint) the
+ * point flattens out, so a closed eye is a carved slit as wide as the eye,
+ * not a sliver that the soft edges wear away to a dot.
  */
-/** The pose the triangle eyes are cut from: wider, and less squeezed by the
- * cheeks (a triangle is narrow at the top, so a full smile would leave only
- * its tip). */
-export function jackLook(pose: Pose): Pose {
-  return { ...pose, wide: pose.wide * JACK.wide, cheek: pose.cheek * JACK.cheek };
-}
-
 export function jackEye(p: EyeShape["pill"]): string {
   const left = p.x;
   const right = p.x + p.w;
@@ -1995,8 +2012,11 @@ export function jackEye(p: EyeShape["pill"]): string {
   const bottom = p.y + p.h;
   const cx = p.x + p.w / 2;
   const mid = (top + bottom) / 2;
-  const bow = p.w * 0.06;
-  return `M${f(left)} ${f(bottom)}Q${f((left + cx) / 2 - bow)} ${f(mid)} ${f(cx)} ${f(top)}Q${f((cx + right) / 2 + bow)} ${f(mid)} ${f(right)} ${f(bottom)}Q${f(cx)} ${f(bottom + p.h * 0.06)} ${f(left)} ${f(bottom)}Z`;
+  const flat = clamp((26 - p.h) / 18, 0, 1);
+  const half = (p.w / 2) * 0.82 * flat;
+  const bow = p.w * 0.06 * (1 - flat);
+  const lip = p.h * 0.06 * (1 - flat);
+  return `M${f(left)} ${f(bottom)}Q${f((left + cx - half) / 2 - bow)} ${f(mid)} ${f(cx - half)} ${f(top)}L${f(cx + half)} ${f(top)}Q${f((cx + half + right) / 2 + bow)} ${f(mid)} ${f(right)} ${f(bottom)}Q${f(cx)} ${f(bottom + lip)} ${f(left)} ${f(bottom)}Z`;
 }
 
 /**
@@ -2055,6 +2075,118 @@ export function jackMouthShape(pose: Pose, gazeX: number, gazeY: number, talk = 
   return `M${pts.map(([px, py]) => `${f(px)} ${f(py)}`).join("L")}Z`;
 }
 
+/** Snowman mode: smaller eyes (lumps of coal), the coal smile's place and
+ * size, and the carrot nose. */
+export const SNOW = { wide: 0.82, open: 0.55 };
+const SNOW_MOUTH = { y: 42, w: 66, dot: 4.4, curve: 15 };
+/** Where each bit of coal goes in the "o" (degrees, five evenly round it). */
+const RING = [180, 252, 108, 324, 36];
+
+/** The pose the coal eyes are cut from: a small, roundish box. */
+export function snowLook(pose: Pose): Pose {
+  return { ...pose, wide: pose.wide * SNOW.wide, open: pose.open * SNOW.open };
+}
+
+/** How lumpy each lump of coal is, all the way round (the two eyes differ). */
+const LUMPS: Record<"l" | "r", number[]> = {
+  l: [1, 0.93, 1.04, 0.95, 1.02, 0.9, 1.05, 0.96],
+  r: [0.95, 1.04, 0.92, 1.03, 0.97, 1.05, 0.91, 1.01],
+};
+
+/**
+ * A lump of coal for an eye: a slightly lumpy blob filling the eye's box, so
+ * it squashes for a blink and the brow and cheek cuts still shape it.
+ */
+export function coalEye(p: EyeShape["pill"], side: "l" | "r"): string {
+  const cx = p.x + p.w / 2;
+  const cy = p.y + p.h / 2;
+  const n = LUMPS[side].length;
+  const pts = LUMPS[side].map((k, i) => {
+    const a = (i / n) * Math.PI * 2;
+    return [cx + Math.cos(a) * (p.w / 2) * k, cy + Math.sin(a) * (p.h / 2) * k];
+  });
+  // Smooth curves through the midpoints, with the points as handles.
+  const mid = (a: number[], b: number[]) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const start = mid(pts[n - 1], pts[0]);
+  let d = `M${f(start[0])} ${f(start[1])}`;
+  for (let i = 0; i < n; i++) {
+    const m = mid(pts[i], pts[(i + 1) % n]);
+    d += `Q${f(pts[i][0])} ${f(pts[i][1])} ${f(m[0])} ${f(m[1])}`;
+  }
+  return `${d}Z`;
+}
+
+/**
+ * The snowman's mouth: five little bits of coal in a smile. Like the little
+ * mouth it reads the face: a wider, deeper smile when happy, a dip when glum,
+ * and the bits gather into a small "o" when surprised.
+ */
+export function coalMouthShape(pose: Pose, gazeX: number, gazeY: number): string {
+  const smile = clamp(
+    MOUTH.rest + 0.3 + 1.5 * pose.cheek + 0.7 * pose.cheekCurve - 1.3 * Math.abs(pose.lidTilt),
+    -1,
+    1,
+  );
+  const o = clamp((pose.open - 1.08) / 0.2, 0, 1);
+  const x = GEO.cx + gazeX * 8;
+  const y = GEO.eyeY + SNOW_MOUTH.y + gazeY * 5;
+  const w = SNOW_MOUTH.w * (1 + 0.12 * smile);
+  const r = SNOW_MOUTH.dot;
+  return [0, 1, 2, 3, 4]
+    .map((i) => {
+      const t = i / 4;
+      // Along the smile...
+      const ax = x - w / 2 + w * t;
+      const ay = y - smile * SNOW_MOUTH.curve * (Math.abs(2 * t - 1) ** 2 - 0.5);
+      // ...or round a little "o".
+      // (Each bit goes to the place on the ring nearest its place in the
+      // smile, left to right, so they never bunch up on the way.)
+      const a = (RING[i] * Math.PI) / 180;
+      const ox = x + Math.cos(a) * 15;
+      const oy = y + 9 + Math.sin(a) * 15;
+      const cx = lerp(ax, ox, o);
+      const cy = lerp(ay, oy, o);
+      return `M${f(cx - r)} ${f(cy)}a${f(r)} ${f(r)} 0 1 0 ${f(r * 2)} 0a${f(r)} ${f(r)} 0 1 0 ${f(-r * 2)} 0`;
+    })
+    .join("");
+}
+
+/**
+ * The carrot nose: a little cone between the eyes and the mouth. It points
+ * the way Mote looks (a touch to the right when looking straight ahead, as
+ * snowmen's noses do), and seen head-on it's just its round end.
+ */
+export function noseShape(gazeX: number, gazeY: number): string {
+  const bx = GEO.cx + gazeX * 12;
+  const by = GEO.eyeY + 22 + gazeY * 6;
+  const turn = clamp(0.75 + gazeX * 2, -1, 1);
+  const len = 10 + 22 * Math.abs(turn);
+  const r = 7;
+  const tipX = bx + len * turn;
+  const tipY = by + 4;
+  const side = turn >= 0 ? 0 : 1;
+  return `M${f(bx)} ${f(by - r)}Q${f(bx + len * turn * 0.55)} ${f(by - r * 0.7)} ${f(tipX)} ${f(tipY)}Q${f(bx + len * turn * 0.55)} ${f(by + r * 0.9)} ${f(bx)} ${f(by + r)}A${r} ${r} 0 0 ${side} ${f(bx)} ${f(by - r)}Z`;
+}
+
+/** The pose each look's eyes are cut from. */
+export function lookPose(look: Look, pose: Pose): Pose {
+  return look === "jack" ? jackLook(pose) : look === "snow" ? snowLook(pose) : pose;
+}
+
+/** Each look's eye, in place of the pill (null: the pill itself). */
+export function lookEye(look: Look, p: EyeShape["pill"], side: "l" | "r"): string | null {
+  return look === "jack" ? jackEye(p) : look === "snow" ? coalEye(p, side) : null;
+}
+
+/** Each look's mouth. `talk` (0..1) works a jack-o'-lantern's jaw. */
+export function lookMouth(look: Look, pose: Pose, gazeX: number, gazeY: number, talk = 0): string {
+  return look === "jack"
+    ? jackMouthShape(pose, gazeX, gazeY, talk)
+    : look === "snow"
+      ? coalMouthShape(pose, gazeX, gazeY)
+      : mouthShape(pose, gazeX, gazeY);
+}
+
 /** The line id of everything said in a conversation. */
 export const TALK = "talk";
 
@@ -2078,8 +2210,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     shadow: q<SVGEllipseElement>(svg, "shadow"),
     pillL: q<SVGRectElement>(svg, "pill-l"),
     pillR: q<SVGRectElement>(svg, "pill-r"),
-    triL: q<SVGPathElement>(svg, "tri-l"),
-    triR: q<SVGPathElement>(svg, "tri-r"),
+    ownL: q<SVGPathElement>(svg, "own-l"),
+    ownR: q<SVGPathElement>(svg, "own-r"),
+    nose: q<SVGPathElement>(svg, "nose"),
     lidL: q<SVGPathElement>(svg, "lid-l"),
     lidR: q<SVGPathElement>(svg, "lid-r"),
     cheekL: q<SVGPathElement>(svg, "cheek-l"),
@@ -2124,7 +2257,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     dark: false,
     glint: false,
     moodShape: true,
-    jack: false,
+    look: "neutral",
   };
   const debug = {
     timeScale: 1,
@@ -3156,8 +3289,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     noticeYou();
     touch();
     pokes.push(now);
-    // (A poke is a double-click, so three close together is a lot.)
-    while (pokes.length && now - pokes[0] > 3000) pokes.shift();
+    while (pokes.length && now - pokes[0] > 2200) pokes.shift();
     if (mood === "sleep" || mood === "doze" || (mood === "yawn" && dozeNext)) {
       // Woken up: well rested, bright and breezy; still tired, groggy (and a
       // little put out about it).
@@ -3171,7 +3303,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       // Busy with a job: a quick happy look up, then back to work.
       react("poke-busy");
       return;
-    } else if (pokes.length >= 3 && mood !== "frustrate") {
+    } else if (pokes.length >= 4 && mood !== "frustrate") {
       pokes.length = 0;
       // Too many pokes: a moment of annoyance (it passes straight away).
       react("poke-spam");
@@ -3667,8 +3799,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     // Dizzy eyes orbit in opposite directions.
     const spin = (clock / 1000) * 14;
     const orbit = 0.5 * swirlNow;
-    // Jack-o'-lantern eyes are triangles, wider than tall.
-    const look = options.jack ? jackLook(view) : view;
+    // A special look's eyes (triangles, lumps of coal) are their own shape.
+    const look = lookPose(options.look, view);
     const l = eyeShape("l", look, gaze.x, gaze.y, blink, {
       x: Math.cos(spin) * orbit,
       y: Math.sin(spin) * orbit,
@@ -3679,13 +3811,14 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     });
     setPill(parts.pillL, l.pill);
     setPill(parts.pillR, r.pill);
-    for (const [pill, tri, shape] of [
-      [parts.pillL, parts.triL, l],
-      [parts.pillR, parts.triR, r],
+    for (const [pill, own, shape, side] of [
+      [parts.pillL, parts.ownL, l, "l"],
+      [parts.pillR, parts.ownR, r, "r"],
     ] as const) {
-      if (pill) pill.style.display = options.jack ? "none" : "";
-      if (tri) tri.style.display = options.jack ? "" : "none";
-      if (options.jack) tri?.setAttribute("d", jackEye(shape.pill));
+      const d = lookEye(options.look, shape.pill, side);
+      if (pill) pill.style.display = d ? "none" : "";
+      if (own) own.style.display = d ? "" : "none";
+      if (d) own?.setAttribute("d", d);
     }
     parts.lidL?.setAttribute("d", l.lid);
     parts.lidR?.setAttribute("d", r.lid);
@@ -3697,20 +3830,23 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       parts.browR?.setAttribute("d", r.brow);
     }
     if (parts.mouth) parts.mouth.style.display = options.mouth ? "" : "none";
-    parts.mouth?.classList.toggle("is-jack", options.jack);
-    if (options.mouth && options.jack) {
-      // Working the jaw while the words come out.
+    parts.mouth?.classList.toggle("is-jack", options.look === "jack");
+    parts.mouth?.classList.toggle("is-snow", options.look === "snow");
+    if (options.mouth) {
+      // A jack-o'-lantern works its jaw while the words come out.
       const said = bubble ? clock - bubble.born : Infinity;
       const talking = !!bubble && said < 300 + bubble.text.length * 32 && !reduced;
       const talk = talking ? 0.5 + 0.5 * Math.sin((said / 1000) * Math.PI * 2 * 4) : 0;
-      parts.mouth?.setAttribute("d", jackMouthShape(view, gaze.x, gaze.y, talk));
-    } else if (options.mouth) parts.mouth?.setAttribute("d", mouthShape(view, gaze.x, gaze.y));
+      parts.mouth?.setAttribute("d", lookMouth(options.look, view, gaze.x, gaze.y, talk));
+    }
+    if (parts.nose) parts.nose.style.display = options.look === "snow" ? "" : "none";
+    if (options.look === "snow") parts.nose?.setAttribute("d", noseShape(gaze.x, gaze.y));
     if (parts.glints) parts.glints.style.display = options.glint ? "" : "none";
     if (options.glint) {
       parts.glints?.setAttribute("transform", eyeShift);
-      const fill = glintColor(feel, options.dark, options.jack);
-      setGlint(parts.glintL, glintAt(l.pill, gaze.x, gaze.y, options.jack), fill);
-      setGlint(parts.glintR, glintAt(r.pill, gaze.x, gaze.y, options.jack), fill);
+      const fill = glintColor(feel, options.dark, options.look);
+      setGlint(parts.glintL, glintAt(l.pill, gaze.x, gaze.y, options.look), fill);
+      setGlint(parts.glintR, glintAt(r.pill, gaze.x, gaze.y, options.look), fill);
     }
 
     // The pawn, the controller, the Minecraft block and creeper.

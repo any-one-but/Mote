@@ -448,7 +448,7 @@ export const LINES: Line[] = [
     say: (c) => [
       ...(c.games
         ? [
-            "Chess? Checkers? Tic-tac-toe? Click me and tell me which.",
+            "Chess? Checkers? Tic-tac-toe? Double-click me and tell me which.",
             "I’ve been practicing my checkers. Just saying.",
           ]
         : []),
@@ -720,7 +720,7 @@ export const LINES: Line[] = [
       "I’m getting hungry… is there a snack?",
       "My tummy’s rumbling. A snack, maybe?",
       "Could I have something to eat?",
-      "Snack? Click me and say “snack”. Please?",
+      "Snack? Double-click me and say “snack”. Please?",
     ],
   },
   {
@@ -729,7 +729,7 @@ export const LINES: Line[] = [
     kind: "flavor",
     when: never,
     cooldown: 10 * 60_000,
-    say: ["I’m so sleepy… could you tuck me in?", "*yawn* I need a nap. Click me and say “bed”?"],
+    say: ["I’m so sleepy… could you tuck me in?", "*yawn* I need a nap. Double-click me and say “bed”?"],
   },
   {
     id: "play-with-me",
@@ -737,7 +737,7 @@ export const LINES: Line[] = [
     kind: "flavor",
     when: never,
     cooldown: 10 * 60_000,
-    say: ["Want to play something? Click me and say “game”.", "It’s been quiet. A game, maybe?", "Could we play something? Anything."],
+    say: ["Want to play something? Double-click me and say “game”.", "It’s been quiet. A game, maybe?", "Could we play something? Anything."],
   },
   {
     id: "move-me",

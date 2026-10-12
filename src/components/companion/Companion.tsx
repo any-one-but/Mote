@@ -17,7 +17,7 @@ import {
   introLine,
   isGame,
   isSnack,
-  placeholder,
+  PLACEHOLDERS,
   say,
   understand,
   type IntentId,
@@ -150,7 +150,7 @@ export function Companion() {
   const { energy, pace, friendly } = settings;
   const dark = useDark(settings.theme);
   useMode(settings.mode);
-  const jack = settings.mode === "jack";
+
   // The diet tracker is a keyed feature (see features.ts): off, Mote keeps no
   // count and says nothing about calories, and its button and card are gone.
   const [features] = useFeatures();
@@ -228,13 +228,13 @@ export function Companion() {
     dark,
     glint,
     moodShape,
-    jack,
+    look: settings.mode,
   };
   const optionsNow = useRef(engineOptions);
   optionsNow.current = engineOptions;
   useEffect(() => {
     engineRef.current?.configure(optionsNow.current);
-  }, [energy, calorieGoal, friendly, hunger, sleepNeed, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape, jack]);
+  }, [energy, calorieGoal, friendly, hunger, sleepNeed, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape, settings.mode]);
 
   useEffect(
     () =>
@@ -483,7 +483,7 @@ export function Companion() {
     hour: new Date().getHours(),
   });
   const talk = (t: Talk) => engineRef.current?.talk(t);
-  const hint = () => placeholder(ready);
+  const hint = () => say(PLACEHOLDERS);
   const question = (text: string) => talk({ kind: "talk", text, placeholder: hint() });
   const remark = (lines: readonly string[]) => talk({ kind: "flavor", text: say(lines) });
   const offer = (text: string, ids: IntentId[], labels: Partial<Record<IntentId, string>>) => {
@@ -638,36 +638,35 @@ export function Companion() {
     question(say(AFTER_NO));
   };
 
-  // A click on Mote does what fits: wakes them if they're asleep, waits if
-  // they're busy with a job, and otherwise starts a conversation. Two clicks
-  // close together are a poke instead (a happy hop), so a click waits a beat
-  // to see if another follows.
-  const clickTimer = useRef<number | null>(null);
-  const clicked = () => {
+  // A click on Mote is a poke: a happy hop, or waking them up, or a glance
+  // up from a job. A second click close behind it (a double-click) starts a
+  // conversation, unless the first one woke them: they need a moment.
+  const lastTap = useRef<{ at: number; woke: boolean } | null>(null);
+  const talkNow = () => {
     const engine = engineRef.current;
-    if (!engine) return;
-    if (engine.drowsy()) return engine.poke();
+    if (!engine || engine.drowsy()) return;
     if (helperBusy.current) return engine.say("busy");
     putAway();
     engine.react("talk");
     startTalking();
   };
   const tapped = () => {
-    if (clickTimer.current !== null) {
-      window.clearTimeout(clickTimer.current);
-      clickTimer.current = null;
-      engineRef.current?.poke();
+    const engine = engineRef.current;
+    if (!engine) return;
+    const now = performance.now();
+    const last = lastTap.current;
+    if (last && now - last.at < 350) {
+      lastTap.current = null;
+      if (!last.woke) talkNow();
       return;
     }
-    clickTimer.current = window.setTimeout(() => {
-      clickTimer.current = null;
-      clicked();
-    }, 260);
+    lastTap.current = { at: now, woke: engine.drowsy() };
+    engine.poke();
   };
 
-  // A click on Mote's body starts a conversation and a double-click is a
-  // poke; pressing and dragging across it is petting. Presses on the empty
-  // window around Mote do nothing.
+  // A click on Mote's body is a poke and a double-click starts a
+  // conversation; pressing and dragging across it is petting. Presses on the
+  // empty window around Mote do nothing.
   return (
     <div
       className={`stage${eyesOnly ? " is-eyes" : ""}${helping ? " is-helping" : ""}${logging ? " is-logging" : ""}${asking && !helping ? " is-asking" : ""}${playing && !helping ? " is-playing" : ""}`}
@@ -723,8 +722,8 @@ export function Companion() {
           press.current = null;
         }}
         onClick={(e) => {
-          // Enter or Space on the focused window counts as a click too.
-          if (e.detail === 0) clicked();
+          // Enter or Space on the focused window starts a conversation too.
+          if (e.detail === 0) talkNow();
         }}
       >
         <Face

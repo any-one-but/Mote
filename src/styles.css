@@ -70,6 +70,25 @@
   --mote-eyes: #f5ad6e;
 }
 
+/* Snowman mode: snow white with a soft outline (no texture), and coal for
+   the eyes and mouth. Snow stays snow in dark mode, a touch dimmer. */
+:root[data-mode="snow"] {
+  --mote-face: #fbfdff;
+  --mote-eyes: #2a2a30;
+  --mote-outline: #c6d1de;
+}
+
+:root[data-mode="snow"][data-theme="dark"] {
+  --mote-face: #e9eff6;
+  --mote-eyes: #222227;
+  --mote-outline: #9eaec1;
+}
+
+:root[data-mode="snow"] .skin {
+  stroke: var(--mote-outline);
+  stroke-width: 3;
+}
+
 @layer base {
   button:not(:disabled),
   [role="button"]:not(:disabled) {
@@ -135,9 +154,19 @@
   stroke-linecap: round;
 }
 
-/* The carved mouth keeps a thin edge, so its teeth stay chunky. */
-.mouth.is-jack {
+/* The carved mouth keeps a thin edge, so its teeth stay chunky; the bits
+   of coal, a thin one too, so they stay apart. */
+.mouth.is-jack,
+.mouth.is-snow {
   stroke-width: 3;
+}
+
+/* Snowman mode's carrot nose. */
+.nose {
+  fill: #f08a3c;
+  stroke: #d5702c;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
 }
 
 .brow {

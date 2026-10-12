@@ -91,6 +91,9 @@ export function Face({ onEngine, onMood, onEvent, onSpeech, onOpenLink, onSugges
           <path data-part="mouth" className="mouth" style={{ display: "none" }} />
         </g>
 
+        {/* Snowman mode's carrot nose. */}
+        <path data-part="nose" className="nose" style={{ display: "none" }} />
+
         {/* Reflection dots (an experimental feature). Masked by the eyes, so
             lids and blinks cover them; placed and tinted by the engine. */}
         <g data-part="glints" style={{ display: "none" }}>
@@ -181,8 +184,8 @@ function Eye({ side }: { side: "l" | "r" }) {
         height={pill.h}
         rx={pill.r}
       />
-      {/* Jack-o'-lantern mode's triangle eye, in place of the pill. */}
-      <path data-part={`tri-${side}`} fill="white" style={{ display: "none" }} />
+      {/* A special look's own eye (a triangle, a lump of coal), in place of the pill. */}
+      <path data-part={`own-${side}`} fill="white" style={{ display: "none" }} />
       <path data-part={`lid-${side}`} fill="black" d={shape.lid} />
       <path data-part={`cheek-${side}`} fill="black" d={shape.cheek} />
     </mask>

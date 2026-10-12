@@ -58,6 +58,20 @@
   fill: #f5ad6e;
 }
 
+/* Snowman: snow white with a soft outline and coal eyes, dark mode or not. */
+:root[data-mode="snow"] {
+  --skin: #fbfdff;
+}
+
+:root[data-mode="snow"] .mini-skin {
+  stroke: #c6d1de;
+  stroke-width: 1.5;
+}
+
+:root[data-mode="snow"] .mini-eyes {
+  fill: #2a2a30;
+}
+
 :root[data-theme="dark"] .mini-shadow {
   fill: #000;
   opacity: 0.25;

@@ -859,19 +859,9 @@ export function introLine(m: Mind): string {
   return pick(lists.length > 1 && Math.random() < 0.7 ? lists[1 + Math.floor(Math.random() * (lists.length - 1))] : lists[0]);
 }
 
-/** Hints in the typing box: a few things Mote can do right now. */
-export function placeholder(known: ReadonlySet<IntentId>): string {
-  const ideas = [
-    known.has("games") && "a game",
-    known.has("chess") && "chess",
-    known.has("diet") && "calories",
-    known.has("gallery") && "the gallery",
-    known.has("feed") && "a snack",
-    known.has("bed") && "bedtime",
-    known.has("links") && "a video",
-  ].filter((x): x is string => !!x);
-  return ideas.length ? `${ideas.slice(0, 3).join(", ")}…` : "Tell me…";
-}
+/** The hint in the typing box: plain, with no particular thing to do in it
+ * (what's on offer is for Mote to show when asked). */
+export const PLACEHOLDERS = ["Type here…", "Tell me…", "Type it however you like…", "Say it your way…"];
 
 export const RETRY = [
   "Hmm, I didn’t get that. Could you put it another way?",
@@ -952,7 +942,7 @@ export const LINES = {
     "Pets are done with your pointer: press and stroke across my face.",
     "Ooh, yes. Press and stroke across my face, nice and slow.",
   ],
-  cancel: ["Okay! I’ll be here.", "No problem.", "Okay. Click me if you need me.", "Alright!"],
+  cancel: ["Okay! I’ll be here.", "No problem.", "Okay. Double-click me if you need me.", "Alright!"],
   off: {
     games: ["The games are put away right now.", "No games right now. They’re switched off."],
     files: ["I’m not helping with files right now. That’s switched off."],

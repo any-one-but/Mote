@@ -78,8 +78,8 @@ Settings lists your saved links with their history, and you can remove any.
 ## Mote themself
 
 Mote looks at your pointer, blinks, glances around, thinks, gets grumpy, gets
-surprised, and hops happily when poked (double-clicked right on the face; a
-single click starts a conversation, see "Talking to Mote"). Three quick pokes
+surprised, and hops happily when poked (clicked right on the face; a
+double-click starts a conversation, see "Talking to Mote"). Four quick pokes
 in a row is too many, and Mote gets annoyed.
 
 - **Petting:** press and keep stroking across Mote's face for a second or so.
@@ -91,7 +91,7 @@ in a row is too many, and Mote gets annoyed.
   just naps after a few quiet minutes left alone): Mote gets tired while awake (faster late at night and while
   playing). Once tired, left be for a few minutes with nothing interesting
   going on, they yawn, doze and fall asleep, and they sleep until rested.
-  Exhausted, they nod off even with things going on. A click wakes them
+  Exhausted, they nod off even with things going on. A click (a poke) wakes them
   (groggy, and a little put out, if they're still tired), and so does
   something starting to play (with a jolt) or something dropped on them.
   Petting a sleeping Mote gets a sleepy purr.
@@ -170,10 +170,10 @@ doesn't come back within eight hours, and none come while Mote is cross
 
 ## Talking to Mote
 
-Almost everything you do with Mote starts with a click on them. Mote asks
-what you'd like to do (the words change with their mood: bright when happy,
-a yawn when sleepy, a little short when cross), with a box to type in. Type
-it however you like, and press Return:
+Almost everything you do with Mote starts with a double-click on them. Mote
+asks what you'd like to do (the words change with their mood: bright when happy,
+a yawn when sleepy, a little short when cross), with a box to type in (its hint never names anything in particular). Type it
+however you like, and press Return:
 
 - "I want to play a game", "game", "I'm bored" — the games, as a list to
   pick from (click one, type its name, or type "2")
@@ -207,10 +207,11 @@ so new features join the thing they belong to rather than competing for
 words. Anything locked behind a key is as if Mote had never heard of it;
 anything switched off, Mote says so.
 
-A click always works, whatever's open: a game (it's saved for next time),
-the calorie card or the passcode pad go away and a new conversation starts.
-A click wakes a sleeping Mote instead (you can talk once they're up), and
-while Mote is busy with a file job, they say so. Leaving a question
+A double-click always works, whatever's open: a game (it's saved for next
+time), the calorie card or the passcode pad go away and a new conversation
+starts. The first click of it is a poke as usual, so it gets a little hop;
+if that click woke Mote up, they need a moment, and you can talk once
+they're up. While Mote is busy with a file job, they say so. Leaving a question
 unanswered is fine: it goes away on its own, and Mote doesn't mind. Press
 Escape to close it.
 
@@ -232,7 +233,7 @@ experimental features"): until it's unlocked and on, Mote doesn't know the
 word "calories", there's no Calories section in Settings, and Mote keeps no
 count and says nothing about it.
 
-Set a **daily goal** in Settings (0 turns this off). Click Mote and say
+Set a **daily goal** in Settings (0 turns this off). Double-click Mote and say
 "calories" (or "log my lunch", "track food"…): type an amount and press **+** (or Return) to add it,
 or **−** to take it away. Click the big number to type today's total outright.
 
@@ -274,7 +275,7 @@ The thinking is in `src/lib/close-game.ts`.
 
 ## Checkers
 
-Click Mote and say "checkers" (or pick it from the games), then **Play** (with Levels and
+Double-click Mote and say "checkers" (or pick it from the games), then **Play** (with Levels and
 learning switched on, pick a level first: **Easy**: Mote is still learning;
 **Normal**: a fair game; **Hard**: Mote looks as far ahead as they can in
 about a second and always plays their best). Mote's window grows to fit the
@@ -315,7 +316,7 @@ says how many mistakes you made.
 
 ## Chess
 
-Click Mote and say "chess". Same board, same
+Double-click Mote and say "chess". Same board, same
 record-keeping and saving as checkers. You're white and go first: click a
 piece and the dots show where it can go (rings mean a capture). All the rules
 are there: castling (move the king two squares), en passant, promotion (you
@@ -337,7 +338,7 @@ good-sport smile at the end.
 
 ## Tic-tac-toe
 
-Click Mote and say "tic-tac-toe". Same record-keeping
+Double-click Mote and say "tic-tac-toe". Same record-keeping
 and saving as the other games. You're X; you and Mote take turns going first.
 Your X draws itself in ink; Mote's marks are tiny Motes that blink and glance
 at your latest move. With Levels and learning on, **Easy** Mote mostly plays wherever (though often grabs
@@ -348,7 +349,7 @@ to win at once.
 
 ## Liar's Dice
 
-Click Mote and say "liar's dice". It never ends: play a round
+Double-click Mote and say "liar's dice". It never ends: play a round
 or a hundred, and close it whenever you like (a round in progress is kept,
 dice and all, for next time).
 
@@ -376,7 +377,7 @@ either way). Rounds won and lost nudge their mood a little.
 ## Local Gallery
 
 Mote carries Local Gallery, the Mac app from the Local_Gallery repo, inside
-`Mote.app` and opens it when you ask (click Mote and say "gallery"; with Local Gallery
+`Mote.app` and opens it when you ask (double-click Mote and say "gallery"; with Local Gallery
 unlocked by its own Feature Key, and on). It's the real app, built from the same code with the same
 app ID and name, so it uses the same library, folders, settings and
 thumbnails as the Local Gallery you build from its own repo. Mote doesn't run
@@ -463,7 +464,13 @@ standing up, soft and cartoony. It follows the face like the little mouth
 does (corners up when happy, a droop when glum, taller when surprised), and
 works its jaw while Mote talks. In dark mode it's inverted like everything
 else: a dark pumpkin with glowing orange eyes and grin. The expression sheet
-shows it with ?jack=1.
+shows it with ?jack=1. **Snowman** (for winter) makes Mote snow white with a
+soft blue-grey outline (no texture), turns the eyes into lumps of coal (they
+still squint, scowl and blink), and gives them a little carrot nose that
+points the way they're looking (seen head-on, it's just its round end). With
+the mouth on, it's a smile of five bits of coal that follows the face and
+gathers into a little "o" when surprised. Snow stays snow in dark mode, just
+a touch dimmer. The expression sheet shows it with ?snow=1.
 
 Text in the app calls Mote "Mote", or "they/them" when a pronoun is needed.
 
@@ -512,7 +519,7 @@ feature that's switched off (Links, Gallery) isn't shown.
   - **Goodnight Mote**: Mote getting tired and needing sleep (sleepy and
     exhausted moods, asking for bed, tucking them in by asking, waking once rested).
     Off, Mote stays rested and simply naps after a few quiet minutes left
-    alone, until clicked.
+    alone, until poked.
   - **Eyebrows**: two little soft eyebrows above Mote's eyes. They have no
     moves of their own: they follow the brow cut that every expression
     already shapes, so they come down and slant in when Mote is cross, tilt up
