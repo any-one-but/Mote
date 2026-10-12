@@ -125,7 +125,7 @@ smile, a scowl, a droop, heavy lids, worried brows), in what they do on their
 own, in how much they chat and what about, and they ask for what they need:
 a snack, bedtime, or a game.
 
-**Hunger:** fullness goes down while Mote is awake (about four hours from
+**Hunger** (a keyed feature, see Feature Keys): fullness goes down while Mote is awake (about four hours from
 full to empty). Feed them from the snack bowl: a cookie, some berries, or a
 proper meal. Full, they politely say no.
 
@@ -160,7 +160,7 @@ Along the bottom of Mote's window (quiet until your pointer is over it):
 
 - **Toy chest:** the games (checkers, chess and tic-tac-toe).
 - **Carrot:** log calories, or see the days (only with the diet tracker unlocked and on).
-- **Snack bowl:** feed Mote.
+- **Snack bowl:** feed Mote (only with "Mote eats too" unlocked and on).
 - **Bed:** tuck Mote in (if they're tired enough). While they sleep it turns
   into a sun, to wake them.
 
@@ -290,6 +290,9 @@ each key is kept in the app, never the key itself.
 
 - **Diet tracker**: calorie logging, the Days window, the carrot button, and
   everything Mote says about food you eat.
+- **Mote eats too**: Mote getting hungry, the snack bowl to feed them, and
+  hunger's effect on their mood, face and what they say. Off, Mote simply
+  stays full.
 
 ## Install Mote
 
@@ -297,7 +300,7 @@ The current Mac app is already built and kept in the project. Quit Mote if it
 is open, then drag the new one into Applications and replace the old one.
 
 - `src-tauri/target/release/bundle/macos/Mote.app`
-- `src-tauri/target/release/bundle/dmg/Mote_0.7.1_aarch64.dmg` (an installer you can share)
+- `src-tauri/target/release/bundle/dmg/Mote_0.7.2_aarch64.dmg` (an installer you can share)
 
 To build a fresh copy later:
 
