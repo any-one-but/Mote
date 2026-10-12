@@ -8,6 +8,7 @@ import {
   setFloatOnTop,
   showDebugWindow,
 } from "@/lib/companion/desktop";
+import { featureOn, readFeatures } from "@/lib/companion/features";
 import { readSettings, useSettings } from "@/lib/companion/settings";
 import "../src/styles.css";
 import "./desktop.css";
@@ -20,7 +21,8 @@ function App() {
   useEffect(() => setFloatOnTop(settings.floatOnTop), [settings.floatOnTop]);
 
   useEffect(() => {
-    if (readSettings().debug) showDebugWindow(true);
+    // Open again if it was open last time (and it's still unlocked).
+    if (readSettings().debug && featureOn(readFeatures(), "debug")) showDebugWindow(true);
     return onDebugWindowClosed(() => update({ debug: false }));
   }, [update]);
 

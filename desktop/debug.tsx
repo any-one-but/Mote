@@ -63,6 +63,7 @@ type Ctx = {
 };
 
 const TABS: Array<{ id: string; label: string; render: (ctx: Ctx) => ReactNode }> = [
+  { id: "features", label: "Features", render: () => <FeaturesTab /> },
   { id: "moods", label: "Moods", render: (ctx) => <MoodsTab {...ctx} /> },
   { id: "mind", label: "Mind", render: (ctx) => <MindTab {...ctx} /> },
   { id: "speech", label: "Speech", render: (ctx) => <SpeechTab {...ctx} /> },
@@ -255,19 +256,21 @@ function DebugWindow() {
         </div>
       </header>
 
-      <Segmented
-        label="Debug section"
-        options={TABS.map((t) => ({ value: t.id, label: t.label }))}
-        value={current.id}
-        onChange={(id) => {
-          setTab(id);
-          try {
-            localStorage.setItem(TAB_KEY, id);
-          } catch {
-            // Fine: the tab just won't be remembered.
-          }
-        }}
-      />
+      <div className="debug-tabs">
+        <Segmented
+          label="Debug section"
+          options={TABS.map((t) => ({ value: t.id, label: t.label }))}
+          value={current.id}
+          onChange={(id) => {
+            setTab(id);
+            try {
+              localStorage.setItem(TAB_KEY, id);
+            } catch {
+              // Fine: the tab just won't be remembered.
+            }
+          }}
+        />
+      </div>
 
       {current.render(ctx)}
     </Page>
@@ -324,10 +327,24 @@ function MoodsTab({ snap, debug, command }: Ctx) {
 const FEELING_NAME: Record<Feeling, string> = { joy: "Joy", peace: "Satisfied" };
 
 /** Reactions that are about hunger, hidden while "Mote eats too" is off. */
-const HUNGER_REACTIONS = new Set(["fed", "fed-hungry", "fed-full", "mind-hunger", "mood-hungry", "mood-starving"]);
+const HUNGER_REACTIONS = new Set([
+  "fed",
+  "fed-hungry",
+  "fed-full",
+  "mind-hunger",
+  "mood-hungry",
+  "mood-starving",
+]);
 
 /** Reactions that are about tiredness, hidden while "Goodnight Mote" is off. */
-const SLEEP_REACTIONS = new Set(["mind-tired", "mind-sleep", "mood-sleepy", "mood-exhausted", "tucked-in", "tuck-not-sleepy"]);
+const SLEEP_REACTIONS = new Set([
+  "mind-tired",
+  "mind-sleep",
+  "mood-sleepy",
+  "mood-exhausted",
+  "tucked-in",
+  "tuck-not-sleepy",
+]);
 
 const seconds = (ms: number) => `${Math.max(0, Math.ceil(ms / 1000))}s`;
 
@@ -337,7 +354,12 @@ function MoodChart({ joy, peace, friendly }: { joy: number; peace: number; frien
   const at = (v: number) => ((v + 10) / 20) * S;
   const floor = at(FRIENDLY_FLOOR);
   return (
-    <svg className="mood-chart" viewBox={`-72 -22 ${S + 128} ${S + 44}`} role="img" aria-label="Mood chart">
+    <svg
+      className="mood-chart"
+      viewBox={`-72 -22 ${S + 128} ${S + 44}`}
+      role="img"
+      aria-label="Mood chart"
+    >
       <rect x="0" y="0" width={S / 2} height={S / 2} className="q q-grumpy" />
       <rect x={S / 2} y="0" width={S / 2} height={S / 2} className="q q-happy" />
       <rect x="0" y={S / 2} width={S / 2} height={S / 2} className="q q-miserable" />
@@ -346,18 +368,32 @@ function MoodChart({ joy, peace, friendly }: { joy: number; peace: number; frien
         d={`M${at(-2.5)} 0V${S}M${at(2.5)} 0V${S}M0 ${at(-2.5)}H${S}M0 ${at(2.5)}H${S}`}
         className="q-band"
       />
-      {friendly ? (
-        <path d={`M${floor} 0V${S}M0 ${S - floor}H${S}`} className="q-floor" />
-      ) : null}
+      {friendly ? <path d={`M${floor} 0V${S}M0 ${S - floor}H${S}`} className="q-floor" /> : null}
       <path d={`M${S / 2} 0V${S}M0 ${S / 2}H${S}`} className="q-axis" />
-      <text x="8" y="16" className="q-name">Grumpy</text>
-      <text x={S - 8} y="16" className="q-name" textAnchor="end">Happy</text>
-      <text x="8" y={S - 8} className="q-name">Miserable</text>
-      <text x={S - 8} y={S - 8} className="q-name" textAnchor="end">Needy</text>
-      <text x={S / 2} y="-8" className="q-end" textAnchor="middle">Satisfied</text>
-      <text x={S / 2} y={S + 16} className="q-end" textAnchor="middle">Depressed</text>
-      <text x="-6" y={S / 2 + 4} className="q-end" textAnchor="end">Frustrated</text>
-      <text x={S + 6} y={S / 2 + 4} className="q-end">Joyful</text>
+      <text x="8" y="16" className="q-name">
+        Grumpy
+      </text>
+      <text x={S - 8} y="16" className="q-name" textAnchor="end">
+        Happy
+      </text>
+      <text x="8" y={S - 8} className="q-name">
+        Miserable
+      </text>
+      <text x={S - 8} y={S - 8} className="q-name" textAnchor="end">
+        Needy
+      </text>
+      <text x={S / 2} y="-8" className="q-end" textAnchor="middle">
+        Satisfied
+      </text>
+      <text x={S / 2} y={S + 16} className="q-end" textAnchor="middle">
+        Depressed
+      </text>
+      <text x="-6" y={S / 2 + 4} className="q-end" textAnchor="end">
+        Frustrated
+      </text>
+      <text x={S + 6} y={S / 2 + 4} className="q-end">
+        Joyful
+      </text>
       <circle cx={at(joy)} cy={S - at(peace)} r="9" className="q-dot" />
     </svg>
   );
@@ -387,7 +423,8 @@ function MindTab({ snap, command, settings }: Ctx) {
       (gallery || r.group !== "Local Gallery"),
   );
   const { joy, peace } = snap.mind;
-  const set = (attr: "joy" | "peace" | "fullness" | "rest", value: number) => command({ do: "feeling", attr, value });
+  const set = (attr: "joy" | "peace" | "fullness" | "rest", value: number) =>
+    command({ do: "feeling", attr, value });
   const since = Math.floor(snap.sinceAttention);
   return (
     <>
@@ -416,7 +453,9 @@ function MindTab({ snap, command, settings }: Ctx) {
       </Section>
 
       <Section title="Needs">
-        {NEEDS.filter((n) => (hunger || n.key !== "fullness") && (sleepNeed || n.key !== "rest")).map((n) => {
+        {NEEDS.filter(
+          (n) => (hunger || n.key !== "fullness") && (sleepNeed || n.key !== "rest"),
+        ).map((n) => {
           const v = snap.mind[n.key];
           const note =
             n.key === "rest"
@@ -460,7 +499,9 @@ function MindTab({ snap, command, settings }: Ctx) {
           );
         })}
         <div className="button-row">
-          <Button onClick={() => command({ do: "resetFeelings" })}>Mood and needs back to the start</Button>
+          <Button onClick={() => command({ do: "resetFeelings" })}>
+            Mood and needs back to the start
+          </Button>
         </div>
       </Section>
 
@@ -1228,48 +1269,18 @@ function LogTab({ log, clearLog }: Ctx) {
 
 /* Data */
 
-/** Feature Keys: unlock features kept for testing, then switch them on and off. */
-function FeatureKeys() {
-  const [features, { unlock, setOn }] = useFeatures();
-  const [key, setKey] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const tryKey = async () => {
-    if (!key.trim()) return;
-    const got = await unlock(key);
-    const name = got && FEATURES.find((f) => f.id === got.id)?.name;
-    setMessage(got ? (got.already ? `${name} is already unlocked.` : `Unlocked: ${name}.`) : "That key doesn’t unlock anything.");
-    if (got) setKey("");
-  };
-  const unlocked = FEATURES.filter((f) => features.unlocked.includes(f.id));
+/** Experimental features: each one switched on and off here. */
+function FeaturesTab() {
+  const [features, { setOn }] = useFeatures();
   return (
-    <Section title="Feature Key">
-      <form
-        className="key-row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void tryKey();
-        }}
-      >
-        <input
-          className="text-input"
-          aria-label="Feature Key"
-          placeholder="Feature Key"
-          autoComplete="off"
-          spellCheck={false}
-          value={key}
-          onChange={(e) => {
-            setKey(e.target.value);
-            setMessage(null);
-          }}
-        />
-        <Button tone="accent" onClick={() => void tryKey()}>
-          Unlock
-        </Button>
-      </form>
-      {message ? <p className="meter-note key-message">{message}</p> : null}
-      {unlocked.map((f) => (
+    <Section title="Experimental features">
+      {FEATURES.map((f) => (
         <Row key={f.id} label={f.name} hint={f.about}>
-          <Toggle label={f.name} checked={featureOn(features, f.id)} onChange={(on) => setOn(f.id, on)} />
+          <Toggle
+            label={f.name}
+            checked={featureOn(features, f.id)}
+            onChange={(on) => setOn(f.id, on)}
+          />
         </Row>
       ))}
     </Section>
@@ -1299,7 +1310,6 @@ function DataTab({ settings, updateSettings, snap }: Ctx) {
           Copy everything
         </Button>
       </div>
-      <FeatureKeys />
     </>
   );
 }

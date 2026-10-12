@@ -19,6 +19,7 @@ import {
   onTypingElsewhere,
   onWindowMoved,
   setHelpingSize,
+  showDebugWindow,
   windowPlacement,
 } from "@/lib/companion/desktop";
 import { featureOn, useFeatures } from "@/lib/companion/features";
@@ -41,7 +42,7 @@ function pretend(side: "left" | "right"): NonNullable<MediaInfo> {
 export function Companion() {
   const engineRef = useRef<FaceEngine | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [settings] = useSettings();
+  const [settings, updateSettings] = useSettings();
   const [book, commitBook] = useCalorieBook();
   // What the buttons show: asleep (the bed becomes a sun), and what Mote would like.
   const [status, setStatus] = useState<{ asleep: boolean; wants: Want | null }>({ asleep: false, wants: null });
@@ -121,6 +122,14 @@ export function Companion() {
   const hunger = featureOn(features, "hunger");
   const sleepNeed = featureOn(features, "sleep");
   const gallery = featureOn(features, "gallery");
+  const debugOn = featureOn(features, "debug");
+  // Debug switched off or locked: its window closes.
+  useEffect(() => {
+    if (!debugOn && settings.debug) {
+      updateSettings({ debug: false });
+      showDebugWindow(false);
+    }
+  }, [debugOn, settings.debug, updateSettings]);
   useEffect(() => {
     if (!diet) setLogging(false);
   }, [diet]);
@@ -360,6 +369,11 @@ export function Companion() {
         hunger={hunger}
         sleepNeed={sleepNeed}
         gallery={gallery}
+        debug={debugOn}
+        onDebug={() => {
+          updateSettings({ debug: true });
+          showDebugWindow(true);
+        }}
         onGallery={() => {
           void openLocalGallery().then((ok) => engineRef.current?.openedGallery(ok));
         }}

@@ -86,7 +86,7 @@ pokes in a row is too many, and Mote gets annoyed.
   button held down never counts as shaking.
 - **Dizzy:** shaking the pointer around wildly (without holding the button),
   or throwing the window around the screen, makes Mote dizzy for a moment.
-- **Sleep** (tiredness is a keyed feature, Goodnight Mote; without it, Mote
+- **Sleep** (tiredness is an experimental feature, Goodnight Mote; without it, Mote
   just naps after a few quiet minutes left alone): Mote gets tired while awake (faster late at night and while
   playing). Once tired, left be for a few minutes with nothing interesting
   going on, they yawn, doze and fall asleep, and they sleep until rested.
@@ -126,7 +126,7 @@ smile, a scowl, a droop, heavy lids, worried brows), in what they do on their
 own, in how much they chat and what about, and they ask for what they need:
 a snack, bedtime, or a game.
 
-**Hunger** (a keyed feature, see Feature Keys): fullness goes down while Mote is awake (about four hours from
+**Hunger** (an experimental feature, Mote eats too): fullness goes down while Mote is awake (about four hours from
 full to empty). Feed them from the snack bowl: a cookie, some berries, or a
 proper meal. Full, they politely say no.
 
@@ -160,10 +160,12 @@ Normal), and their mood.
 Along the bottom of Mote's window (quiet until your pointer is over it):
 
 - **Toy chest:** the games (checkers, chess and tic-tac-toe).
-- **Carrot:** log calories, or see the days (only with the diet tracker unlocked and on).
-- **Snack bowl:** feed Mote (only with "Mote eats too" unlocked and on).
-- **Bed** (with Goodnight Mote unlocked and on): tuck Mote in (if they're tired enough). While they sleep it turns
+- **Carrot:** log calories, or see the days (only with the diet tracker switched on).
+- **Snack bowl:** feed Mote (only with "Mote eats too" switched on).
+- **Bed** (with Goodnight Mote switched on): tuck Mote in (if they're tired enough). While they sleep it turns
   into a sun, to wake them.
+- **Picture frame** (with Local Gallery switched on): open Local Gallery.
+- **Wrench** (with the Debug window unlocked): open the Debug window.
 
 A soft pulsing ring on a button means Mote would like that: hungry, sleepy,
 or wanting to play.
@@ -181,8 +183,8 @@ Drag the window by its top edge.
 
 ## Calories
 
-The diet tracker is a **keyed feature** (see Feature Keys below): until it's
-unlocked, and whenever it's switched off, there's no carrot button, no
+The diet tracker is an **experimental feature** (switched on in the Debug
+window): until then, there's no carrot button, no
 Calories section in Settings, and Mote keeps no count and says nothing about
 it.
 
@@ -222,7 +224,7 @@ record against Mote at each level sits at the top of the board.
 
 ### Learning with Mote
 
-With the **Learn with Mote** feature unlocked (see Feature Keys), checkers
+With the **Learn with Mote** feature switched on (in the Debug window), checkers
 and tic-tac-toe have a **Learn with Mote** option on the level picker. Mote's notes appear under the board, in their own words:
 
 - **On your turn**, a tip about what matters right now (a win to take, a
@@ -276,7 +278,7 @@ to win at once.
 
 Mote carries Local Gallery, the Mac app from the Local_Gallery repo, inside
 `Mote.app` and opens it from a picture-frame button (with the Local Gallery
-feature unlocked). It's the real app, built from the same code with the same
+feature switched on in the Debug window). It's the real app, built from the same code with the same
 app ID and name, so it uses the same library, folders, settings and
 thumbnails as the Local Gallery you build from its own repo. Mote doesn't run
 any of it; it only opens it, as if you'd double-clicked it.
@@ -294,11 +296,34 @@ window floats above others.
 
 Text in the app calls Mote "Mote", or "they/them" when a pronoun is needed.
 
-At the bottom of Settings, **Debug mode** opens a separate window of testing tools:
+### The Debug window and experimental features
 
+The Debug window is locked behind a **Feature Key**: at the bottom of
+Settings, type the key into **Feature Key** and press Unlock (or Return).
+Unlocking is for good (resetting settings doesn't undo it); the Debug window
+is then listed underneath, with a switch to hide it again. Only a fingerprint
+of the key is kept in the app, never the key itself.
+
+Once it's unlocked, a wrench button on Mote's window opens the Debug window:
+
+- **Features**: switches for the experimental features (all off until
+  switched on):
+  - **Diet tracker**: calorie logging, the Days window, the carrot button,
+    and everything Mote says about food you eat.
+  - **Mote eats too**: Mote getting hungry, the snack bowl to feed them, and
+    hunger's effect on their mood, face and what they say. Off, Mote simply
+    stays full.
+  - **Learn with Mote**: the learning option for checkers and tic-tac-toe.
+  - **Goodnight Mote**: Mote getting tired and needing sleep (sleepy and
+    exhausted moods, asking for bed, the bed button, waking once rested).
+    Off, Mote stays rested and simply naps after a few quiet minutes left
+    alone, until poked.
+  - **Local Gallery**: a picture-frame button that opens Local Gallery,
+    which Mote carries with them (see above).
 - **Moods**: play any mood on demand, blink, poke, turn off automatic moods, loop a mood
 - **Mind**: the mood chart, hunger and rest (with buttons to nudge them), the
   games Mote remembers, and every reaction with what it does to the mood
+- **Speech**: everything Mote can say, and a button to say any of it now
 - **Pose**: shape Mote's face by hand with sliders, then "Copy values" to share the numbers
 - **Motion**: slow time down, freeze Mote, show outlines of the eye cuts, pretend
   another window is playing sound, give Mote a folder or video by typing its path
@@ -310,37 +335,13 @@ At the bottom of Settings, **Debug mode** opens a separate window of testing too
 - **Log**: everything that happened, in order
 - **Data**: the saved settings, and a reset button
 
-Closing the debug window turns debug mode off.
-
-### Feature Keys
-
-Some features stay in the app for testing but out of everyone else's reach.
-At the bottom of the Debug window's **Data** tab, type a key into **Feature
-Key** and press Unlock (or Return). A key that matches a feature unlocks it
-for good (resetting settings doesn't undo it), and every unlocked feature is
-listed underneath with a switch to turn it on or off. Only a fingerprint of
-each key is kept in the app, never the key itself.
-
-- **Diet tracker**: calorie logging, the Days window, the carrot button, and
-  everything Mote says about food you eat.
-- **Mote eats too**: Mote getting hungry, the snack bowl to feed them, and
-  hunger's effect on their mood, face and what they say. Off, Mote simply
-  stays full.
-- **Learn with Mote**: the learning option for checkers and tic-tac-toe.
-- **Local Gallery**: a picture-frame button that opens Local Gallery, which
-  Mote carries with them (see below).
-- **Goodnight Mote**: Mote getting tired and needing sleep (sleepy and
-  exhausted moods, asking for bed, the bed button, waking once rested). Off,
-  Mote stays rested and simply naps after a few quiet minutes left alone,
-  until poked.
-
 ## Install Mote
 
 Quit Mote if it is open, then drag the new one into Applications and replace
 the old one:
 
 - `src-tauri/target/release/bundle/macos/Mote.app`
-- `src-tauri/target/release/bundle/dmg/Mote_0.9.0_aarch64.dmg` (an installer you can share)
+- `src-tauri/target/release/bundle/dmg/Mote_0.9.1_aarch64.dmg` (an installer you can share)
 
 Both are made by:
 
@@ -366,7 +367,7 @@ Each face there is one expression frozen in place, handy for tweaking how they l
 - `desktop/` — the Mac app's pages: Mote (`index.html`), Settings, Debug, and the gallery
 - `desktop/ui.tsx` and `desktop/ui.css` — the soft buttons, switches and sliders
 - `src/lib/companion/settings.ts` — the list of settings and their defaults
-- `src/lib/companion/features.ts` — features locked behind a Feature Key, and whether each is on
+- `src/lib/companion/features.ts` — the Feature Key (for the Debug window) and the experimental features
 - `local-gallery/` — Local Gallery's own code, kept separate; `src-tauri/src/gallery.rs` opens it
 - `src/components/companion/mind.ts` — Mote's mood, hunger and rest, and how they change
 - `src/components/companion/memories.ts` — the games Mote remembers, and how they bring them up

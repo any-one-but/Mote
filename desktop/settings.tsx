@@ -10,7 +10,7 @@ import {
   showDebugWindow,
 } from "@/lib/companion/desktop";
 import { markCalorieCare } from "@/lib/companion/calorie-store";
-import { featureOn, useFeatures } from "@/lib/companion/features";
+import { featureOn, KEYED, useFeatures } from "@/lib/companion/features";
 import { useSettings, type Pace, type Settings } from "@/lib/companion/settings";
 import {
   linkName,
@@ -154,18 +154,7 @@ function SettingsWindow() {
       ) : null}
 
       <div className="settings-foot">
-        <Section>
-          <Row label="Debug mode" hint="Opens a separate window of testing tools.">
-            <Toggle
-              label="Debug mode"
-              checked={settings.debug}
-              onChange={(debug) => {
-                set({ debug });
-                showDebugWindow(debug);
-              }}
-            />
-          </Row>
-        </Section>
+        <FeatureKey />
       </div>
     </Page>
   );
@@ -263,6 +252,66 @@ function OpenAtLogin({ onChange }: { onChange: () => void }) {
         }}
       />
     </Row>
+  );
+}
+
+/**
+ * Feature Key: type a key to unlock a feature kept out of reach (for now,
+ * just the Debug window). Every unlocked feature is listed underneath, with a
+ * switch.
+ */
+function FeatureKey() {
+  const [features, { unlock, setOn }] = useFeatures();
+  const [key, setKey] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const tryKey = async () => {
+    if (!key.trim()) return;
+    const got = await unlock(key);
+    const name = got && KEYED.find((f) => f.id === got.id)?.name;
+    setMessage(got ? (got.already ? `${name} is already unlocked.` : `Unlocked: ${name}.`) : "That key doesn’t unlock anything.");
+    if (got) setKey("");
+  };
+  const unlocked = KEYED.filter((f) => features.unlocked.includes(f.id));
+  return (
+    <Section title="Feature Key">
+      <form
+        className="key-row"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void tryKey();
+        }}
+      >
+        <input
+          className="text-input"
+          aria-label="Feature Key"
+          placeholder="Feature Key"
+          autoComplete="off"
+          spellCheck={false}
+          value={key}
+          onChange={(e) => {
+            setKey(e.target.value);
+            setMessage(null);
+          }}
+        />
+        <button type="button" className="btn is-accent" onClick={() => void tryKey()}>
+          Unlock
+        </button>
+      </form>
+      {message ? <p className="key-message">{message}</p> : null}
+      {unlocked.map((f) => (
+        <Row key={f.id} label={f.name} hint={f.about}>
+          <Toggle
+            label={f.name}
+            checked={featureOn(features, f.id)}
+            onChange={(on) => {
+              setOn(f.id, on);
+              // Switching Debug off closes its window too.
+              if (!on && f.id === "debug") showDebugWindow(false);
+            }}
+          />
+        </Row>
+      ))}
+    </Section>
   );
 }
 

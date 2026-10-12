@@ -1097,4 +1097,16 @@ input:focus-visible {
 
 .key-message {
   margin: 0 0 var(--unit);
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+/* Nine Debug tabs in one row: a little smaller and tighter than elsewhere. */
+.debug-tabs .segmented {
+  grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+}
+
+.debug-tabs .segmented-option {
+  padding: 0 2px;
+  font-size: 13.5px;
 }
