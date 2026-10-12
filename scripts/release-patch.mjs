@@ -27,6 +27,8 @@ const at = (p) => join(ROOT, p);
 const BUILT = [
   "src-tauri/target/release/bundle/macos/Mote.app/Contents/Info.plist",
   "src-tauri/target/release/bundle/macos/Mote.app/Contents/MacOS/mote",
+  "src-tauri/target/release/bundle/macos/Mote.app/Contents/MacOS/mote-senses",
+  "src-tauri/target/release/bundle/macos/Mote.app/Contents/Resources/icon.icns",
 ];
 
 function fail(message) {
