@@ -9,7 +9,7 @@ import { listenBus, send } from "@/lib/companion/bus";
 // Only a fingerprint of each key (its SHA-256) lives in the app, never the
 // key itself.
 
-export type FeatureId = "diet";
+export type FeatureId = "diet" | "hunger";
 
 export const FEATURES: Array<{ id: FeatureId; name: string; about: string; fingerprint: string }> = [
   {
@@ -17,6 +17,12 @@ export const FEATURES: Array<{ id: FeatureId; name: string; about: string; finge
     name: "Diet tracker",
     about: "Calorie logging, the Days window, the carrot button, and everything Mote says about food you eat.",
     fingerprint: "529ae584fe8563a4e8ec4701330d2de99ea399aa3f58ddcb22cdf72c0aca4e98",
+  },
+  {
+    id: "hunger",
+    name: "Mote eats too",
+    about: "Mote gets hungry, the snack bowl to feed them, and hunger’s effect on their mood, face and what they say.",
+    fingerprint: "e5e8ceb72ba60ed777f80f2533aec3d07634d1f8bbb7c4d334f07346bac36db7",
   },
 ];
 

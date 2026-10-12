@@ -323,6 +323,9 @@ function MoodsTab({ snap, debug, command }: Ctx) {
 
 const FEELING_NAME: Record<Feeling, string> = { joy: "Joy", peace: "Satisfied" };
 
+/** Reactions that are about hunger, hidden while "Mote eats too" is off. */
+const HUNGER_REACTIONS = new Set(["fed", "fed-hungry", "fed-full", "mind-hunger", "mood-hungry", "mood-starving"]);
+
 const seconds = (ms: number) => `${Math.max(0, Math.ceil(ms / 1000))}s`;
 
 /** Joy across, Satisfied up: where Mote's mood sits, as a dot on a chart. */
@@ -361,14 +364,21 @@ function MindTab({ snap, command, settings }: Ctx) {
   const [show, setShow] = useState<"all" | "live" | "idea">("all");
   const [features] = useFeatures();
   const diet = featureOn(features, "diet");
+  const hunger = featureOn(features, "hunger");
   const [memories, setMemories] = useState(loadMemories);
   useEffect(() => {
     const t = window.setInterval(() => setMemories(loadMemories()), 3000);
     return () => window.clearInterval(t);
   }, []);
   if (!snap) return <p className="empty">Nothing yet. Is Mote’s window open?</p>;
-  // The calorie reactions only show while the diet tracker is on.
-  const list = REACTIONS.filter((r) => (show === "all" || r.status === show) && (diet || r.group !== "Eating"));
+  // The calorie reactions only show while the diet tracker is on, and the
+  // hunger ones while Mote eats too.
+  const list = REACTIONS.filter(
+    (r) =>
+      (show === "all" || r.status === show) &&
+      (diet || r.group !== "Eating") &&
+      (hunger || !HUNGER_REACTIONS.has(r.id)),
+  );
   const { joy, peace } = snap.mind;
   const set = (attr: "joy" | "peace" | "fullness" | "rest", value: number) => command({ do: "feeling", attr, value });
   const since = Math.floor(snap.sinceAttention);
@@ -399,7 +409,7 @@ function MindTab({ snap, command, settings }: Ctx) {
       </Section>
 
       <Section title="Needs">
-        {NEEDS.map((n) => {
+        {NEEDS.filter((n) => hunger || n.key !== "fullness").map((n) => {
           const v = snap.mind[n.key];
           const note =
             n.key === "rest"

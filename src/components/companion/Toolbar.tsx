@@ -4,11 +4,14 @@ import { SNACKS } from "@/components/companion/mind";
 
 // The little row of buttons along the bottom of Mote's window: a toy chest
 // of games, a carrot for calorie tracking (when the diet tracker is
-// unlocked), a snack bowl to feed Mote, and a bed to tuck them in. A soft glow on a button means Mote would like that.
+// unlocked), a snack bowl to feed Mote (when "Mote eats too" is), and a bed
+// to tuck them in. A soft glow on a button means Mote would like that.
 
 type Props = {
   /** The diet tracker is unlocked and on: show the carrot. */
   diet: boolean;
+  /** Mote eats too: show the snack bowl. */
+  hunger: boolean;
   asleep: boolean;
   wants: Want | null;
   onGame: (game: "checkers" | "chess" | "tictactoe") => void;
@@ -20,7 +23,7 @@ type Props = {
 
 type MenuId = "toys" | "carrot" | "snack";
 
-export function Toolbar({ diet, asleep, wants, onGame, onLogCalories, onDays, onFeed, onBed }: Props) {
+export function Toolbar({ diet, hunger, asleep, wants, onGame, onLogCalories, onDays, onFeed, onBed }: Props) {
   const [open, setOpen] = useState<MenuId | null>(null);
   const root = useRef<HTMLDivElement>(null);
 
@@ -70,20 +73,22 @@ export function Toolbar({ diet, asleep, wants, onGame, onLogCalories, onDays, on
           <MenuItem onClick={choose(onDays)}>See the days</MenuItem>
         </ToolButton>
       ) : null}
-      <ToolButton
-        label={asleep ? "Mote is asleep" : "Give Mote a snack"}
-        open={open === "snack"}
-        glow={wants === "food"}
-        disabled={asleep}
-        onClick={() => toggle("snack")}
-        icon={<BowlIcon />}
-      >
-        {SNACKS.map((s) => (
-          <MenuItem key={s.id} onClick={choose(() => onFeed(s.id))}>
-            {s.name}
-          </MenuItem>
-        ))}
-      </ToolButton>
+      {hunger ? (
+        <ToolButton
+          label={asleep ? "Mote is asleep" : "Give Mote a snack"}
+          open={open === "snack"}
+          glow={wants === "food"}
+          disabled={asleep}
+          onClick={() => toggle("snack")}
+          icon={<BowlIcon />}
+        >
+          {SNACKS.map((s) => (
+            <MenuItem key={s.id} onClick={choose(() => onFeed(s.id))}>
+              {s.name}
+            </MenuItem>
+          ))}
+        </ToolButton>
+      ) : null}
       <ToolButton
         label={asleep ? "Wake Mote" : "Tuck Mote in"}
         glow={wants === "sleep"}

@@ -212,6 +212,8 @@ export type EngineOptions = {
   friendly: boolean;
   /** Daily calorie goal. 0 means Mote isn't keeping track. */
   calorieGoal: number;
+  /** Mote gets hungry and can be fed (a keyed feature). Off, they stay full. */
+  hunger: boolean;
 };
 
 /** An app dropped on Mote: its name, its ID (com.apple.safari…), and
@@ -1655,6 +1657,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     // Set from Settings (see Companion).
     friendly: false,
     calorieGoal: 0,
+    hunger: false,
   };
   const debug = {
     timeScale: 1,
@@ -2343,7 +2346,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   /** Something to eat. Full, Mote politely says no. */
   const feedMote = (id: string) => {
     const snack = SNACKS.find((x) => x.id === id);
-    if (!snack || mood === "sleep" || mood === "doze") return;
+    if (!snack || !options.hunger || mood === "sleep" || mood === "doze") return;
     engage();
     touch();
     if (feel.fullness >= 9) {
@@ -2667,6 +2670,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         friendly: options.friendly,
       });
       mindTick = 0;
+      // Hunger switched off: always full, so it never touches mood or face.
+      if (!options.hunger) feel = { ...feel, fullness: 10 };
       // Getting tired: naps come sooner.
       if (feel.rest < before.rest || napAfter === Number.POSITIVE_INFINITY) {
         napAfter = Math.min(napAfter, newNapAfter());
