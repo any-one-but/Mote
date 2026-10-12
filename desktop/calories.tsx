@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { averageIntake, colorFor, dateKey, type CalorieBook } from "@/lib/companion/calories";
 import { useCalorieBook } from "@/lib/companion/calorie-store";
+import { featureOn, useFeatures } from "@/lib/companion/features";
 import { useSettings } from "@/lib/companion/settings";
 import { Page } from "./ui";
 import "./calories.css";
@@ -51,6 +52,8 @@ function standing(y: number, m: number, d: number, now: Date) {
 function Days() {
   const [settings] = useSettings();
   const [book] = useCalorieBook();
+  const [features] = useFeatures();
+  const diet = featureOn(features, "diet");
   const goal = settings.calorieGoal;
   const now = new Date();
   const months = monthsOf(book.startMonth, now);
@@ -60,6 +63,20 @@ function Days() {
     new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7),
     new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1),
   );
+
+  // The diet tracker is a keyed feature; switched off, this window has nothing to show.
+  if (!diet) {
+    return (
+      <Page wide>
+        <header className="days-head">
+          <div>
+            <h1>Days</h1>
+            <p>The diet tracker is switched off.</p>
+          </div>
+        </header>
+      </Page>
+    );
+  }
 
   return (
     <Page wide>

@@ -90,25 +90,15 @@ fn open_debug_window(app: &AppHandle) -> tauri::Result<()> {
         window.show()?;
         return window.set_focus();
     }
-    let mut builder =
-        WebviewWindowBuilder::new(app, "debug", WebviewUrl::App("debug.html".into()))
-            .title("Mote Debug")
-            .inner_size(600.0, 780.0)
-            .min_inner_size(420.0, 420.0)
-            .title_bar_style(TitleBarStyle::Overlay)
-            .hidden_title(true)
-            .background_color(PAPER);
-    // Open beside Mote's window so both stay in view.
-    if let Some(main) = app.get_webview_window("main") {
-        if let (Ok(pos), Ok(size), Ok(scale)) =
-            (main.outer_position(), main.outer_size(), main.scale_factor())
-        {
-            let pos = pos.to_logical::<f64>(scale);
-            let size = size.to_logical::<f64>(scale);
-            builder = builder.position(pos.x + size.width + 16.0, pos.y);
-        }
-    }
-    builder.build()?;
+    WebviewWindowBuilder::new(app, "debug", WebviewUrl::App("debug.html".into()))
+        .title("Mote Debug")
+        .inner_size(600.0, 780.0)
+        .min_inner_size(420.0, 420.0)
+        .center()
+        .title_bar_style(TitleBarStyle::Overlay)
+        .hidden_title(true)
+        .background_color(PAPER)
+        .build()?;
     Ok(())
 }
 

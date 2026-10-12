@@ -20,6 +20,7 @@ import {
   setHelpingSize,
   windowPlacement,
 } from "@/lib/companion/desktop";
+import { featureOn, useFeatures } from "@/lib/companion/features";
 import { useSettings } from "@/lib/companion/settings";
 import { CaloriePad } from "@/components/companion/CaloriePad";
 import { Checkers } from "@/components/companion/Checkers";
@@ -110,7 +111,15 @@ export function Companion() {
     });
   };
 
-  const { followPointer, naps, energy, debug, pace, calorieGoal, friendly } = settings;
+  const { followPointer, naps, energy, debug, pace, friendly } = settings;
+  // The diet tracker is a keyed feature (see features.ts): off, Mote keeps no
+  // count and says nothing about calories, and its button and card are gone.
+  const [features] = useFeatures();
+  const diet = featureOn(features, "diet");
+  const calorieGoal = diet ? settings.calorieGoal : 0;
+  useEffect(() => {
+    if (!diet) setLogging(false);
+  }, [diet]);
   useEffect(() => {
     engineRef.current?.configure({ followPointer, naps, energy, calorieGoal, friendly });
   }, [followPointer, naps, energy, calorieGoal, friendly]);
@@ -343,6 +352,7 @@ export function Companion() {
         }}
       />
       <Toolbar
+        diet={diet}
         asleep={status.asleep}
         wants={status.wants}
         onGame={(game) => {
@@ -369,7 +379,7 @@ export function Companion() {
       {playing === "checkers" && !helping ? <Checkers engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "chess" && !helping ? <Chess engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "tictactoe" && !helping ? <TicTacToe engine={getEngine} onClose={() => setPlaying(null)} /> : null}
-      {logging ? (
+      {logging && diet ? (
         <CaloriePad
           total={todayTotal}
           goal={calorieGoal}

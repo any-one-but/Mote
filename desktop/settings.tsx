@@ -10,6 +10,7 @@ import {
   showDebugWindow,
 } from "@/lib/companion/desktop";
 import { markCalorieCare } from "@/lib/companion/calorie-store";
+import { featureOn, useFeatures } from "@/lib/companion/features";
 import { useSettings, type Pace, type Settings } from "@/lib/companion/settings";
 import {
   linkName,
@@ -40,6 +41,8 @@ const PACE_HINT: Record<Pace, string> = {
 
 function SettingsWindow() {
   const [settings, update] = useSettings();
+  const [features] = useFeatures();
+  const diet = featureOn(features, "diet");
   const [hop, setHop] = useState(0);
 
   // Every change makes the little Mote in the corner do a happy hop.
@@ -96,29 +99,31 @@ function SettingsWindow() {
         </Row>
       </Section>
 
-      <Section title="Calories">
-        <Row label="Daily goal" hint="Set it to 0 to stop tracking.">
-          <GoalField
-            value={settings.calorieGoal}
-            onChange={(calorieGoal) => {
-              set({ calorieGoal });
-              markCalorieCare();
-            }}
-          />
-        </Row>
-        <div className="button-row">
-          <button
-            type="button"
-            className="btn"
-            onClick={() => {
-              markCalorieCare();
-              openCaloriesWindow();
-            }}
-          >
-            Show the days
-          </button>
-        </div>
-      </Section>
+      {diet ? (
+        <Section title="Calories">
+          <Row label="Daily goal" hint="Set it to 0 to stop tracking.">
+            <GoalField
+              value={settings.calorieGoal}
+              onChange={(calorieGoal) => {
+                set({ calorieGoal });
+                markCalorieCare();
+              }}
+            />
+          </Row>
+          <div className="button-row">
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                markCalorieCare();
+                openCaloriesWindow();
+              }}
+            >
+              Show the days
+            </button>
+          </div>
+        </Section>
+      ) : null}
 
       <Section title="Helping with files">
         <Row label="Pace" hint={PACE_HINT[settings.pace]} stacked>

@@ -40,6 +40,7 @@ import {
   type SavedLink,
 } from "@/components/companion/links";
 import { openLink } from "@/lib/companion/desktop";
+import { FEATURES, featureOn, useFeatures } from "@/lib/companion/features";
 import { DEFAULT_SETTINGS, useSettings, type Settings } from "@/lib/companion/settings";
 import { Button, Page, Row, Section, Segmented, Slider, Toggle } from "./ui";
 
@@ -358,13 +359,16 @@ function MoodChart({ joy, peace, friendly }: { joy: number; peace: number; frien
 
 function MindTab({ snap, command, settings }: Ctx) {
   const [show, setShow] = useState<"all" | "live" | "idea">("all");
+  const [features] = useFeatures();
+  const diet = featureOn(features, "diet");
   const [memories, setMemories] = useState(loadMemories);
   useEffect(() => {
     const t = window.setInterval(() => setMemories(loadMemories()), 3000);
     return () => window.clearInterval(t);
   }, []);
   if (!snap) return <p className="empty">Nothing yet. Is Mote’s window open?</p>;
-  const list = REACTIONS.filter((r) => show === "all" || r.status === show);
+  // The calorie reactions only show while the diet tracker is on.
+  const list = REACTIONS.filter((r) => (show === "all" || r.status === show) && (diet || r.group !== "Eating"));
   const { joy, peace } = snap.mind;
   const set = (attr: "joy" | "peace" | "fullness" | "rest", value: number) => command({ do: "feeling", attr, value });
   const since = Math.floor(snap.sinceAttention);
@@ -1207,6 +1211,54 @@ function LogTab({ log, clearLog }: Ctx) {
 
 /* Data */
 
+/** Feature Keys: unlock features kept for testing, then switch them on and off. */
+function FeatureKeys() {
+  const [features, { unlock, setOn }] = useFeatures();
+  const [key, setKey] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const tryKey = async () => {
+    if (!key.trim()) return;
+    const got = await unlock(key);
+    const name = got && FEATURES.find((f) => f.id === got.id)?.name;
+    setMessage(got ? (got.already ? `${name} is already unlocked.` : `Unlocked: ${name}.`) : "That key doesn’t unlock anything.");
+    if (got) setKey("");
+  };
+  const unlocked = FEATURES.filter((f) => features.unlocked.includes(f.id));
+  return (
+    <Section title="Feature Key">
+      <form
+        className="key-row"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void tryKey();
+        }}
+      >
+        <input
+          className="text-input"
+          aria-label="Feature Key"
+          placeholder="Feature Key"
+          autoComplete="off"
+          spellCheck={false}
+          value={key}
+          onChange={(e) => {
+            setKey(e.target.value);
+            setMessage(null);
+          }}
+        />
+        <Button tone="accent" onClick={() => void tryKey()}>
+          Unlock
+        </Button>
+      </form>
+      {message ? <p className="meter-note key-message">{message}</p> : null}
+      {unlocked.map((f) => (
+        <Row key={f.id} label={f.name} hint={f.about}>
+          <Toggle label={f.name} checked={featureOn(features, f.id)} onChange={(on) => setOn(f.id, on)} />
+        </Row>
+      ))}
+    </Section>
+  );
+}
+
 function DataTab({ settings, updateSettings, snap }: Ctx) {
   return (
     <>
@@ -1230,6 +1282,7 @@ function DataTab({ settings, updateSettings, snap }: Ctx) {
           Copy everything
         </Button>
       </div>
+      <FeatureKeys />
     </>
   );
 }

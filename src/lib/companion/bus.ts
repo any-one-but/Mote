@@ -2,6 +2,7 @@ import { emit, listen } from "@tauri-apps/api/event";
 import type { EngineSnapshot, ManualFace, Mood } from "@/components/companion/engine";
 import type { MindKey } from "@/components/companion/mind";
 import type { CalorieBook } from "@/lib/companion/calories";
+import type { FeatureState } from "@/lib/companion/features";
 import type { Settings } from "@/lib/companion/settings";
 import { isDesktopApp } from "@/lib/companion/desktop";
 
@@ -50,6 +51,7 @@ export const DEBUG_DEFAULTS: DebugState = {
 export type BusMessage =
   | { type: "settings"; settings: Settings }
   | { type: "calories"; book: CalorieBook }
+  | { type: "features"; features: FeatureState }
   | { type: "debug"; cmd: DebugCommand }
   | { type: "state"; snap: EngineSnapshot; debug: DebugState; events: string[] };
 

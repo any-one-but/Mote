@@ -1764,8 +1764,10 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   let napAfter = newNapAfter();
   let dozeNext = false;
   // Tucked in (or too exhausted to stay up): the yawn becomes sleep even if
-  // things aren't quiet.
+  // things aren't quiet. And whether this sleep is one you put them down for,
+  // which switching naps off in Settings leaves alone.
   let tucked = false;
+  let putToBed = false;
   let twitchStart = -1;
   let nextTwitch = 5000;
   /** You did something with Mote: no nodding off for a while. */
@@ -2373,6 +2375,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     react("tucked-in");
     dozeNext = true;
     tucked = true;
+    putToBed = true;
     if (Math.random() < 0.6) sayNow("tucked-in");
     start("yawn", clock);
   };
@@ -2786,6 +2789,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       react("doze");
       dozeNext = true;
       tucked = spent;
+      putToBed = false;
       start("yawn", now);
     }
     const over =
@@ -3280,7 +3284,10 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       const before = { ...options };
       Object.assign(options, opts);
       if (before.media === null && options.media !== null) react("sound-start");
-      if (!options.naps && (mood === "doze" || mood === "sleep")) start("wake", clock);
+      // Naps just switched off: a Mote who nodded off on their own wakes up.
+      // (Not one you tucked in, and not on every other settings update.)
+      const napsOff = before.naps && !options.naps;
+      if (napsOff && !putToBed && (mood === "doze" || mood === "sleep")) start("wake", clock);
     },
     poke: () => {
       pokeQueued = true;

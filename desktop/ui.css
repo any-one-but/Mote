@@ -1081,3 +1081,20 @@ input:focus-visible {
   padding: 0 10px;
   font-size: 13px;
 }
+
+/* Feature Key */
+
+.key-row {
+  display: flex;
+  gap: var(--unit);
+  padding: calc(var(--unit) * 1.5) 0;
+}
+
+.key-row .text-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.key-message {
+  margin: 0 0 var(--unit);
+}

@@ -1,0 +1,111 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { listenBus, send } from "@/lib/companion/bus";
+
+// Features kept in the app for testing but out of everyone else's reach.
+// Each one is locked behind a Feature Key, typed into the Data tab of the
+// Debug window. Unlocking is remembered for good (resetting settings doesn't
+// undo it); an unlocked feature can then be switched on and off.
+//
+// Only a fingerprint of each key (its SHA-256) lives in the app, never the
+// key itself.
+
+export type FeatureId = "diet";
+
+export const FEATURES: Array<{ id: FeatureId; name: string; about: string; fingerprint: string }> = [
+  {
+    id: "diet",
+    name: "Diet tracker",
+    about: "Calorie logging, the Days window, the carrot button, and everything Mote says about food you eat.",
+    fingerprint: "529ae584fe8563a4e8ec4701330d2de99ea399aa3f58ddcb22cdf72c0aca4e98",
+  },
+];
+
+export type FeatureState = {
+  unlocked: FeatureId[];
+  /** Switched off after unlocking (on unless set to false). */
+  on: Partial<Record<FeatureId, boolean>>;
+};
+
+const KEY = "mote.features";
+const NONE: FeatureState = { unlocked: [], on: {} };
+
+export function readFeatures(): FeatureState {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY) ?? "null") as Partial<FeatureState> | null;
+    const known = new Set(FEATURES.map((f) => f.id));
+    const unlocked = Array.isArray(raw?.unlocked) ? raw.unlocked.filter((id) => known.has(id)) : [];
+    const on: FeatureState["on"] = {};
+    for (const id of unlocked) if (raw?.on?.[id] === false) on[id] = false;
+    return { unlocked, on };
+  } catch {
+    return NONE;
+  }
+}
+
+function writeFeatures(next: FeatureState) {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(next));
+  } catch {
+    // The other windows still hear about it below.
+  }
+  send({ type: "features", features: next });
+}
+
+/** Whether a feature is unlocked and switched on. */
+export const featureOn = (state: FeatureState, id: FeatureId) =>
+  state.unlocked.includes(id) && state.on[id] !== false;
+
+async function fingerprint(text: string): Promise<string> {
+  const bytes = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Unlocked features, kept in step across every Mote window. */
+export function useFeatures() {
+  const [state, setState] = useState<FeatureState>(NONE);
+  const current = useRef(state);
+  current.current = state;
+
+  useEffect(() => {
+    setState(readFeatures());
+    const stopBus = listenBus((msg) => {
+      if (msg.type === "features") setState(msg.features);
+    });
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === KEY) setState(readFeatures());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => {
+      stopBus();
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
+  const commit = useCallback((next: FeatureState) => {
+    current.current = next;
+    setState(next);
+    writeFeatures(next);
+  }, []);
+
+  /** Tries a key. Returns the feature it unlocked (or had already), or null. */
+  const unlock = useCallback(
+    async (key: string): Promise<{ id: FeatureId; already: boolean } | null> => {
+      const print = await fingerprint(key.trim());
+      const feature = FEATURES.find((f) => f.fingerprint === print);
+      if (!feature) return null;
+      const now = current.current;
+      if (now.unlocked.includes(feature.id)) return { id: feature.id, already: true };
+      commit({ unlocked: [...now.unlocked, feature.id], on: { ...now.on, [feature.id]: true } });
+      return { id: feature.id, already: false };
+    },
+    [commit],
+  );
+
+  const setOn = useCallback(
+    (id: FeatureId, on: boolean) => commit({ ...current.current, on: { ...current.current.on, [id]: on } }),
+    [commit],
+  );
+
+  return [state, { unlock, setOn }] as const;
+}

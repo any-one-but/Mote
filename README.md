@@ -159,7 +159,7 @@ Normal), and their mood.
 Along the bottom of Mote's window (quiet until your pointer is over it):
 
 - **Toy chest:** the games (checkers, chess and tic-tac-toe).
-- **Carrot:** log calories, or see the days.
+- **Carrot:** log calories, or see the days (only with the diet tracker unlocked and on).
 - **Snack bowl:** feed Mote.
 - **Bed:** tuck Mote in (if they're tired enough). While they sleep it turns
   into a sun, to wake them.
@@ -179,6 +179,11 @@ A Mote window opens. Any change you save to the code shows up in it right away.
 Drag the window by its top edge.
 
 ## Calories
+
+The diet tracker is a **keyed feature** (see Feature Keys below): until it's
+unlocked, and whenever it's switched off, there's no carrot button, no
+Calories section in Settings, and Mote keeps no count and says nothing about
+it.
 
 Set a **daily goal** in Settings (0 turns this off). Press the carrot and
 choose **Log calories**: type an amount and press **+** (or Return) to add it,
@@ -274,13 +279,25 @@ At the bottom of Settings, **Debug mode** opens a separate window of testing too
 
 Closing the debug window turns debug mode off.
 
+### Feature Keys
+
+Some features stay in the app for testing but out of everyone else's reach.
+At the bottom of the Debug window's **Data** tab, type a key into **Feature
+Key** and press Unlock (or Return). A key that matches a feature unlocks it
+for good (resetting settings doesn't undo it), and every unlocked feature is
+listed underneath with a switch to turn it on or off. Only a fingerprint of
+each key is kept in the app, never the key itself.
+
+- **Diet tracker**: calorie logging, the Days window, the carrot button, and
+  everything Mote says about food you eat.
+
 ## Install Mote
 
 The current Mac app is already built and kept in the project. Quit Mote if it
 is open, then drag the new one into Applications and replace the old one.
 
 - `src-tauri/target/release/bundle/macos/Mote.app`
-- `src-tauri/target/release/bundle/dmg/Mote_0.7.0_aarch64.dmg` (an installer you can share)
+- `src-tauri/target/release/bundle/dmg/Mote_0.7.1_aarch64.dmg` (an installer you can share)
 
 To build a fresh copy later:
 
@@ -301,6 +318,7 @@ Each face there is one expression frozen in place, handy for tweaking how they l
 - `desktop/` — the Mac app's pages: Mote (`index.html`), Settings, Debug, and the gallery
 - `desktop/ui.tsx` and `desktop/ui.css` — the soft buttons, switches and sliders
 - `src/lib/companion/settings.ts` — the list of settings and their defaults
+- `src/lib/companion/features.ts` — features locked behind a Feature Key, and whether each is on
 - `src/components/companion/mind.ts` — Mote's mood, hunger and rest, and how they change
 - `src/components/companion/memories.ts` — the games Mote remembers, and how they bring them up
 - `src/components/companion/Toolbar.tsx` — the buttons along the bottom of Mote's window
