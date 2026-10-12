@@ -46,7 +46,7 @@ import {
   type LibraryReport,
   type LogFile,
 } from "@/lib/companion/gallery";
-import { FEATURES, featureOn, useFeatures, type FeatureId } from "@/lib/companion/features";
+import { FEATURES, featureOn, useFeatures, type FeatureId, type KeyedId } from "@/lib/companion/features";
 import { DEFAULT_SETTINGS, useSettings, type Settings } from "@/lib/companion/settings";
 import { Button, Page, Row, Section, Segmented, Slider, Toggle } from "./ui";
 
@@ -70,7 +70,7 @@ type Ctx = {
   setFace: (face: ManualFace) => void;
 };
 
-type Tab = { id: string; label: string; render: (ctx: Ctx) => ReactNode; needs?: FeatureId };
+type Tab = { id: string; label: string; render: (ctx: Ctx) => ReactNode; needs?: FeatureId | KeyedId };
 
 const TABS: Tab[] = [
   // Settings itself, passed in (see settings.tsx).

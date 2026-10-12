@@ -61,12 +61,17 @@ export function readSettings(): Settings {
   };
 }
 
+/** Every useSettings in this window, so a change made in one reaches the rest
+ * (the bus only reaches other windows). */
+const here = new Set<(next: Settings) => void>();
+
 export function writeSettings(next: Settings) {
   try {
     localStorage.setItem(KEY, JSON.stringify(next));
   } catch {
     // Storage can be unavailable; the other windows still hear about it below.
   }
+  here.forEach((set) => set(next));
   send({ type: "settings", settings: next });
 }
 
@@ -78,6 +83,7 @@ export function useSettings() {
 
   useEffect(() => {
     setSettings(readSettings());
+    here.add(setSettings);
     const stopBus = listenBus((msg) => {
       if (msg.type === "settings") setSettings(msg.settings);
     });
@@ -86,6 +92,7 @@ export function useSettings() {
     };
     window.addEventListener("storage", onStorage);
     return () => {
+      here.delete(setSettings);
       stopBus();
       window.removeEventListener("storage", onStorage);
     };

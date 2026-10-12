@@ -196,10 +196,10 @@ Drag the window by its top edge.
 
 ## Calories
 
-The diet tracker is an **experimental feature** (switched on in the Debug
-window): until then, there's no carrot button, no
-Calories section in Settings, and Mote keeps no count and says nothing about
-it.
+The diet tracker is locked behind its own **Feature Key** (see "Debug and
+experimental features"): until it's unlocked and on, there's no carrot
+button, no Calories section in Settings, and Mote keeps no count and says
+nothing about it.
 
 Set a **daily goal** in Settings (0 turns this off). Press the carrot and
 choose **Log calories**: type an amount and press **+** (or Return) to add it,
@@ -345,8 +345,8 @@ either way). Rounds won and lost nudge their mood a little.
 ## Local Gallery
 
 Mote carries Local Gallery, the Mac app from the Local_Gallery repo, inside
-`Mote.app` and opens it from a picture-frame button (with the Local Gallery
-feature switched on in Debug's Features tab). It's the real app, built from the same code with the same
+`Mote.app` and opens it from a picture-frame button (with Local Gallery
+unlocked by its own Feature Key, and on). It's the real app, built from the same code with the same
 app ID and name, so it uses the same library, folders, settings and
 thumbnails as the Local Gallery you build from its own repo. Mote doesn't run
 any of it; it only opens it, as if you'd double-clicked it.
@@ -426,11 +426,12 @@ Text in the app calls Mote "Mote", or "they/them" when a pronoun is needed.
 
 ### Debug and experimental features
 
-Debug is locked behind a **Feature Key**: at the bottom of Settings, type the
-key into **Feature Key** and press Unlock (or Return). Unlocking is for good
-(resetting settings doesn't undo it); Debug is then listed underneath, with a
-switch to hide it again. Only a fingerprint of the key is kept in the app,
-never the key itself.
+Three things are locked behind a **Feature Key** each: **Debug**, the **Diet
+tracker** and **Local Gallery**. At the bottom of Settings, type a key into
+**Feature Key** and press Unlock (or Return). Unlocking is for good
+(resetting settings doesn't undo it), and takes effect straight away; each
+unlocked one is then listed underneath, with a switch to turn it off again.
+Only a fingerprint of each key is kept in the app, never the key itself.
 
 With Debug unlocked and on, Settings itself grows tabs (and the window grows
 to fit them): **Settings** first, then the Debug tabs. Mote is in debug mode
@@ -459,8 +460,6 @@ feature that's switched off (Links, Gallery) isn't shown.
     game. Games already played are still remembered.
 
   and for the experimental features (all off until switched on):
-  - **Diet tracker**: calorie logging, the Days window, the carrot button,
-    and everything Mote says about food you eat.
   - **Mote eats too**: Mote getting hungry, the snack bowl to feed them, and
     hunger's effect on their mood, face and what they say. Off, Mote simply
     stays full.
@@ -471,8 +470,6 @@ feature that's switched off (Links, Gallery) isn't shown.
     exhausted moods, asking for bed, the bed button, waking once rested).
     Off, Mote stays rested and simply naps after a few quiet minutes left
     alone, until poked.
-  - **Local Gallery**: a picture-frame button that opens Local Gallery,
-    which Mote carries with them (see above).
   - **Eyebrows**: two little soft eyebrows above Mote's eyes. They have no
     moves of their own: they follow the brow cut that every expression
     already shapes, so they come down and slant in when Mote is cross, tilt up
@@ -559,7 +556,7 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 - `desktop/` — the Mac app's pages: Mote (`index.html`), Settings (with the Debug tabs in `debug.tsx`), Days, and the expression sheet
 - `desktop/ui.tsx` and `desktop/ui.css` — the soft buttons, switches and sliders
 - `src/lib/companion/settings.ts` — the list of settings and their defaults, and dark mode (`useDark`)
-- `src/lib/companion/features.ts` — the Feature Key (for Debug) and the experimental features
+- `src/lib/companion/features.ts` — the Feature Keys (Debug, Diet tracker, Local Gallery) and the experimental features
 - `local-gallery/` — Local Gallery's own code, kept separate; `src-tauri/src/gallery.rs` opens it,
   keeps its passcode and reads its logs
 - `src/lib/companion/gallery.ts` — talking to that from Mote's windows (and a pretend gallery, passcode 1234, in a browser)

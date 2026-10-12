@@ -3,17 +3,18 @@ import { listenBus, send } from "@/lib/companion/bus";
 
 // Features kept in the app for testing but out of everyone else's reach.
 //
-// Only one thing is locked behind a Feature Key: Debug. Its key is typed in
-// at the bottom of Settings, and unlocking is remembered for good (resetting
-// settings doesn't undo it). Once it's unlocked and on, Settings grows the
-// Debug tabs, and the Features tab switches features on and off: Mote's
-// usual skills (on until switched off) and the experimental features (off
-// until switched on).
+// Three things are locked behind a Feature Key each: Debug, the diet
+// tracker and Local Gallery. Keys are typed in at the bottom of Settings, and
+// unlocking is remembered for good (resetting settings doesn't undo it); each
+// unlocked one gets a switch there. With Debug unlocked and on, Settings
+// grows the Debug tabs, and the Features tab switches the rest on and off:
+// Mote's usual skills (on until switched off) and the experimental features
+// (off until switched on).
 //
 // Only a fingerprint of the key (its SHA-256) lives in the app, never the key.
 
 /** Features that need a key. */
-export type KeyedId = "debug";
+export type KeyedId = "debug" | "diet" | "gallery";
 /** Features switched on and off in the Features tab (with Debug on). */
 export type FeatureId =
   | "links"
@@ -22,11 +23,9 @@ export type FeatureId =
   | "checkins"
   | "games"
   | "moodshape"
-  | "diet"
   | "hunger"
   | "levels"
   | "sleep"
-  | "gallery"
   | "brows"
   | "mouth"
   | "eyes"
@@ -38,6 +37,18 @@ export const KEYED: Array<{ id: KeyedId; name: string; about: string; fingerprin
     name: "Debug",
     about: "Debug tabs alongside Settings: testing tools, and switches for Mote’s skills and experimental features.",
     fingerprint: "5338425b70e71202639415bbc64b4ca2b70d2d436f292fb7cc5415ba27eaafa9",
+  },
+  {
+    id: "diet",
+    name: "Diet tracker",
+    about: "Calorie logging, the Days window, the carrot button, and everything Mote says about food you eat.",
+    fingerprint: "529ae584fe8563a4e8ec4701330d2de99ea399aa3f58ddcb22cdf72c0aca4e98",
+  },
+  {
+    id: "gallery",
+    name: "Local Gallery",
+    about: "A button that opens Local Gallery, which Mote carries with them (the same app, with the same library and settings).",
+    fingerprint: "58410d02ab9bdb3c0ed5d08fdcc5557f27ef308e10489e982b964ad60205305c",
   },
 ];
 
@@ -86,11 +97,6 @@ export const FEATURES: Array<{
     usual: true,
   },
   {
-    id: "diet",
-    name: "Diet tracker",
-    about: "Calorie logging, the Days window, the carrot button, and everything Mote says about food you eat.",
-  },
-  {
     id: "hunger",
     name: "Mote eats too",
     about: "Mote gets hungry, the snack bowl to feed them, and hunger’s effect on their mood, face and what they say.",
@@ -104,11 +110,6 @@ export const FEATURES: Array<{
     id: "sleep",
     name: "Goodnight Mote",
     about: "Mote getting tired and needing sleep: sleepy and exhausted moods, asking for bed, the bed button, and waking when rested. Off, Mote still naps when left alone.",
-  },
-  {
-    id: "gallery",
-    name: "Local Gallery",
-    about: "A button that opens Local Gallery, which Mote carries with them (the same app, with the same library and settings).",
   },
   {
     id: "brows",
@@ -169,12 +170,17 @@ export function readFeatures(): FeatureState {
   }
 }
 
+/** Every useFeatures in this window, so a change made in one reaches the rest
+ * (the bus only reaches other windows). */
+const here = new Set<(next: FeatureState) => void>();
+
 function writeFeatures(next: FeatureState) {
   try {
     localStorage.setItem(KEY, JSON.stringify(next));
   } catch {
     // The other windows still hear about it below.
   }
+  here.forEach((set) => set(next));
   send({ type: "features", features: next });
 }
 
@@ -201,6 +207,7 @@ export function useFeatures() {
 
   useEffect(() => {
     setState(readFeatures());
+    here.add(setState);
     const stopBus = listenBus((msg) => {
       if (msg.type === "features") setState(msg.features);
     });
@@ -209,6 +216,7 @@ export function useFeatures() {
     };
     window.addEventListener("storage", onStorage);
     return () => {
+      here.delete(setState);
       stopBus();
       window.removeEventListener("storage", onStorage);
     };
