@@ -155,6 +155,20 @@ thought, something about the time of day, what you're up to, or how they're
 feeling. How often follows **Energy** in Settings (about every 3–6 minutes at
 Normal), and their mood.
 
+**Check-ins:** every hour or two (the first about half an hour in), instead of
+a passing thought, Mote asks a simple question about how you're doing: calm?
+rested? eaten? comfy? having fun? Questions fit the moment: a late-night one
+after 11pm, a work one while you're typing, a "good morning" one before 11.
+Green always means you're fine, and gets something glad. Red gets a
+concerned, soft look and a reply that fits the question, understanding
+first and maybe one small idea ("Late-night brain is the worst brain. Don't
+believe everything it tells you right now."). Not having fun isn't a worry,
+though: Mote offers a game instead, and the toy chest glows for a few
+minutes. Left unanswered, Mote says nothing at all: just a slow blink, a
+gentle smile and a little nod. Answers never upset Mote, the same question
+doesn't come back within eight hours, and none come while Mote is cross
+(unless in Friendly mode).
+
 ## The buttons
 
 Along the bottom of Mote's window (quiet until your pointer is over it):
@@ -424,6 +438,8 @@ Once it's unlocked, a wrench button on Mote's window opens the Debug window:
     Pace. A job already running finishes first.
   - **Reacting to apps**: playing games and reacting to the Mac's own apps
     dragged onto Mote. Off, apps get the same "not right now".
+  - **Check-ins**: Mote now and then asking how you're doing. Off, they
+    don't ask.
 
   and for the experimental features (all off until switched on):
   - **Diet tracker**: calorie logging, the Days window, the carrot button,

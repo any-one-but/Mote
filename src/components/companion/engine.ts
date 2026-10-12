@@ -37,6 +37,7 @@ import {
 } from "@/components/companion/links";
 import {
   APPLE_APPS,
+  chooseCheckIn,
   chooseLine,
   lifetime,
   lineById,
@@ -170,6 +171,9 @@ export type Mood =
   | "reckon"
   | "worry"
   | "plead"
+  // Check-ins on how you're doing: concerned for you, or a soft, wordless look.
+  | "care"
+  | "soothe"
   // Checkers: watching your move, thinking over theirs, and how it goes.
   | "ck-watch"
   | "ck-think"
@@ -273,6 +277,8 @@ export type EngineOptions = {
   mouth: boolean;
   /** Saved links: Mote brings one up now and then (on unless switched off). */
   links: boolean;
+  /** Check-ins: now and then Mote asks how you're doing (on unless switched off). */
+  checkIns: boolean;
 };
 
 /** An app dropped on Mote: its name, its ID (com.apple.safari…), and
@@ -445,6 +451,8 @@ export const MOOD_LIST: Mood[] = [
   "reckon",
   "worry",
   "plead",
+  "care",
+  "soothe",
   "ck-watch",
   "ck-think",
   "ck-smug",
@@ -539,6 +547,8 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   reckon: { dur: 8400, tempo: 0.85 },
   worry: { dur: 8400, tempo: 0.85 },
   plead: { dur: 9000, tempo: 0.75 },
+  care: { dur: 7000, tempo: 0.8 },
+  soothe: { dur: 3800, tempo: 0.75 },
   "ck-smug": { dur: 2600, tempo: 1 },
   "ck-ouch": { dur: 2400, tempo: 1.05 },
   "ck-crown": { dur: 3000, tempo: 1 },
@@ -582,6 +592,8 @@ const BUSY: Mood[] = [
   "reckon",
   "worry",
   "plead",
+  "care",
+  "soothe",
   "chess",
   "minecraft",
   "gaming",
@@ -641,6 +653,8 @@ const LABELS: Partial<Record<Mood, string>> = {
   reckon: "Mote is thinking it over.",
   worry: "Mote is worried.",
   plead: "Mote is upset.",
+  care: "Mote looks at you with concern.",
+  soothe: "Mote gives you a gentle look.",
   "ck-watch": "Mote is watching your move.",
   "ck-think": "Mote is thinking about their move.",
   "ck-smug": "Mote looks pleased with that move.",
@@ -1251,6 +1265,54 @@ export function poseFor(
     ];
     const w = t / 1000;
     wobble = { lookX: Math.sin(w * 1.3) * 0.22, rot: Math.sin(w * 1.3) * 1.4 };
+  } else if (mood === "care") {
+    // Concerned for you: a small sigh, then worried brows and a tilted head,
+    // eyes staying on you rather than wandering, a little softness under them.
+    const face: Partial<Pose> = {
+      lid: 0.17,
+      lidTilt: -0.6,
+      lidCurve: 0.03,
+      open: 1.02,
+      wide: 0.98,
+      lookX: 0,
+      lookY: -0.06,
+      lookMix: 1,
+      cheek: 0.2,
+      cheekCurve: 0.05,
+      rot: dir * 7,
+      y: 1,
+      sy: 0.99,
+    };
+    keys = [
+      [0, { open: 1.08, y: -2, sy: 1.02 }],
+      [320, { ...face, y: 3, sy: 0.96, sx: 1.03 }],
+      [900, face],
+    ];
+    const w = t / 1000;
+    wobble = { rot: Math.sin(w * 0.9) * 1.5, y: Math.sin(w * 0.9) * 0.6 };
+  } else if (mood === "soothe") {
+    // No words, just a soft look: a slow blink, eyes smiling a little, a
+    // gentle tilt and a slow nod.
+    const face: Partial<Pose> = {
+      lid: 0.2,
+      lidTilt: -0.25,
+      lidCurve: 0.05,
+      open: 0.96,
+      cheek: 0.4,
+      cheekCurve: 0.16,
+      lookX: 0,
+      lookY: -0.04,
+      lookMix: 0.9,
+      rot: dir * 5,
+    };
+    keys = [
+      [0, { lookMix: 0.9, lookY: -0.04 }],
+      [700, face],
+      [3000, face],
+      [3800, {}],
+    ];
+    const nod = Math.max(0, Math.sin(Math.min(1, Math.max(0, (t - 1300) / 1200)) * Math.PI));
+    wobble = { y: nod * 2.5 };
   } else if (mood === "plead") {
     // Over the line. Either a look up and a little whine, or a sad turn away.
     const droop: Partial<Pose> = {
@@ -1902,6 +1964,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     brows: false,
     mouth: false,
     links: true,
+    checkIns: true,
   };
   const debug = {
     timeScale: 1,
@@ -2047,6 +2110,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     return (3 + Math.random() * 3) * 60_000 * ENERGY_GAP[options.energy] * (1 - 0.25 * fl.joyful + 0.6 * fl.depressed);
   };
   let nextChatAt = 90_000;
+  // Check-ins on how you're doing: the first 25–40 minutes in, then an hour
+  // or two apart.
+  let nextCheckInAt = (25 + Math.random() * 15) * 60_000;
+  // You weren't having fun: the toy chest glows for a while.
+  let playNudgeUntil = 0;
   const movedSince = { x: 0, y: 0 };
   let pettedSince = false;
   let wanting: { need: string; line: string; at: number } | null = null;
@@ -2118,6 +2186,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (next === "glance" && Math.random() < 0.4) blinkAt(now + 20);
     if (next === "dizzy") blinkAt(now + 2680, true);
     if (next === "checkin") blinkAt(now + 40);
+    if (next === "soothe") blinkAt(now + 900);
     if (next === "tada") blinkAt(now + 1300);
     if (prev === "dizzy") dizzyReadyAt = now + 4000;
     if (prev === "dizzy" && next !== "dizzy") mention("dizzy-over", 0.7);
@@ -2194,7 +2263,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const line = lineById.get(b.lineId);
     if (b.reply || !line) return;
     moveMind(line.effects?.[outcome]);
-    if (outcome !== "done") react(`answer-${outcome}`);
+    if (line.checkIn) react(outcome === "yes" ? "check-in-fine" : outcome === "no" ? "check-in-not" : "check-in-quiet");
+    else if (outcome !== "done") react(`answer-${outcome}`);
+    const face = line.faces?.[outcome];
+    if (face) start(face, now);
+    if (line.then?.[outcome] === "suggest-play") playNudgeUntil = clock + 3 * 60_000;
     if (line.then?.[outcome] === "play-again" && game) {
       react("play");
       start(game.mood, now);
@@ -2214,7 +2287,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         kind: "flavor",
         text,
         born: now,
-        ttl: Math.min(5000, 1500 + text.length * 55),
+        // A check-in's reply is worth taking in, so it stays up longer.
+        ttl: line.checkIn ? lifetime("flavor", text) + 1500 : Math.min(5000, 1500 + text.length * 55),
         reply: true,
       });
       log(`says “${text}”`);
@@ -2295,6 +2369,20 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
             ttl: lifetime("flavor", memo.text),
           });
           log(`says “${memo.text}”`);
+          return;
+        }
+      }
+      // Now and then, instead, a check-in on how you're doing. Not while
+      // Mote is cross (unless they're in Friendly mode).
+      const cross = moodsNow.some((m) => m === "annoyed" || m === "frustrated");
+      if (options.checkIns && now >= nextCheckInAt && clock - lastYou < 2 * 60_000 && (options.friendly || !cross)) {
+        pendingEvent = { event: "chat", at: now };
+        const line = chooseCheckIn(speechContext(), lastSaid, now);
+        pendingEvent = null;
+        if (line) {
+          nextCheckInAt = now + (60 + Math.random() * 60) * 60_000;
+          react("check-in");
+          say(line, now);
           return;
         }
       }
@@ -2493,6 +2581,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (state === playing) return;
     const was = playing;
     playing = state;
+    if (state) playNudgeUntil = 0;
     engage();
     pendingEvent = null;
     wanting = null;
@@ -2598,7 +2687,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (mood === "sleep" || mood === "doze" || helping || playing) return null;
     if (feel.fullness <= 3.5) return "food";
     if (options.sleepNeed && feel.rest <= 2.5) return "sleep";
-    if (feel.peace <= -2) return "play";
+    if (feel.peace <= -2 || clock < playNudgeUntil) return "play";
     return null;
   };
 

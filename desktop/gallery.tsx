@@ -39,6 +39,8 @@ const ALL: Shot[] = [
   ["sulk", "sulk", 600, 0.9],
   ["worried", "worry", 1200, 0.9],
   ["upset", "plead", 1500, 0.9],
+  ["concerned", "care", 1400, 0.9],
+  ["gentle look", "soothe", 1900, 0.9],
   ["lost a piece", "ck-ouch", 1300, 0.9],
   ["sly check", "ch-check", 1000, 0.9],
   ["not peeking", "pc-away", 2000, 0.9],

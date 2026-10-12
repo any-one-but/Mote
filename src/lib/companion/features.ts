@@ -19,6 +19,7 @@ export type FeatureId =
   | "links"
   | "files"
   | "apps"
+  | "checkins"
   | "diet"
   | "hunger"
   | "levels"
@@ -60,6 +61,12 @@ export const FEATURES: Array<{
     id: "apps",
     name: "Reacting to apps",
     about: "Apps dragged onto Mote: games get played (Chess, Minecraft, any game) and the Mac’s own apps get a reaction. Off, Mote doesn’t take apps.",
+    usual: true,
+  },
+  {
+    id: "checkins",
+    name: "Check-ins",
+    about: "Every hour or two, Mote asks a simple question about how you’re doing, and answers kindly whichever way you reply (or says nothing if you don’t). Off, Mote doesn’t ask.",
     usual: true,
   },
   {

@@ -10,6 +10,10 @@ import type { Effects, LastingMood, MindValues } from "@/components/companion/mi
 // - "move":   asks you to move the window somewhere; moving it is the answer
 // - "pet":    asks for a pet; petting is the answer
 //
+// Now and then, rarely, a question is a check-in on how you're doing (see
+// CHECK_INS): green always means you're doing fine. Left unanswered, Mote
+// just gives you a soft look and lets it go.
+//
 // (Helping you with files is a conversation of its own; see assistant.ts.)
 //
 // Every bubble disappears after a while. Questions and requests you don't
@@ -87,11 +91,20 @@ export type Line = {
   kindReplies?: Partial<Record<Outcome, string[]>>;
   /** Never said in Friendly mode. */
   unkind?: boolean;
-  /** Something Mote does about it (play the game again). */
-  then?: Partial<Record<Outcome, "play-again" | "open-link">>;
+  /** Something Mote does about it (play the game again, open the link, or
+   * make the toy chest glow). */
+  then?: Partial<Record<Outcome, "play-again" | "open-link" | "suggest-play">>;
+  /** The face Mote makes after each outcome. */
+  faces?: Partial<Record<Outcome, ReplyFace>>;
+  /** A check-in on how you're doing: never picked as ordinary chat, only by
+   * `chooseCheckIn`, and never more than one an hour or so. */
+  checkIn?: boolean;
   /** Group name shown in the debug list. */
   group: string;
 };
+
+/** Faces Mote can make after an answer. */
+export type ReplyFace = "beam" | "care" | "soothe" | "cute" | "think";
 
 const never = () => false;
 
@@ -741,6 +754,258 @@ export const LINES: Line[] = [
   },
 ];
 
+// Check-ins: simple, easy questions about how you're doing. Green is always
+// the "doing fine" answer, and gets something glad. Red gets a worried, soft
+// face and a reply that fits the question: understanding, not a lecture, and
+// where it helps, one small idea. (Not having fun isn't a worry: it's a
+// reason to play something.) Unanswered, Mote says nothing at all, just a
+// soft look: there's never any pressure to reply.
+const fine: Line["faces"] = { yes: "beam", no: "care", ignored: "soothe" };
+const evening = (c: SpeechContext) => c.hour >= 18 && c.hour < 23;
+const lateNight = (c: SpeechContext) => c.hour >= 23 || c.hour < 4;
+const daytime = (c: SpeechContext) => c.hour >= 9 && c.hour < 19;
+
+type CheckIn = Omit<Line, "kind" | "group" | "when" | "checkIn"> & { when?: Line["when"] };
+
+const ASKED: CheckIn[] = [
+  {
+    id: "check-okay",
+    say: ["Hey. You doing okay?", "Just checking in: you alright?", "You good?"],
+    replies: {
+      yes: ["Good. That’s all I wanted to know.", "Okay! Carry on, then.", "Good. Me too, now."],
+      no: [
+        "Ah. Thanks for telling me. You don’t have to explain. I’ll just sit here with you.",
+        "Sorry. I’ll keep quiet for a bit. Poke me if you want silly instead.",
+        "Okay. Not great is allowed. I still like hanging out with you.",
+      ],
+    },
+  },
+  {
+    id: "check-calm",
+    say: ["Feeling pretty calm right now?", "How’s your head? Quiet-ish?", "Things feeling easy at the moment?"],
+    replies: {
+      yes: ["Good. I like it when it’s calm in here.", "Nice. Let’s keep it like this as long as we can.", "Mm. Same. Quiet’s nice."],
+      no: [
+        "Ah, one of those. Lots of tabs open in there, huh? Mine get like that too.",
+        "Hmm. It doesn’t all have to get sorted at once. Just the next little bit.",
+        "Oof. Okay. I’ll be extra quiet and not add to the pile.",
+      ],
+    },
+  },
+  {
+    id: "check-things",
+    say: ["Feeling alright about things?", "Is life being kind to you lately?", "Things going okay, in general?"],
+    replies: {
+      yes: ["Good. I’m glad.", "Yay. That makes me happy.", "Good. Hang on to that."],
+      no: [
+        "Sorry. That sounds heavy to carry around. You can put it down for a minute. It’ll keep.",
+        "Hmm. Sometimes saying it out loud helps. Even to a little dot. I won’t tell.",
+        "Ah. That’s hard. You don’t have to have it all figured out today.",
+      ],
+    },
+  },
+  {
+    id: "check-fun",
+    say: ["Having a good time over there?", "Is today being fun at all?", "Enjoying yourself?"],
+    replies: {
+      yes: ["Yay! Good. Fun suits you.", "Excellent. Carry on having it.", "Good! I hope it’s catching. I want some."],
+      no: [
+        "Well, that won’t do. Game? I’ve been practicing.",
+        "Boo. Let’s fix that. The toy chest’s right there. I’ll even let you go first.",
+        "Not even a little? Okay. Liar’s Dice. I’ll bluff badly, I promise.",
+      ],
+    },
+    faces: { yes: "beam", no: "cute", ignored: "soothe" },
+    then: { no: "suggest-play" },
+  },
+  {
+    id: "check-day",
+    say: ["Is today treating you alright?", "Good day so far?", "Has today been a nice one?"],
+    replies: {
+      yes: ["Yay. Let’s keep it that way.", "Good! I hope the rest of it is just as nice.", "Love that. Good days are easy to forget, so remember this one."],
+      no: [
+        "Ah, sorry. Some days just won’t cooperate. It’s still allowed to get better later.",
+        "Ugh, one of those. Well, it’s not over yet. Plenty of time for it to turn around.",
+        "Sorry. Those are rough. I’m not going anywhere, if you want company.",
+      ],
+    },
+  },
+  {
+    id: "check-rested",
+    say: ["Getting enough sleep lately?", "Feeling rested today?", "Sleeping okay these days?"],
+    replies: {
+      yes: ["Good! Sleep’s the best. I’d know, I do a lot of it.", "Nice. Well-rested you is my favorite you."],
+      no: [
+        "Ugh. Everything’s twice as hard on not enough sleep. Today can be a low-effort day.",
+        "Oh no. Tired makes everything feel heavier than it really is. Small stuff only today?",
+        "If you can sneak a nap in later, I won’t tell anyone. I nap all the time.",
+      ],
+    },
+  },
+  {
+    id: "check-comfy",
+    say: ["Are you comfy right now?", "How’s your back? Comfy?", "Sitting comfy over there?"],
+    replies: {
+      yes: ["Good. Comfy is the best way to be.", "Nice. I’m comfy too. I’m always comfy."],
+      no: [
+        "Fix it! Wiggle around, grab a cushion. I’ll wait.",
+        "Stand up and stretch for a sec? Your back will thank you. I’ll watch your stuff.",
+        "Shuffle around till it’s right. You’ve been sitting there a while.",
+      ],
+    },
+    faces: { yes: "beam", no: "think", ignored: "soothe" },
+  },
+  {
+    id: "check-ate",
+    when: (c) => c.hour >= 11 || c.hour < 4,
+    say: ["Have you eaten something today?", "Had anything to eat lately?", "Eaten today? Real food, I mean."],
+    replies: {
+      yes: ["Good! Fed people are happy people.", "Great. That’s one thing ticked off."],
+      no: [
+        "Hey, go grab something. Even a little. I’ll guard the screen.",
+        "Not even a snack? Toast is easy. Go on, I’ll be right here.",
+        "Food first, everything else after. It all goes better with something in you.",
+      ],
+    },
+  },
+  {
+    id: "check-break",
+    say: ["Taken a break lately?", "Had a little break recently?"],
+    replies: {
+      yes: ["Good! Breaks aren’t lazy. They’re smart.", "Nice. Gold star for you."],
+      no: [
+        "Then it’s break time. Mote’s orders. Five minutes. Go!",
+        "Get up, walk around, look at something far away. Your eyes will love you.",
+        "Even a tiny one? Stretch, sip some water, come back. I’ll keep your spot.",
+      ],
+    },
+    faces: { yes: "beam", no: "cute", ignored: "soothe" },
+  },
+  {
+    id: "check-outside",
+    when: daytime,
+    say: ["Been outside at all today?", "Had some fresh air today?"],
+    replies: {
+      yes: ["Nice! What’s it like out there? I never get to go.", "Good. Outside is good for you. Apparently."],
+      no: [
+        "Maybe pop out for five minutes? Even just the doorstep. I’ll hold the fort.",
+        "Open a window, at least? A bit of sky does wonders.",
+        "A quick walk might be nice. I’d come, but… no legs.",
+      ],
+    },
+    faces: { yes: "beam", no: "think", ignored: "soothe" },
+  },
+  {
+    id: "check-people",
+    say: ["Talked to anyone nice lately?", "Had a good chat with someone recently?", "Seen any friends lately?"],
+    replies: {
+      yes: ["Oh good! Tell them Mote says hi.", "Nice. Good chats fill you up a little, don’t they?"],
+      no: [
+        "You’ve got me! …I count a little. Maybe text someone who can talk back, too?",
+        "It’s easy to go quiet without noticing. A quick hi to someone you like might feel nice.",
+        "Hmm. Send someone something silly? Even a meme counts as hello.",
+      ],
+    },
+  },
+  {
+    id: "check-treat",
+    say: ["Done anything nice for yourself today?", "Had a little treat today?"],
+    replies: {
+      yes: ["Good! You deserve nice things.", "Yay. More of that, please."],
+      no: [
+        "Then do one tiny thing. A song you love? A cup of something warm? It counts.",
+        "Hmm. Pick something small and nice, and do it soon. Mote’s orders.",
+        "That’s too bad. A favorite snack, a little walk, five minutes of nothing. Your pick.",
+      ],
+    },
+    faces: { yes: "beam", no: "think", ignored: "soothe" },
+  },
+  {
+    id: "check-work",
+    weight: 3,
+    when: (c) => c.typing,
+    say: ["Lots of typing! Is it going alright?", "Is the work going okay?", "Keeping up alright with everything?"],
+    replies: {
+      yes: ["Good! Look at you go.", "Nice. You’re on a roll.", "Great. I’ll keep cheering quietly."],
+      no: [
+        "Ugh. Pick one small piece and just do that. The rest can wait its turn.",
+        "Stuck, or just too much of it? Either way, a two-minute break might help.",
+        "Mm. It doesn’t all have to get done today. Probably. Mostly.",
+      ],
+    },
+  },
+  {
+    id: "check-watching",
+    weight: 3,
+    when: (c) => c.media,
+    say: ["Enjoying this?", "Is it any good?"],
+    replies: {
+      yes: ["Me too! Well, the sound of it.", "Good. I’ll keep listening."],
+      no: [
+        "Then switch it! Life’s too short for boring stuff.",
+        "Put on something you actually like. Or play a game with me. I’m free.",
+      ],
+    },
+    faces: { yes: "beam", no: "cute", ignored: "soothe" },
+  },
+  {
+    id: "check-morning",
+    weight: 2,
+    when: (c) => c.hour >= 5 && c.hour < 11,
+    say: ["Feeling ready for today?", "Good morning! Feeling okay?"],
+    replies: {
+      yes: ["Ooh, look at you. Go get it!", "Yay. It’s going to be a good one."],
+      no: [
+        "Same, honestly. Start with something tiny. It gets easier once you’re moving.",
+        "Ease into it. Nothing has to happen in the first hour.",
+        "Breakfast first. Big things after.",
+      ],
+    },
+  },
+  {
+    id: "check-evening",
+    weight: 2,
+    when: evening,
+    say: ["Getting to relax a bit tonight?", "Winding down okay?"],
+    replies: {
+      yes: ["Good. Evenings are for doing nothing on purpose.", "Nice. Cozy mode, activated."],
+      no: [
+        "Still lots to do? Try to save a little bit of tonight just for you.",
+        "Oof. Busy evenings are tiring. Even ten minutes off counts.",
+        "Hmm. Whatever’s left, maybe some of it can be tomorrow’s problem.",
+      ],
+    },
+  },
+  {
+    id: "check-late",
+    weight: 3,
+    when: lateNight,
+    say: ["Still up! Doing okay?", "Late one, huh. You alright?", "It’s pretty late. Everything okay?"],
+    replies: {
+      yes: ["Good. Night owls unite.", "Okay! Just checking. Carry on, night owl.", "Good. It’s nice and quiet this late, isn’t it?"],
+      no: [
+        "Ah. Night’s when everything feels loudest. It usually shrinks a bit by morning.",
+        "Can’t sleep, or don’t want to? Either way, I’ll stay up with you a while.",
+        "Late-night brain is the worst brain. Don’t believe everything it tells you right now.",
+      ],
+    },
+  },
+];
+
+export const CHECK_INS: Line[] = ASKED.map(({ when, faces, ...l }) => ({
+  ...l,
+  kind: "ask" as const,
+  group: "Check-ins",
+  checkIn: true,
+  when: when ?? (() => true),
+  faces: faces ?? fine,
+  // Glad when you're fine; nothing else to Mote's feelings, so a hard day
+  // is never something that upsets them.
+  effects: { yes: { joy: 0.3, peace: 0.2 } },
+}));
+
+LINES.push(...CHECK_INS);
+
 export const lineById = new Map(LINES.map((l) => [l.id, l]));
 
 /** Something Mote does when you give them one of the apps that came with the Mac. */
@@ -944,10 +1209,29 @@ export function chooseLine(
 ): Line | null {
   const ok = LINES.filter(
     (l) =>
+      !l.checkIn &&
       l.when(c) &&
       !(friendly && l.unkind) &&
       now - (lastSaid.get(l.id) ?? Number.NEGATIVE_INFINITY) >
         Math.min(cooldown, l.cooldown ?? cooldown),
+  );
+  if (!ok.length) return null;
+  const total = ok.reduce((sum, l) => sum + (l.weight ?? 1), 0);
+  let r = Math.random() * total;
+  for (const l of ok) {
+    r -= l.weight ?? 1;
+    if (r <= 0) return l;
+  }
+  return ok[ok.length - 1];
+}
+
+/**
+ * A check-in that fits right now, leaving out any asked in the last eight
+ * hours. Null if none fits.
+ */
+export function chooseCheckIn(c: SpeechContext, lastSaid: Map<string, number>, now: number): Line | null {
+  const ok = CHECK_INS.filter(
+    (l) => l.when(c) && now - (lastSaid.get(l.id) ?? Number.NEGATIVE_INFINITY) > 8 * 60 * 60_000,
   );
   if (!ok.length) return null;
   const total = ok.reduce((sum, l) => sum + (l.weight ?? 1), 0);

@@ -146,6 +146,7 @@ export function Companion() {
   const brows = featureOn(features, "brows");
   const mouth = featureOn(features, "mouth");
   const links = featureOn(features, "links");
+  const checkIns = featureOn(features, "checkins");
   const files = featureOn(features, "files");
   const apps = featureOn(features, "apps");
   const debugOn = featureOn(features, "debug");
@@ -184,8 +185,9 @@ export function Companion() {
       brows,
       mouth,
       links,
+      checkIns,
     });
-  }, [followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed, brows, mouth, links]);
+  }, [followPointer, naps, energy, calorieGoal, friendly, hunger, sleepNeed, brows, mouth, links, checkIns]);
 
   useEffect(
     () =>
@@ -451,6 +453,7 @@ export function Companion() {
               brows,
               mouth,
               links,
+              checkIns,
             });
             applyAudio();
           }}
