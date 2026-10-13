@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { distance, understand, type IntentId } from "./converse.ts";
+import { distance, forName, understand, type IntentId } from "./converse.ts";
 
 const ALL = new Set<IntentId>([
   "games",
@@ -124,4 +124,11 @@ test("the diet tracker, Local Gallery, snacks, bedtime and Liar's Dice are gone"
   assert.equal(heard("have a cookie"), "unknown");
   assert.equal(heard("go to bed"), "unknown");
   assert.equal(heard("clean up my downloads"), "unknown");
+});
+
+test("lines with your name use it, and are left out without one", () => {
+  const lines = ["Hi!", "Hi, {name}!"];
+  assert.deepEqual(forName(lines, "Sam"), ["Hi!", "Hi, Sam!"]);
+  assert.deepEqual(forName(lines, ""), ["Hi!"]);
+  assert.deepEqual(forName(["Good game, {name}!"], ""), ["Good game!"]);
 });

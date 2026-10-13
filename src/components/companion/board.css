@@ -28,6 +28,16 @@
   --tt-win: #5a3a2c;
 }
 
+/* A ghost's pieces are white in dark mode too, so yours go back to ink
+   there, to stay apart from them. */
+:root[data-mode="ghost"][data-theme="dark"] .ck {
+  --ck-you: #2e2520;
+  --ck-you-rim: #140f0c;
+  --ck-you-ring: #3a2f28;
+  --ck-you-crown: #f6e0d3;
+  --ck-mote-rim: #cbc2b8;
+}
+
 .ck {
   --ck-card: #fffcf7;
   --ck-ink: #2e2520;

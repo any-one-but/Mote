@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import {
   REST,
   eyeShape,
+  ghostSheet,
   lookEye,
   lookMouth,
   lookPose,
@@ -17,7 +18,7 @@ import "../src/styles.css";
 // A tuning sheet: every expression frozen side by side. Open /gallery.html.
 // ?only=a,b picks shots by name, ?size=600 makes them bigger, ?acc=1 puts the
 // accessories on every face, ?brows=1 draws the eyebrows, ?mouth=1 the mouth, ?eyes=1 just the eyes,
-// ?jack=1 the jack-o'-lantern mode, ?snow=1 the snowman.
+// ?jack=1 the jack-o'-lantern mode, ?ghost=1 the ghost, ?snow=1 the snowman.
 type Shot = [
   name: string,
   mood: Mood | null,
@@ -60,7 +61,8 @@ const allAcc = params.get("acc") === "1";
 const brows = params.get("brows") === "1";
 const mouth = params.get("mouth") === "1";
 const eyesOnly = params.get("eyes") === "1";
-const look: Look = params.get("jack") === "1" ? "jack" : params.get("snow") === "1" ? "snow" : "neutral";
+const look: Look =
+  params.get("jack") === "1" ? "jack" : params.get("ghost") === "1" ? "ghost" : params.get("snow") === "1" ? "snow" : "neutral";
 document.documentElement.dataset.mode = look;
 const SHOTS = only ? ALL.filter(([name]) => only.split(",").includes(name)) : ALL;
 
@@ -142,7 +144,11 @@ function Still({
       <g
         transform={`translate(${pose.x} ${pose.y}) rotate(${pose.rot} ${GEO.cx} ${GEO.pivotY}) translate(${GEO.cx} ${GEO.groundY}) scale(${pose.sx} ${pose.sy}) translate(${-GEO.cx} ${-GEO.groundY})`}
       >
-        {eyesOnly ? null : <ellipse className="skin" cx={GEO.cx} cy={GEO.cy} rx={GEO.faceRx} ry={GEO.faceRy} />}
+        {eyesOnly ? null : look === "ghost" ? (
+          <path className="skin" d={ghostSheet()} />
+        ) : (
+          <ellipse className="skin" cx={GEO.cx} cy={GEO.cy} rx={GEO.faceRx} ry={GEO.faceRy} />
+        )}
         <g filter={`url(#soft-${id})`}>
           {eyes.map((e) => (
             <rect

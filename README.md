@@ -13,8 +13,10 @@ The first time Mote opens, they say hello and show you the basics a step at
 a time (poking and petting them, double-clicking to do something together,
 watching things along with you, dropping links on them), each with a button
 to go on. Then they ask what to call you. Type your name and Mote remembers
-it: now and then they'll call you by it (a hello, a "Morning, Sam!", a "Still
-up, Sam?"). Saying you'd rather not is fine too, and Mote won't ask again.
+it: now and then they'll call you by it, where it fits (a hello, a "Morning,
+Sam!", a "Still up, Sam?", a check-in, asking you for a game or a pet, a
+"Good game, Sam!"). Every place that can use your name has lines without it
+too, used when Mote doesn't know it. Saying you'd rather not is fine too, and Mote won't ask again.
 Your name can be changed any time in Settings, and Mote notices ("Robin! Got
 it."). Debug's Data tab has **Meet Mote again**, to see it all from the start.
 
@@ -293,8 +295,8 @@ Mote eyes.
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. It's kept
-short: **Your name** (what Mote calls you), **Mote Appearance** (Normal, or
-the Jack-o'-lantern, see below), **Light or dark** (Light, Dark, or System to
+short: **Your name** (what Mote calls you), **Mote Appearance** (Normal, the
+Jack-o'-lantern or the Ghost, see below), **Light or dark** (Light, Dark, or System to
 follow the Mac), whether Mote opens when you log in, and whether the window
 floats above others. Everything else (Friendly mode, Energy, Debug's own
 Mode, saved links) is in Debug. Mote's eyes
@@ -308,12 +310,12 @@ swap like Mote does: Mote's pieces (and tic-tac-toe marks) are dark with
 cream eyes, yours cream. Chess is the exception: you're white and Mote is
 black in both modes. The playing cards stay paper.
 
-**Mote Appearance** (in Settings) gives Mote a special look: **Normal**, or
-the **Jack-o'-lantern**, which always has its carved grin there (the mouth is
+**Mote Appearance** (in Settings) gives Mote a special look: **Normal**, the
+**Jack-o'-lantern**, which always has its carved grin there (the mouth is
 otherwise an experimental switch, and plain Mote never gets one from
-Settings). Debug's own **Mode** (in the Features tab, with the Looks) does the
-same for testing, but leaves the mouth to its switch; Mote Appearance wins
-when it's the jack-o'-lantern. **Neutral** is just
+Settings), or the **Ghost**, which has no mouth. Debug's own **Mode** (in the
+Features tab, with the Looks) does the same for testing, but leaves the mouth
+to its switch; Mote Appearance wins when it isn't Normal. **Neutral** is just
 Mote. **Jack-o'-lantern** (for Halloween) turns Mote's cream a soft pumpkin
 orange, makes the eyes triangles like a carved pumpkin's (they still scowl,
 smile, blink and look around), and turns the mouth, if it's on, into a
@@ -323,6 +325,19 @@ does (corners up when happy, a droop when glum, taller when surprised), and
 works its jaw while Mote talks. In dark mode it's inverted like everything
 else: a dark pumpkin with glowing orange eyes and grin. The expression sheet
 shows it with ?jack=1.
+
+**Ghost** puts Mote under a sheet: Mote's own round top, falling to the
+classic wavy ghost hem, and round eye holes, perfectly round at rest (they
+still squint, scowl, widen and blink, cut by the same brows and cheeks). The
+ghost hovers, bobbing gently over a smaller, fainter shadow, and the sheet is
+soft cloth: each point of the hem is on a little spring of its own, so it
+trails behind and jiggles when Mote hops, turns, gets shaken or has their
+window dragged, and billows a touch all the time. The sheet stays white and
+the holes dark in dark mode too (so in dark mode your checkers go back to
+ink, to stay apart from the ghost's white ones). Ghosts don't have mouths:
+there's no ghost mouth, and Settings never gives one (with Debug's
+experimental mouth on, it's the plain little one). The expression sheet
+shows it with ?ghost=1.
 
 Text in the app calls Mote "Mote", or "they/them" when a pronoun is needed.
 

@@ -59,7 +59,7 @@ export const CHECKERS_CHANCE: Record<CheckersEvent, number> = {
 };
 
 const LINES: Record<CheckersEvent, string[]> = {
-  start: ["Checkers! Your move.", "Let’s play! I’ve got a good feeling about this one.", "Your move. I’m right behind you."],
+  start: ["Checkers! Your move.", "Let’s play! I’ve got a good feeling about this one.", "Your move. I’m right behind you.", "Let’s play, {name}!"],
   resume: ["Back to our game!", "Where were we? Oh, right.", "I kept the board just how you left it."],
   "you-capture": ["Hey! I needed that.", "Ow.", "Okay, I sort of saw that coming.", "Rude!", "That one was my favorite.", "Hmph."],
   "you-multi": ["Two?! Come on.", "Whoa, a double jump!", "That’s… a lot of my pieces.", "Okay, that was good."],
@@ -70,8 +70,8 @@ const LINES: Record<CheckersEvent, string[]> = {
   "mote-ahead": ["This is going well for me…", "I like this board.", "I think I’m winning?"],
   "mote-behind": ["Hmm. I might be in trouble.", "Okay, I need a plan.", "This isn’t going how I planned."],
   forced: ["You have to jump! It’s the rules.", "There’s a jump waiting for you."],
-  "mote-win": ["I won! I actually got you!", "Got you this time! Good game."],
-  "you-win": ["So close! Good game.", "Aw, I almost had you.", "You just stayed ahead the whole time. Rematch?"],
+  "mote-win": ["I won! I actually got you!", "Got you this time! Good game.", "Good game, {name}!"],
+  "you-win": ["So close! Good game.", "Aw, I almost had you.", "You just stayed ahead the whole time. Rematch?", "Good game, {name}. You got me."],
   draw: ["A draw! Nobody loses.", "Even! Good game."],
   resign: ["Giving up? Okay. Good game.", "Aw, already? Rematch sometime."],
   pause: ["We’ll finish later. I’ll keep the board.", "Okay! I saved our game."],

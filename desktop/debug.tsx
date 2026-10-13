@@ -1225,11 +1225,13 @@ const ENERGY: Array<{ value: Energy; label: string }> = [
 const MODE: Array<{ value: Mode; label: string }> = [
   { value: "neutral", label: "Neutral" },
   { value: "jack", label: "Jack-o’-lantern" },
+  { value: "ghost", label: "Ghost" },
 ];
 
 const MODE_HINT: Record<Mode, string> = {
   neutral: "Just Mote.",
   jack: "Pumpkin orange, triangle eyes, and a carved, toothy grin if the mouth is on. Happy Halloween!",
+  ghost: "Mote under a white sheet: round eye holes, and a wavy hem that floats along behind them. No mouth of its own.",
 };
 
 /** Everything Mote does, a switch each, sorted by kind. A few of Mote's
@@ -1266,7 +1268,7 @@ function FeaturesTab() {
     glint: (
       <Row
         label="Mode"
-        hint={`${MODE_HINT[settings.mode]} (The mouth follows its own switch here.${settings.moteAppearance === "jack" ? " Settings’ Mote Appearance is the jack-o’-lantern right now, so that’s what shows." : ""})`}
+        hint={`${MODE_HINT[settings.mode]} (The mouth follows its own switch here.${settings.moteAppearance === "jack" ? " Settings’ Mote Appearance isn’t Normal right now, so that’s what shows." : ""})`}
         stacked
       >
         <Segmented label="Mode" options={MODE} value={settings.mode} onChange={(mode) => update({ mode })} />

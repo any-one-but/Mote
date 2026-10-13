@@ -70,6 +70,14 @@
   --mote-eyes: #f5ad6e;
 }
 
+/* Ghost mode: a white sheet with round holes for eyes. The sheet stays
+   white, and the holes dark, in dark mode too. */
+:root[data-mode="ghost"],
+:root[data-mode="ghost"][data-theme="dark"] {
+  --mote-face: #fdfbf8;
+  --mote-eyes: #231c18;
+}
+
 /* Snowman mode (switched off for now): snow white, and coal for the eyes
    and mouth. Snow stays snow in dark mode, a touch dimmer. */
 :root[data-mode="snow"] {

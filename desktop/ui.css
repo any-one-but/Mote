@@ -58,6 +58,16 @@
   fill: #f5ad6e;
 }
 
+/* Ghost: a white sheet with dark eye holes, dark mode or not. */
+:root[data-mode="ghost"],
+:root[data-mode="ghost"][data-theme="dark"] {
+  --skin: #fdfbf8;
+}
+
+:root[data-mode="ghost"] .mini-eyes {
+  fill: #231c18;
+}
+
 /* Snowman (switched off for now): snow white with coal eyes, dark mode or not. */
 :root[data-mode="snow"] {
   --skin: #fbfdff;

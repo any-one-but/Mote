@@ -47,7 +47,7 @@ export const TICTACTOE_CHANCE: Record<TicTacToeEvent, number> = {
 };
 
 const LINES: Record<TicTacToeEvent, string[]> = {
-  start: ["Tic-tac-toe! Your move.", "X goes first. That’s you.", "Okay, I’m watching every square this time."],
+  start: ["Tic-tac-toe! Your move.", "X goes first. That’s you.", "Okay, I’m watching every square this time.", "Your move, {name}."],
   "mote-first": ["My turn to go first!", "I’ll start this time.", "Me first! Okay…"],
   resume: ["Back to our game!", "Where were we? Oh, right."],
   "you-block": ["Hey! I was going to go there.", "You saw that, huh.", "Blocked. Hmph."],
@@ -56,7 +56,7 @@ const LINES: Record<TicTacToeEvent, string[]> = {
   "mote-fork": ["Two ways to win. Hehe.", "Pick one to block. Go on."],
   "mote-threat": ["Hmm hm hm.", "Watch that corner."],
   "mote-win": ["Three in a row! Finally!", "I got one! Good game."],
-  "you-win": ["Ugh, so close! You got me.", "I didn’t see that coming. Well played.", "You were one step ahead the whole time."],
+  "you-win": ["Ugh, so close! You got me.", "I didn’t see that coming. Well played.", "You were one step ahead the whole time.", "You got me, {name}!"],
   draw: ["A draw! Nobody wins.", "Cat’s game!", "Even again. Classic tic-tac-toe."],
   resign: ["Giving up already? Okay.", "Aw. Next time, then."],
   pause: ["I’ll keep the board just like this.", "We can finish later."],

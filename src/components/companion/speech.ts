@@ -137,7 +137,7 @@ export const LINES: Line[] = [
     group: "After something happens",
     kind: "flavor",
     when: (c) => c.event === "petted",
-    say: ["That was really nice. Thank you.", "Mmm… I needed that."],
+    say: ["That was really nice. Thank you.", "Mmm… I needed that.", "Thank you, {name}. That was lovely."],
   },
   {
     id: "after-dizzy",
@@ -301,6 +301,7 @@ export const LINES: Line[] = [
       const it = l.video ? "watch it" : "have a look";
       const lines = [
         `I was just thinking about ${x}. Want to ${it}?`,
+        `Hey {name}, remember ${x}? Want to ${it}?`,
         `Little break? We could ${see} ${x}.`,
         `Before I nap… ${x}? Just one?`,
         `Ooh, I know! ${x}! Yes?`,
@@ -510,7 +511,12 @@ export const LINES: Line[] = [
     kind: "flavor",
     when: never,
     cooldown: 10 * 60_000,
-    say: ["Want to play something? Double-click me and say “game”.", "It’s been quiet. A game, maybe?", "Could we play something? Anything."],
+    say: [
+      "Want to play something? Double-click me and say “game”.",
+      "It’s been quiet. A game, maybe?",
+      "Could we play something? Anything.",
+      "{name}? Want to play something with me?",
+    ],
   },
   {
     id: "move-me",
@@ -536,7 +542,7 @@ export const LINES: Line[] = [
     kind: "pet",
     when: never,
     cooldown: 10 * 60_000,
-    say: ["Could I have a pet? I’m feeling a bit down."],
+    say: ["Could I have a pet? I’m feeling a bit down.", "{name}… could I have a pet? I’m feeling a bit down."],
     effects: { petted: { joy: 0.6, peace: 1 }, ignored: { peace: -0.4 } },
     replies: { petted: ["Mmm… that’s better."], ignored: ["Maybe later, then."] },
   },
@@ -558,9 +564,9 @@ type CheckIn = Omit<Line, "kind" | "group" | "when" | "checkIn"> & { when?: Line
 const ASKED: CheckIn[] = [
   {
     id: "check-okay",
-    say: ["Hey. You doing okay?", "Just checking in: you alright?", "You good?"],
+    say: ["Hey. You doing okay?", "Just checking in: you alright?", "You good?", "Hey, {name}. You doing okay?"],
     replies: {
-      yes: ["Good. That’s all I wanted to know.", "Okay! Carry on, then.", "Good. Me too, now."],
+      yes: ["Good. That’s all I wanted to know.", "Okay! Carry on, then.", "Good. Me too, now.", "Good. I’m glad, {name}."],
       no: [
         "Ah. Thanks for telling me. You don’t have to explain. I’ll just sit here with you.",
         "Sorry. I’ll keep quiet for a bit. Poke me if you want silly instead.",
@@ -620,7 +626,7 @@ const ASKED: CheckIn[] = [
   },
   {
     id: "check-day",
-    say: ["Is today treating you alright?", "Good day so far?", "Has today been a nice one?"],
+    say: ["Is today treating you alright?", "Good day so far?", "Has today been a nice one?", "Good day so far, {name}?"],
     replies: {
       yes: ["Yay. Let’s keep it that way.", "Good! I hope the rest of it is just as nice.", "Love that. Good days are easy to forget, so remember this one."],
       no: [
@@ -752,7 +758,7 @@ const ASKED: CheckIn[] = [
     id: "check-morning",
     weight: 2,
     when: (c) => c.hour >= 5 && c.hour < 11,
-    say: ["Feeling ready for today?", "Good morning! Feeling okay?"],
+    say: ["Feeling ready for today?", "Good morning! Feeling okay?", "Morning, {name}! Feeling ready for today?"],
     replies: {
       yes: ["Ooh, look at you. Go get it!", "Yay. It’s going to be a good one."],
       no: [
@@ -780,7 +786,7 @@ const ASKED: CheckIn[] = [
     id: "check-late",
     weight: 3,
     when: lateNight,
-    say: ["Still up! Doing okay?", "Late one, huh. You alright?", "It’s pretty late. Everything okay?"],
+    say: ["Still up! Doing okay?", "Late one, huh. You alright?", "It’s pretty late. Everything okay?", "Still up, {name}? Doing okay?"],
     replies: {
       yes: ["Good. Night owls unite.", "Okay! Just checking. Carry on, night owl.", "Good. It’s nice and quiet this late, isn’t it?"],
       no: [

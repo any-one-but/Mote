@@ -69,7 +69,7 @@ export const SOLITAIRE_CHANCE: Record<SolitaireEvent, number> = {
 };
 
 const LINES: Record<SolitaireEvent, string[]> = {
-  start: ["Solitaire! I’ll help.", "Ooh, cards. Let’s do this together.", "Fresh deck! I’m right here if you want a hand."],
+  start: ["Solitaire! I’ll help.", "Ooh, cards. Let’s do this together.", "Fresh deck! I’m right here if you want a hand.", "Solitaire with {name}! Let’s go."],
   resume: ["Back to our cards!", "I kept them just how we left them.", "Where were we? Oh, right."],
   "home-ace": ["An ace! Off it goes.", "An ace home. A good start for that pile.", "Ooh, an ace!"],
   "home-two": ["A two, right on its ace.", "That pile’s getting going.", "Two! Home it goes."],
@@ -88,7 +88,7 @@ const LINES: Record<SolitaireEvent, string[]> = {
     "I’ve looked everywhere. Nothing. Fresh cards?",
   ],
   finish: ["Everything’s showing! I can finish this for us.", "We’ve got it now. Want me to put them all away?"],
-  win: ["We did it!!", "Every card home! Teamwork!", "Yes! We won! High five. (Imagine I have hands.)"],
+  win: ["We did it!!", "Every card home! Teamwork!", "Yes! We won! High five. (Imagine I have hands.)", "We did it, {name}! Every single card!"],
   "new-deal": ["New cards! Let’s go.", "Fresh deck. This one’s ours."],
 };
 

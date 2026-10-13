@@ -78,7 +78,7 @@ export const CHESS_CHANCE: Record<ChessEvent, number> = {
 };
 
 const LINES: Record<ChessEvent, string[]> = {
-  start: ["Chess! Your move.", "Ooh, a proper game. White goes first.", "Let’s see your opening. I’ve been practicing."],
+  start: ["Chess! Your move.", "Ooh, a proper game. White goes first.", "Let’s see your opening. I’ve been practicing.", "Your move, {name}."],
   resume: ["Back to our game!", "I left everything exactly where it was.", "Now, where was I going with this…"],
   "you-capture": [
     "Hey, that was my {piece}!",
@@ -105,8 +105,8 @@ const LINES: Record<ChessEvent, string[]> = {
   "mote-ahead": ["I’m ahead, I think…", "This is going well for me.", "I like how my pieces look."],
   "mote-behind": ["I’m down some pieces. Thinking hard now.", "Hmm. I need a plan.", "This isn’t going my way."],
   "in-check": ["Your king’s in check!", "You have to get out of check first."],
-  "mote-win": ["Checkmate! I finally got you!", "Checkmate. That was a tough one!"],
-  "you-win": ["Checkmate… so close! Well played.", "You were always one move ahead. Good game.", "Aw. I nearly had you."],
+  "mote-win": ["Checkmate! I finally got you!", "Checkmate. That was a tough one!", "Checkmate! Good game, {name}."],
+  "you-win": ["Checkmate… so close! Well played.", "You were always one move ahead. Good game.", "Aw. I nearly had you.", "Well played, {name}. Really."],
   stalemate: ["Stalemate! Nobody wins.", "No moves, but no check… it’s a draw!"],
   repetition: ["Same moves again and again… draw!", "We keep going in circles. Draw!"],
   fifty: ["Fifty moves and nothing happened. Draw!", "Nobody’s getting anywhere. Draw!"],

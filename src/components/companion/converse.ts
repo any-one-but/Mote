@@ -746,13 +746,13 @@ export const LINES = {
     "Hey you. What are we doing?",
     "Hi, {name}! What would you like to do?",
   ],
-  thanks: ["Anytime!", "You’re welcome!", "Happy to help.", "Of course!"],
+  thanks: ["Anytime!", "You’re welcome!", "Happy to help.", "Of course!", "Anytime, {name}!"],
   pet: [
     "Stroke my face! Slowly, back and forth. I love that.",
     "Pets are done with your pointer: press and stroke across my face.",
     "Ooh, yes. Press and stroke across my face, nice and slow.",
   ],
-  cancel: ["Okay! I’ll be here.", "No problem.", "Okay. Double-click me if you need me.", "Alright!"],
+  cancel: ["Okay! I’ll be here.", "No problem.", "Okay. Double-click me if you need me.", "Alright!", "Okay, {name}. I’ll be right here."],
   off: {
     games: ["The games are put away right now.", "No games right now. They’re switched off."],
     links: ["Saved links are switched off right now."],

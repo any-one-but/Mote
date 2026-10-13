@@ -24,6 +24,7 @@ import {
   type GameResult,
 } from "@/components/companion/memories";
 import { reactionById } from "@/components/companion/reactions";
+import { forName } from "@/components/companion/converse";
 import {
   addLink,
   isVideo,
@@ -1665,9 +1666,9 @@ export function mouthShape(pose: Pose, gazeX: number, gazeY: number): string {
   return `M${f(x - w / 2)} ${f(y)}Q${f(x)} ${f(top)} ${f(x + w / 2)} ${f(y)}Q${f(x)} ${f(bottom)} ${f(x - w / 2)} ${f(y)}Z`;
 }
 
-/** Mote's special looks (Settings' Mode): plain Mote, a jack-o'-lantern,
- * or a snowman. */
-export type Look = "neutral" | "jack" | "snow";
+/** Mote's special looks (Settings' Mode): plain Mote, a jack-o'-lantern, a
+ * ghost, or a snowman. */
+export type Look = "neutral" | "jack" | "ghost" | "snow";
 
 /** Jack-o'-lantern mode: how much wider the eyes are (triangles are wider
  * than tall), how much less the cheeks and a wink squeeze them, and the
@@ -1860,6 +1861,70 @@ export function noseShape(gazeX: number, gazeY: number): string {
   return `M${f(bx)} ${f(by - r)}Q${f(bx + len * turn * 0.55)} ${f(by - r * 0.7)} ${f(tipX)} ${f(tipY)}Q${f(bx + len * turn * 0.55)} ${f(by + r * 0.9)} ${f(bx)} ${f(by + r)}A${r} ${r} 0 0 ${side} ${f(bx)} ${f(by - r)}Z`;
 }
 
+/**
+ * Ghost mode: Mote under a sheet. The eyes are holes cut in it, perfectly
+ * round at rest (they still squint, widen and blink: the same cuts shape
+ * them), and the body is the sheet: Mote's own round top, falling to a wavy
+ * hem that billows a little on its own and trails behind when Mote moves.
+ */
+export const GHOST = {
+  /** An eye hole's width at rest. */
+  eye: 52,
+  /** The hem: how many bumps, and how low they hang and where they turn up. */
+  bumps: 4,
+  bottom: 226,
+  top: 203,
+};
+
+/** A round eye hole, filling the eye's place. */
+export function ghostEye(p: EyeShape["pill"]): string {
+  const cx = p.x + p.w / 2;
+  const cy = p.y + p.h / 2;
+  const rx = (GHOST.eye / 2) * (p.w / GEO.eyeW);
+  const ry = Math.max(3.5, (GHOST.eye / 2) * Math.min(1.3, p.h / GEO.eyeH));
+  return `M${f(cx - rx)} ${f(cy)}A${f(rx)} ${f(ry)} 0 1 0 ${f(cx + rx)} ${f(cy)}A${f(rx)} ${f(ry)} 0 1 0 ${f(cx - rx)} ${f(cy)}Z`;
+}
+
+/** Where the hem's bumps and dips sit at rest, right to left (bump, dip,
+ * bump… ending on a bump). */
+export function ghostHem(): Array<{ x: number; y: number }> {
+  const { cx, faceRx } = GEO;
+  const right = cx + faceRx - 12;
+  const left = cx - faceRx + 12;
+  const n = GHOST.bumps * 2 - 1;
+  return Array.from({ length: n }, (_, i) => ({
+    x: right - ((right - left) * i) / (n - 1),
+    y: i % 2 === 0 ? GHOST.bottom : GHOST.top,
+  }));
+}
+
+/**
+ * The sheet: the top of Mote's round face, sides that fall and flare a touch,
+ * and the wavy hem, each of its points moved by `cloth` (how far the cloth
+ * has swung there).
+ */
+export function ghostSheet(cloth: ReadonlyArray<{ x: number; y: number }> = []): string {
+  const { cx, cy, faceRx: rx, faceRy: ry } = GEO;
+  const hem = ghostHem().map((p, i) => ({ x: p.x + (cloth[i]?.x ?? 0), y: p.y + (cloth[i]?.y ?? 0) }));
+  const first = hem[0];
+  const last = hem[hem.length - 1];
+  const right = cx + rx;
+  const left = cx - rx;
+  let d = `M${f(left)} ${f(cy)}A${rx} ${ry} 0 0 1 ${f(right)} ${f(cy)}`;
+  // Down the right side, rounding into the first bump.
+  d += `C${f(right + 2)} ${f(cy + 46)} ${f(right + 4 + (first.x - (right - 12)) * 0.6)} ${f(first.y - 4)} ${f(first.x)} ${f(first.y)}`;
+  // The wave: smooth from each bump to the next dip and back.
+  for (let i = 1; i < hem.length; i++) {
+    const a = hem[i - 1];
+    const b = hem[i];
+    const mid = (a.x + b.x) / 2;
+    d += `C${f(mid)} ${f(a.y)} ${f(mid)} ${f(b.y)} ${f(b.x)} ${f(b.y)}`;
+  }
+  // Up the left side.
+  d += `C${f(left - 4 + (last.x - (left + 12)) * 0.6)} ${f(last.y - 4)} ${f(left - 2)} ${f(cy + 46)} ${f(left)} ${f(cy)}Z`;
+  return d;
+}
+
 /** The pose each look's eyes are cut from. */
 export function lookPose(look: Look, pose: Pose): Pose {
   return look === "jack" ? jackLook(pose) : look === "snow" ? snowLook(pose) : pose;
@@ -1867,10 +1932,11 @@ export function lookPose(look: Look, pose: Pose): Pose {
 
 /** Each look's eye, in place of the pill (null: the pill itself). */
 export function lookEye(look: Look, p: EyeShape["pill"], side: "l" | "r"): string | null {
-  return look === "jack" ? jackEye(p) : look === "snow" ? coalEye(p, side) : null;
+  return look === "jack" ? jackEye(p) : look === "ghost" ? ghostEye(p) : look === "snow" ? coalEye(p, side) : null;
 }
 
-/** Each look's mouth. `talk` (0..1) works a jack-o'-lantern's jaw. */
+/** Each look's mouth. `talk` (0..1) works a jack-o'-lantern's jaw. (A ghost
+ * has no mouth of its own: with the mouth switched on, it's the plain one.) */
 export function lookMouth(look: Look, pose: Pose, gazeX: number, gazeY: number, talk = 0): string {
   return look === "jack"
     ? jackMouthShape(pose, gazeX, gazeY, talk)
@@ -1898,6 +1964,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
 
   const parts = {
     body: q<SVGGElement>(svg, "body"),
+    skin: q<SVGEllipseElement>(svg, "skin"),
+    sheet: q<SVGPathElement>(svg, "sheet"),
     eyes: q<SVGGElement>(svg, "eyes"),
     shadow: q<SVGEllipseElement>(svg, "shadow"),
     pillL: q<SVGRectElement>(svg, "pill-l"),
@@ -2262,7 +2330,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
     const replies = (options.friendly && line.kindReplies?.[outcome]) || line.replies?.[outcome];
     if (replies?.length) {
-      const text = replies[Math.floor(Math.random() * replies.length)];
+      const named = forName(replies, options.name);
+      const text = named[Math.floor(Math.random() * named.length)];
       showBubble({
         id: ++bubbleSeq,
         lineId: line.id,
@@ -2449,7 +2518,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     react(reaction);
     if (!options.gameTalk && !always) return;
     if (chance <= 0 || Math.random() > chance) return;
-    const said = line();
+    // A line that calls you by name only when Mote knows it: without a name,
+    // pick again (every moment has lines without one).
+    let said = line();
+    for (let tries = 0; !options.name && said.text.includes("{name}") && tries < 8; tries++) said = line();
+    said = { ...said, text: forName([said.text], options.name)[0] };
     recentGameLines = [...recentGameLines, said.id].slice(-12);
     showBubble({
       id: ++bubbleSeq,
@@ -3193,12 +3266,25 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
 
   let shake = { x: 0, rot: 0 };
 
+  // The ghost's sheet: where the body was last frame, and each hem point's
+  // swing (see `render`).
+  const cloth = {
+    at: 0,
+    bx: 0,
+    by: 0,
+    br: 0,
+    points: ghostHem().map(() => ({ x: 0, y: 0, vx: 0, vy: 0 })),
+  };
+
   const render = (blink: number) => {
     const m = reduced ? 0.2 : 1;
+    const ghost = options.look === "ghost";
     // A purr is a soft, fast rumble that skips the springs.
     const rumble = purrNow * Math.sin((clock / 1000) * Math.PI * 2 * 11) * m;
     const bx = (view.x + shake.x * m) * m;
-    const by = view.y * m;
+    // A ghost hovers, bobbing gently (less in a nap).
+    const hover = ghost ? Math.sin((clock / 1000) * ((Math.PI * 2) / 3.4)) * (mood === "sleep" ? 1 : 2.2) * m : 0;
+    const by = view.y * m + hover;
     const br = (view.rot + shake.rot * m) * m;
     const bsx = 1 + (view.sx - 1) * m - rumble * 0.004;
     const bsy = 1 + (view.sy - 1) * m + rumble * 0.007;
@@ -3213,9 +3299,52 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
 
     const lift = clamp(-by, 0, 40);
     if (parts.shadow) {
-      parts.shadow.setAttribute("rx", f(GEO.shadowRx * bsx * (1 - lift / 50)));
+      // A ghost floats, so its shadow is smaller and fainter.
+      const float = ghost ? 0.78 : 1;
+      parts.shadow.setAttribute("rx", f(GEO.shadowRx * float * bsx * (1 - lift / 50)));
       parts.shadow.setAttribute("cx", f(GEO.cx + bx * 0.6));
-      parts.shadow.style.opacity = (0.1 * (1 - lift / 60)).toFixed(3);
+      parts.shadow.style.opacity = (0.1 * float * (1 - lift / 60)).toFixed(3);
+    }
+
+    // The ghost's sheet: each point of the hem on a soft spring of its own,
+    // trailing behind the body as it moves (and the window as it's dragged),
+    // and billowing a little all the time.
+    if (parts.skin) parts.skin.style.display = ghost ? "none" : "";
+    if (parts.sheet) parts.sheet.style.display = ghost ? "" : "none";
+    if (ghost) {
+      const dt = clamp((clock - cloth.at) / 1000, 0, 0.05);
+      cloth.at = clock;
+      const vx = dt > 0 ? (bx - cloth.bx) / dt : 0;
+      const vy = dt > 0 ? (by - cloth.by) / dt : 0;
+      const vr = dt > 0 ? (br - cloth.br) / dt : 0;
+      cloth.bx = bx;
+      cloth.by = by;
+      cloth.br = br;
+      const t = clock / 1000;
+      const drag = clamp(lag.x - view.x, -12, 12);
+      const dragY = clamp(lag.y - view.y, -12, 12);
+      cloth.points.forEach((p, i) => {
+        // Further from the middle, the hem swings more with a turn.
+        const across = (i / (cloth.points.length - 1)) * 2 - 1;
+        const tx = clamp(-vx * 0.07 - vr * 0.05 + drag * 0.8, -10, 10) * m;
+        const ty = clamp(-vy * 0.06 + dragY * 0.6 + vr * across * 0.03, -8, 8) * m;
+        const k = 70 + i * 9;
+        p.vx += (tx - p.x) * k * dt;
+        p.vy += (ty - p.y) * k * dt;
+        p.vx *= Math.exp(-7 * dt);
+        p.vy *= Math.exp(-7 * dt);
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+      });
+      parts.sheet?.setAttribute(
+        "d",
+        ghostSheet(
+          cloth.points.map((p, i) => ({
+            x: p.x + Math.sin(t * 1.7 + i * 0.9) * 0.8 * m,
+            y: p.y + Math.sin(t * 2.3 + i * 1.3) * 1.3 * m,
+          })),
+        ),
+      );
     }
 
     // Dizzy eyes orbit in opposite directions.

@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import {
   REST,
   eyeShape,
+  ghostSheet,
   startFaceEngine,
   type EngineHooks,
   type FaceEngine,
@@ -73,7 +74,9 @@ export function Face({ onEngine, onMood, onEvent, onSpeech, onOpenLink, onSugges
       />
 
       <g data-part="body">
-        <ellipse cx={cx} cy={cy} rx={faceRx} ry={faceRy} className="skin" />
+        <ellipse data-part="skin" cx={cx} cy={cy} rx={faceRx} ry={faceRy} className="skin" />
+        {/* Ghost mode's sheet, in place of the round body. */}
+        <path data-part="sheet" className="skin" d={ghostSheet()} style={{ display: "none" }} />
 
         <g data-part="eyes" filter="url(#mote-soft)">
           <g mask="url(#mote-eye-l)">
