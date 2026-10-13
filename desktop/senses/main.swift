@@ -11,9 +11,13 @@
 // It needs no special permissions. It never captures the screen or sound: it
 // only asks macOS which apps are sending sound and where windows are, and for
 // typing, only *when* keys are pressed, never which.
+//
+// It stays clear of AppKit: anything from there signs the helper in to macOS
+// as an app of its own, sharing Mote.app's name and icon, and it turned up in
+// the Dock as a second Mote that bounced and never opened.
 
-import AppKit
 import CoreAudio
+import CoreGraphics
 import Foundation
 
 setvbuf(stdout, nil, _IOLBF, 0)
@@ -93,6 +97,8 @@ func owners(of pids: [pid_t]) -> Set<pid_t> {
 struct Win {
   let id: CGWindowID
   let pid: pid_t
+  /** The app's name. */
+  let owner: String
   let layer: Int
   let bounds: CGRect
   let alpha: Double
@@ -110,7 +116,9 @@ func windowsFrontToBack() -> [Win] {
       let b = w[kCGWindowBounds as String] as? [String: Any],
       let rect = CGRect(dictionaryRepresentation: b as CFDictionary)
     else { return nil }
-    return Win(id: id, pid: pid, layer: layer, bounds: rect, alpha: w[kCGWindowAlpha as String] as? Double ?? 1)
+    return Win(
+      id: id, pid: pid, owner: w[kCGWindowOwnerName as String] as? String ?? "?", layer: layer, bounds: rect,
+      alpha: w[kCGWindowAlpha as String] as? Double ?? 1)
   }
 }
 
@@ -162,8 +170,7 @@ func tick() {
   for c in candidates {
     let share = visibleShare(of: c, among: windows, ignoring: mine)
     if debugging {
-      let app = NSRunningApplication(processIdentifier: c.pid)?.localizedName ?? "?"
-      emit(["candidate": app, "visible": share])
+      emit(["candidate": c.owner, "visible": share])
     }
     if target == nil || share > target!.share + 0.05 { target = (c, share) }
   }
@@ -173,26 +180,24 @@ func tick() {
     emit(["media": NSNull()])
     return
   }
-  let app = NSRunningApplication(processIdentifier: win.pid)
   emit([
     "media": [
       "x": win.bounds.midX, "y": win.bounds.midY,
       "visible": share,
       "playing": true,
-      "app": (app?.localizedName as Any?) ?? NSNull(),
+      "app": win.owner,
     ]
   ])
 }
 
 // The pointer, whenever it moves, a few times a second at most.
 var lastPointer = CGPoint(x: -1, y: -1)
-let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
 Timer.scheduledTimer(withTimeInterval: 1.0 / 15, repeats: true) { _ in
-  let p = NSEvent.mouseLocation
-  let flipped = CGPoint(x: p.x, y: primaryHeight - p.y)
-  if hypot(flipped.x - lastPointer.x, flipped.y - lastPointer.y) >= 3 {
-    lastPointer = flipped
-    emit(["pointer": [flipped.x, flipped.y]])
+  // Measured from the top left of the main display, like windows are.
+  guard let p = CGEvent(source: nil)?.location else { return }
+  if hypot(p.x - lastPointer.x, p.y - lastPointer.y) >= 3 {
+    lastPointer = p
+    emit(["pointer": [p.x, p.y]])
   }
 }
 
@@ -210,11 +215,11 @@ Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { _ in
   lastKeyGap = gap
   keyTimes.removeAll { now.timeIntervalSince($0) > 4 }
   guard keyTimes.count >= 4, now.timeIntervalSince(lastTypingReport) > 0.5,
-    let front = NSWorkspace.shared.frontmostApplication?.processIdentifier,
-    front != me, front != mote,
+    // The front window is the app you're typing in.
     let win = windowsFrontToBack().first(where: {
-      $0.pid == front && $0.layer == 0 && $0.bounds.width >= 120 && $0.bounds.height >= 80
-    })
+      $0.layer == 0 && $0.bounds.width >= 120 && $0.bounds.height >= 80
+    }),
+    win.pid != me, win.pid != mote
   else { return }
   lastTypingReport = now
   emit(["typing": [win.bounds.midX, win.bounds.midY]])

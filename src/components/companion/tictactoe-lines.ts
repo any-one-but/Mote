@@ -6,6 +6,8 @@ export type TicTacToeEvent =
   | "resume"
   | "you-block"
   | "mote-block"
+  /** Mote blocked one side of your fork, but you can still win on the other. */
+  | "mote-block-futile"
   | "you-fork"
   | "mote-fork"
   | "mote-threat"
@@ -21,6 +23,7 @@ export const TICTACTOE_FACE: Partial<Record<TicTacToeEvent, string>> = {
   resume: "cute",
   "you-block": "ck-ouch",
   "mote-block": "ck-smug",
+  "mote-block-futile": "ch-checked",
   "you-fork": "ch-checked",
   "mote-fork": "ch-check",
   "mote-threat": "ch-check",
@@ -36,6 +39,7 @@ export const TICTACTOE_CHANCE: Record<TicTacToeEvent, number> = {
   resume: 1,
   "you-block": 0.7,
   "mote-block": 0.5,
+  "mote-block-futile": 0.8,
   "you-fork": 1,
   "mote-fork": 1,
   "mote-threat": 0.35,
@@ -52,6 +56,7 @@ const LINES: Record<TicTacToeEvent, string[]> = {
   resume: ["Back to our game!", "Where were we? Oh, right."],
   "you-block": ["Hey! I was going to go there.", "You saw that, huh.", "Blocked. Hmph."],
   "mote-block": ["Nope! Not today.", "I saw that coming.", "Blocked!"],
+  "mote-block-futile": ["I can only block one…", "There. Not that it helps much.", "Well, I tried.", "Go on, then. Finish me off."],
   "you-fork": ["Oh no. Two ways to win.", "Wait… I can’t block both.", "That’s sneaky. I like it. (I don’t.)"],
   "mote-fork": ["Two ways to win. Hehe.", "Pick one to block. Go on."],
   "mote-threat": ["Hmm hm hm.", "Watch that corner."],

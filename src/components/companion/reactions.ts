@@ -709,6 +709,14 @@ export const REACTIONS: Reaction[] = [
     status: "live",
   },
   {
+    id: "tictactoe-mote-block-futile",
+    group: "Tic-tac-toe",
+    name: "Mote blocks half your fork",
+    when: "Mote takes one of the squares you needed, but you can still win with the other",
+    then: "Resigned, not triumphant",
+    status: "live",
+  },
+  {
     id: "tictactoe-you-fork",
     group: "Tic-tac-toe",
     name: "You set up two wins",

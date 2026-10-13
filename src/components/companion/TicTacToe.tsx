@@ -97,7 +97,8 @@ export function TicTacToe({ engine, onClose }: Props) {
     setBusy(false);
     if (finish(next)) return;
     if (isFork(next, "mote")) tell("mote-fork");
-    else if (winningCells(g, "you").includes(choice.cell)) tell("mote-block");
+    else if (winningCells(g, "you").includes(choice.cell))
+      tell(winningCells(next, "you").length ? "mote-block-futile" : "mote-block");
     else if (winningCells(next, "mote").length) tell("mote-threat");
   };
 
