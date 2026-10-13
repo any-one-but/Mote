@@ -67,12 +67,6 @@ import {
   type TicTacToeEvent,
 } from "@/components/companion/tictactoe-lines";
 import {
-  LIARSDICE_CHANCE,
-  LIARSDICE_FACE,
-  pickLiarsDiceLine,
-  type LiarsDiceEvent,
-} from "@/components/companion/liarsdice-lines";
-import {
   SOLITAIRE_CHANCE,
   SOLITAIRE_FACE,
   pickSolitaireLine,
@@ -385,9 +379,6 @@ export type FaceEngine = {
   checkers: (event: CheckersEvent) => void;
   chess: (event: ChessEvent, words?: { piece?: string; yours?: string }) => void;
   tictactoe: (event: TicTacToeEvent) => void;
-  /** Liar's Dice, which never ends: a round's moments. `bid` is the bid in
-   * words, for Mote to say. */
-  liarsDice: (event: LiarsDiceEvent, bid?: string) => void;
   /** Solitaire, with Mote helping: its moments. `move` is Mote's advice in
    * words, for them to say. */
   solitaire: (event: SolitaireEvent, move?: string) => void;
@@ -1536,10 +1527,19 @@ const SLEEP: Partial<Pose> = {
 };
 
 /** Blink curve: quick accelerating close, short hold, softer open with a tiny pop. */
+const BLINK = {
+  fast: { close: 72, hold: 40, open: 190 },
+  slow: { close: 170, hold: 200, open: 420 },
+};
+
+/** How long a whole blink takes, closing to open again (ms). */
+export const blinkLength = (slow: boolean) => {
+  const b = BLINK[slow ? "slow" : "fast"];
+  return b.close + b.hold + b.open;
+};
+
 function blinkCurve(t: number, slow: boolean) {
-  const close = slow ? 170 : 72;
-  const hold = slow ? 200 : 40;
-  const open = slow ? 420 : 190;
+  const { close, hold, open } = BLINK[slow ? "slow" : "fast"];
   if (t < 0) return 0;
   if (t < close) {
     const u = t / close;
@@ -2216,10 +2216,18 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     hooks.onMood(label);
   };
 
+  /** Blinks are slow and heavy dozing off or deeply content. */
+  const slowBlinks = () => mood === "doze" || feelings(feel).satisfied > 0.6;
+  /** A blink at `at`; a double blink is two whole blinks, the eyes fully open
+   * for a beat between them. */
   const blinkAt = (at: number, double = false) => {
     blinks.push(at);
-    if (double) blinks.push(at + 230);
     lastBlink = at;
+    if (double) {
+      const second = at + blinkLength(slowBlinks()) + 70;
+      blinks.push(second);
+      lastBlink = second;
+    }
   };
 
   const start = (next: Mood, now: number) => {
@@ -2540,14 +2548,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     gameMoment(`chess-${event}`, CHESS_FACE[event], CHESS_CHANCE[event], () =>
       pickChessLine(event, recentGameLines, words),
     );
-
-  const liarsDiceEvent = (event: LiarsDiceEvent, bid?: string) => {
-    // Sitting down to play counts as playing together, like starting a board game.
-    if (event === "start" || event === "resume") react("game-start");
-    gameMoment(`liarsdice-${event}`, LIARSDICE_FACE[event], LIARSDICE_CHANCE[event], () =>
-      pickLiarsDiceLine(event, recentGameLines, { bid }),
-    );
-  };
 
   const solitaireEvent = (event: SolitaireEvent, move?: string) => {
     if (event === "start" || event === "resume") react("game-start");
@@ -3250,7 +3250,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       blinkAt(now, Math.random() < 0.16);
       nextBlink = now + (2400 + Math.random() * 3600) * (1 + 0.5 * fb.satisfied);
     }
-    const slow = mood === "doze" || fb.satisfied > 0.6;
+    const slow = slowBlinks();
     let blink = 0;
     blinks = blinks.filter((b) => now - b < 900);
     for (const b of blinks) blink = Math.max(blink, blinkCurve(now - b, slow));
@@ -3690,7 +3690,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     checkers: checkersEvent,
     chess: chessEvent,
     tictactoe: ticTacToeEvent,
-    liarsDice: liarsDiceEvent,
     solitaire: solitaireEvent,
     say: (lineId) => {
       if (bubble) showBubble(null);

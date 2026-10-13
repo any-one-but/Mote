@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Record3 } from "./board-store";
 import "./board.css";
 
-// The parts every board game against Mote shares: the start screen, the row
-// along the top, and the end-of-game panel. (Saving games and records is in
+// The parts every board game against Mote shares: the row along the top, and
+// the end-of-game panel. (Saving games and records is in
 // board-store.ts.)
 
 export function CloseButton({ onClick }: { onClick: () => void }) {
@@ -13,32 +13,6 @@ export function CloseButton({ onClick }: { onClick: () => void }) {
         <path d="M7 7l10 10M17 7L7 17" />
       </svg>
     </button>
-  );
-}
-
-/** Before a game: its name, a line about it, and Play. */
-export function StartPick({
-  title,
-  lede,
-  onPlay,
-  onClose,
-}: {
-  title: string;
-  lede: string;
-  onPlay: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <div className="ck ck-pick">
-      <div className="ck-head">
-        <h2>{title}</h2>
-        <CloseButton onClick={onClose} />
-      </div>
-      <p className="ck-lede">{lede}</p>
-      <button type="button" className="ck-primary" onClick={onPlay} autoFocus>
-        Play
-      </button>
-    </div>
   );
 }
 

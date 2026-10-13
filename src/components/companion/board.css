@@ -3,7 +3,10 @@
    anywhere (see STYLE.md): pieces stand out by tone, with a deeper-toned rim
    below each for its thickness, and marks are washes of colour. */
 
-/* Dark mode: the card goes dark; the board and pieces stay as they are. */
+/* Dark mode: the card goes dark, the board turns a deep walnut, and the
+   pieces swap like Mote does: Mote's are dark with cream eyes, yours cream.
+   (Mote's pieces always take Mote's own colours, so a mode like the
+   jack-o'-lantern reaches them too.) Chess pieces swap the same way. */
 :root[data-theme="dark"] .ck {
   --ck-card: var(--surface);
   --ck-ink: #f6ebe0;
@@ -11,6 +14,17 @@
   --ck-sunk: var(--sunk);
   --ck-sunk-hover: var(--sunk-hover);
   --ck-soft-bg: var(--surface-soft);
+  --ck-light: #6e5d4f;
+  --ck-dark: #54463b;
+  --ck-you: #f6ebe0;
+  --ck-you-rim: #c9b29a;
+  --ck-you-ring: #ebdccb;
+  --ck-you-crown: var(--ck-accent);
+  --ck-mote-rim: color-mix(in oklab, var(--mote-face) 55%, black);
+  --ck-shade: rgb(0 0 0 / 0.32);
+  --tt-cell: var(--sunk);
+  --tt-cell-hover: var(--sunk-hover);
+  --tt-win: #5a3a2c;
 }
 
 .ck {
@@ -24,8 +38,19 @@
   --ck-sunk: #ebe2d5;
   --ck-sunk-hover: #e4d9ca;
   --ck-soft-bg: #f6efe5;
-  /* Pieces stay ink-coloured in dark mode too: they sit on the board. */
+  /* Chess's ink pieces, in either mode. */
   --ck-piece: #2e2520;
+  /* Your checkers, and your X. */
+  --ck-you: #2e2520;
+  --ck-you-rim: #140f0c;
+  --ck-you-ring: #3a2f28;
+  --ck-you-crown: #f6e0d3;
+  /* Mote's own colours are the body and eyes; the rim is a deeper tone. */
+  --ck-mote-rim: color-mix(in oklab, var(--mote-face) 80%, #7a5a3e);
+  --ck-shade: rgb(35 28 24 / 0.22);
+  --tt-cell: #f4ece1;
+  --tt-cell-hover: #ebdfcf;
+  --tt-win: #f6e0d3;
   position: relative;
   z-index: 6;
   flex: none;
@@ -226,7 +251,7 @@
 }
 
 .ck-shadow {
-  fill: rgb(35 28 24 / 0.22);
+  fill: var(--ck-shade);
   transition: transform 0.22s ease;
   transform-origin: 50% 60%;
 }
@@ -234,32 +259,32 @@
 .ck-piece.is-selected .ck-shadow,
 .ck-piece.is-lifted .ck-shadow {
   transform: translateY(6px) scale(0.92);
-  fill: rgb(35 28 24 / 0.16);
+  opacity: 0.7;
 }
 
 .is-you .ck-body {
-  fill: var(--ck-piece);
+  fill: var(--ck-you);
 }
 
 .is-you .ck-rim {
-  fill: #140f0c;
+  fill: var(--ck-you-rim);
 }
 
-/* A slightly lighter middle, where the old ring line was. */
+/* A slightly different middle, where the old ring line was. */
 .is-you .ck-ring {
-  fill: #3a2f28;
+  fill: var(--ck-you-ring);
 }
 
 .is-you .ck-crown {
-  fill: #f6e0d3;
+  fill: var(--ck-you-crown);
 }
 
 .is-mote .ck-body {
-  fill: #fff1e4;
+  fill: var(--mote-face);
 }
 
 .is-mote .ck-rim {
-  fill: #dcc7af;
+  fill: var(--ck-mote-rim);
 }
 
 .is-mote .ck-ring {
@@ -267,14 +292,14 @@
 }
 
 .is-mote .ck-eyes rect {
-  fill: var(--ck-piece);
+  fill: var(--mote-eyes);
   transition:
     x 0.3s ease,
     y 0.3s ease;
 }
 
 .is-mote .ck-shut {
-  stroke: var(--ck-piece);
+  stroke: var(--mote-eyes);
   stroke-width: 4;
   stroke-linecap: round;
 }
@@ -380,21 +405,6 @@
   transform: scale(0.96);
 }
 
-/* Picking a level. */
-.ck-pick {
-  padding: 16px;
-}
-
-.ck-lede {
-  margin: -4px 0 14px 4px;
-  font-size: 14px;
-  color: var(--ck-soft);
-}
-
-.ck-pick .ck-primary {
-  width: 100%;
-}
-
 .ck button:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--ck-accent) 70%, transparent);
   outline-offset: 2px;
@@ -473,6 +483,19 @@
   --line: #ecdcc8;
 }
 
+/* Dark mode: swapped like checkers, yours cream and Mote's ink. */
+:root[data-theme="dark"] .cs-art {
+  --rim: #c9b29a;
+  --fill: #f6ebe0;
+  --line: #ddcbb7;
+}
+
+:root[data-theme="dark"] .cs-art.is-cream {
+  --rim: #0d0a08;
+  --fill: #241d18;
+  --line: #3b302a;
+}
+
 .cs-rim > *,
 .cs-fill > * {
   stroke-width: 5;
@@ -505,7 +528,7 @@
 }
 
 .cs-piece .ck-shadow {
-  fill: rgb(35 28 24 / 0.18);
+  opacity: 0.8;
 }
 
 /* Choosing what a pawn becomes, laid over the board. */
@@ -561,10 +584,13 @@
 /* Tic-tac-toe: nine soft squares, your X drawn in ink, Mote's mark a tiny
    Mote, and a line through the winning three. */
 
+/* The rows are fixed thirds and a mark never sizes its square (it's laid
+   over it), so the squares stay square whatever goes in them. */
 .tt-board {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
   gap: 8px;
   width: min(100%, calc(100dvh - 250px));
   aspect-ratio: 1;
@@ -573,12 +599,12 @@
 
 .tt-cell {
   position: relative;
-  display: grid;
-  place-items: center;
+  min-width: 0;
+  min-height: 0;
   padding: 0;
   border: 0;
   border-radius: 16px;
-  background: var(--ck-light);
+  background: var(--tt-cell);
   cursor: default;
   transition: background 0.15s ease;
 }
@@ -588,15 +614,17 @@
 }
 
 .tt-cell.is-open:hover {
-  background: #ebdfcf;
+  background: var(--tt-cell-hover);
 }
 
 .tt-cell.is-win {
-  background: #f6e0d3;
+  background: var(--tt-win);
 }
 
 .tt-x,
 .tt-o {
+  position: absolute;
+  inset: 9%;
   width: 82%;
   height: 82%;
   overflow: visible;
@@ -604,7 +632,7 @@
 
 .tt-x path {
   fill: none;
-  stroke: var(--ck-piece);
+  stroke: var(--ck-you);
   stroke-width: 10;
   stroke-linecap: round;
   stroke-dasharray: 60;
@@ -627,15 +655,15 @@
 }
 
 .tt-o-body {
-  fill: #fff6ec;
+  fill: var(--mote-face);
 }
 
 .tt-o-rim {
-  fill: #d8c2a8;
+  fill: var(--ck-mote-rim);
 }
 
 .tt-o .ck-eyes rect {
-  fill: var(--ck-piece);
+  fill: var(--mote-eyes);
   transition:
     x 0.3s ease,
     y 0.3s ease;

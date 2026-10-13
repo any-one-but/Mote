@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { FaceEngine } from "@/components/companion/engine";
 import type { SolitaireEvent } from "@/components/companion/solitaire-lines";
 import {
@@ -15,6 +15,7 @@ import {
   movingCard,
   reviveGame,
   stuck,
+  type Card,
   type Game,
   type Move,
   type Place,
@@ -49,6 +50,21 @@ function readStats(): Stats {
   return { played: Number(s?.played) || 0, won: Number(s?.won) || 0 };
 }
 
+/** A card's name, to follow it from pile to pile. */
+const idOf = (c: Card) => `${c.suit}-${c.rank}`;
+/** How long a card takes to fly to where it's going (ms). */
+const FLY_MS = 260;
+
+/** Where every card was on screen just before a change, to fly them from. */
+type Before = {
+  rects: Map<string, DOMRect>;
+  stock: DOMRect | null;
+  waste: DOMRect | null;
+  game: Game;
+  /** A fresh deal: every card comes off the deck, one after another. */
+  dealing: boolean;
+};
+
 const samePlace = (a: Place, b: Place) =>
   a.pile === b.pile && ("i" in a ? a.i : -1) === ("i" in b ? b.i : -1);
 
@@ -76,6 +92,69 @@ export function Solitaire({ engine, onClose }: Props) {
   const gameRef = useRef(game);
   gameRef.current = game;
   const counted = useRef(false);
+  const table = useRef<HTMLDivElement>(null);
+  const stockSpot = useRef<HTMLButtonElement>(null);
+  const wasteSpot = useRef<HTMLDivElement>(null);
+  const before = useRef<Before | null>(null);
+
+  /** Notes where every card is now, just before the game changes, so they
+   * can fly from there to where they end up. */
+  const remember = (dealing = false) => {
+    const rects = new Map<string, DOMRect>();
+    table.current?.querySelectorAll<HTMLElement>("[data-card]").forEach((el) => {
+      rects.set(el.dataset.card!, el.getBoundingClientRect());
+    });
+    before.current = {
+      rects,
+      stock: stockSpot.current?.getBoundingClientRect() ?? null,
+      waste: wasteSpot.current?.getBoundingClientRect() ?? null,
+      game: gameRef.current,
+      dealing,
+    };
+  };
+
+  // Cards fly from where they were to where they are now; a card turned
+  // over flips; a card off the deck comes from the deck.
+  useLayoutEffect(() => {
+    const b = before.current;
+    before.current = null;
+    if (!b || !table.current) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const wasDown = new Set(b.game.tableau.flat().filter((c) => !c.up).map(idOf));
+    const inStock = new Set(b.game.stock.map(idOf));
+    const els = [...table.current.querySelectorAll<HTMLElement>("[data-card]")];
+    els.forEach((el, n) => {
+      const id = el.dataset.card!;
+      const to = el.getBoundingClientRect();
+      let from = b.dealing ? b.stock : b.rects.get(id);
+      if (!from && inStock.has(id)) from = b.stock;
+      // Turned back over: the deck comes from the pile.
+      if (!from && id === "stock" && b.game.waste.length) from = b.waste;
+      const delay = b.dealing ? n * 18 : 0;
+      if (from) {
+        const dx = from.left - to.left;
+        const dy = from.top - to.top;
+        if (Math.abs(dx) + Math.abs(dy) > 1) {
+          el.style.zIndex = "20";
+          const fly = el.animate(
+            [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "translate(0, 0)" }],
+            { duration: FLY_MS, delay, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "backwards" },
+          );
+          fly.onfinish = fly.oncancel = () => {
+            el.style.zIndex = "";
+          };
+        }
+      }
+      if (!b.dealing && wasDown.has(id) && el.classList.contains("is-up")) {
+        el.animate([{ transform: "scaleX(0.05)" }, { transform: "scaleX(1)" }], {
+          duration: 220,
+          delay: 60,
+          easing: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+          fill: "backwards",
+        });
+      }
+    });
+  }, [game]);
 
   const tell = useCallback((event: SolitaireEvent, move?: string) => engine()?.solitaire(event, move), [engine]);
 
@@ -139,6 +218,7 @@ export function Solitaire({ engine, onClose }: Props) {
     const g = gameRef.current;
     if (!isLegal(g, m)) return false;
     const next = apply(g, m);
+    remember();
     setHistory((h) => [...h.slice(-99), g]);
     setGame(next);
     gameRef.current = next;
@@ -216,6 +296,7 @@ export function Solitaire({ engine, onClose }: Props) {
   const undo = () => {
     const prev = history[history.length - 1];
     if (!prev || finishing) return;
+    remember();
     setHistory((h) => h.slice(0, -1));
     setGame(prev);
     setHeld(null);
@@ -234,6 +315,7 @@ export function Solitaire({ engine, onClose }: Props) {
     if (game.moves > 0 && !counted.current) addStats(won);
     setSure(false);
     const g = deal();
+    remember(true);
     setGame(g);
     setHistory([]);
     setHeld(null);
@@ -254,6 +336,7 @@ export function Solitaire({ engine, onClose }: Props) {
       const m = finishMove(g);
       if (!m) break;
       g = apply(g, m);
+      remember();
       setGame(g);
       gameRef.current = g;
       await sleep(110);
@@ -303,19 +386,22 @@ export function Solitaire({ engine, onClose }: Props) {
         <CloseButton onClick={close} />
       </div>
 
-      <div className="sol-table">
+      <div className="sol-table" ref={table}>
         <div className="sol-row">
           <button
+            ref={stockSpot}
             type="button"
             className={`sol-spot${game.stock.length ? "" : " is-empty"}${hinted && hinted.type !== "move" ? " is-hint-target" : ""}`}
             aria-label={game.stock.length ? `Deck, ${game.stock.length} cards: turn one` : "Turn the pile back over"}
             onClick={clickStock}
           >
-            {game.stock.length ? <CardBack hint={!!hinted && hinted.type === "draw"} /> : <RoundArrow />}
+            {game.stock.length ? <CardBack id="stock" hint={!!hinted && hinted.type === "draw"} /> : <RoundArrow />}
           </button>
-          <div className="sol-spot is-empty">
+          <div className="sol-spot is-empty" ref={wasteSpot}>
             {topWaste ? (
               <CardFace
+                key={idOf(topWaste)}
+                id={idOf(topWaste)}
                 card={topWaste}
                 held={isHeld({ pile: "waste" }, 0, 1)}
                 hint={isHintSource({ pile: "waste" }, 0, 1)}
@@ -337,6 +423,8 @@ export function Solitaire({ engine, onClose }: Props) {
               >
                 {c ? (
                   <CardFace
+                    key={idOf(c)}
+                    id={idOf(c)}
                     card={c}
                     held={isHeld(place, 0, 1)}
                     hint={false}
@@ -374,12 +462,13 @@ export function Solitaire({ engine, onClose }: Props) {
               >
                 {col.map((c, k) => {
                   const style = { top: `calc(var(--cw) * ${tops[k].toFixed(3)})` } as CSSProperties;
-                  if (!c.up) return <CardBack key={k} style={style} />;
+                  if (!c.up) return <CardBack key={idOf(c)} id={idOf(c)} style={style} />;
                   const count = col.length - k;
                   const last = k === col.length - 1;
                   return (
                     <CardFace
-                      key={k}
+                      key={idOf(c)}
+                      id={idOf(c)}
                       card={c}
                       style={style}
                       held={isHeld(place, k, col.length)}

@@ -124,7 +124,7 @@ export const FEATURES: Array<{
     id: "gametalk",
     section: "speech",
     name: "Talking during games",
-    about: "Mote’s lines while you play: cheering, groaning and gloating over captures, crowns, checks, bluffs and calls, saying hello and goodbye to a game. Off, Mote plays in silence, with just their faces (advice you ask for in Solitaire is still said).",
+    about: "Mote’s lines while you play: cheering, groaning and gloating over captures, crowns and checks, saying hello and goodbye to a game. Off, Mote plays in silence, with just their faces (advice you ask for in Solitaire is still said).",
     usual: true,
     needs: "games",
   },
@@ -141,7 +141,7 @@ export const FEATURES: Array<{
     id: "games",
     section: "together",
     name: "Games",
-    about: "Games with Mote (checkers, chess, tic-tac-toe, Liar’s Dice, Solitaire: ask Mote for one), and Mote asking for or suggesting a game. Off, a game that’s open is put away, Mote says the games are put away if you ask, and never brings them up (games you’ve played are still remembered).",
+    about: "Games with Mote (checkers, chess, tic-tac-toe, Solitaire: ask Mote for one), and Mote asking for or suggesting a game. Off, a game that’s open is put away, Mote says the games are put away if you ask, and never brings them up (games you’ve played are still remembered).",
     usual: true,
   },
   {

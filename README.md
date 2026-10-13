@@ -167,7 +167,7 @@ however you like, and press Return:
 
 - "I want to play a game", "game", "I'm bored" — the games, as a list to
   pick from (click one, type its name, or type "2")
-- "chess", "I want to play chess", "checkers", "tic tac toe", "liar's dice",
+- "chess", "I want to play chess", "checkers", "tic tac toe",
   "solitaire" (or "cards", "patience")
   — that game, straight away
 - "help with files", "clean up a folder" — Mote tells you to drag a folder
@@ -232,9 +232,10 @@ The thinking is in `src/lib/close-game.ts`.
 
 ## Checkers
 
-Double-click Mote and say "checkers" (or pick it from the games), then
-**Play**. Mote's window grows to fit the board, with Mote sitting just above
-it.
+Double-click Mote and say "checkers" (or pick it from the games), and the
+game starts straight away (or picks up where you left off). Mote's window
+grows to fit the board, with Mote sitting just above it. When a game ends,
+**Play again** starts the next one.
 
 You're the dark pieces and go first. Click a piece, then one of the dots. The
 usual rules: jumping is compulsory (the pieces that can jump pulse), a jump
@@ -277,33 +278,6 @@ at your latest move. Mote reacts when
 you block them, when they block you, and when either of you sets up two ways
 to win at once.
 
-## Liar's Dice
-
-Double-click Mote and say "liar's dice". It never ends: play a round
-or a hundred, and close it whenever you like (a round in progress is kept,
-dice and all, for next time).
-
-You and Mote each roll five dice and keep them hidden. Yours are the ink ones
-along the bottom; Mote's are face down along the top, blank with a little
-pair of Mote eyes. Taking turns, you bid on how many of one number are
-showing across all ten dice: pick how many and which number, and press
-**Bid**. Each bid has to go higher: more dice, or as many of a higher
-number. Instead of bidding, you can call **Liar!** Mote's dice turn over,
-the dice showing that number lift up, and if there are at least as many as
-the bid said, whoever bid it gets the point; if not, the caller does. Then
-**Next round**; whoever lost opens the bidding. The score along the top just
-keeps counting.
-
-Mote plays by the odds: they know their own dice, guess at yours (if you bid
-on a number, you probably have some), call when a bid looks unlikely, and
-bluff now and then. Like the board games, they keep it close: ahead of you
-over the last few rounds, they get careless (a call on a bid that was
-probably fine, a bid a little too bold); level or behind, they play their
-best. Mote says their bids out loud now and then, sounds very sure of
-themself when bluffing, looks sly when calling you a liar and alarmed when
-you call them one, and has a word for who was right (and for three in a row
-either way). Rounds won and lost nudge their mood a little.
-
 ## Solitaire
 
 Double-click Mote and say "solitaire" (or "cards"). It's Klondike, turning
@@ -327,6 +301,11 @@ one card at a time, and Mote is on your side: they watch, cheer the good bits
   them all home.
 - It's saved as you go, and the header keeps count: "Won 3 of 8".
 
+Cards fly to wherever they go: from the deck to the pile, between columns,
+home, and all 28 off the deck when a new deal is laid out; a card that turns
+over flips. Their size follows the window both ways, so they grow when it's
+bigger and shrink again when it's smaller, always leaving room for Mote.
+
 The cards follow the style guide (see `STYLE.md`): warm paper faces with a
 deeper rim and no outlines, Mote's colour on the back with a little pair of
 Mote eyes.
@@ -343,8 +322,9 @@ always follow your pointer, and Mote always naps when left alone.
 **Dark mode** swaps Mote's colours, like a photo negative: a dark face with
 cream eyes (and cream eyebrows and mouth, if they're on), on a dark window.
 Everything around Mote goes dark and warm too: speech bubbles, buttons, the
-game cards and Settings. The game boards and pieces stay as
-they are.
+game cards and Settings. The game boards go a deep walnut, and the pieces
+swap like Mote does: Mote's pieces (and tic-tac-toe marks) are dark with
+cream eyes, yours cream. The playing cards stay paper.
 
 **Mode** (in Debug's Features tab, with the Looks) gives Mote a special look for a vibe or a season. **Neutral** is just
 Mote. **Jack-o'-lantern** (for Halloween) turns Mote's cream a soft pumpkin
@@ -538,7 +518,6 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 - `src/lib/chess/rules.ts` — every chess rule; `ai.ts` — how Mote picks a chess move
 - `src/lib/close-game.ts` — how Mote keeps games close (the usual way they play)
 - `src/components/companion/TicTacToe.tsx` and `tictactoe-lines.ts`, and `src/lib/tictactoe/game.ts` — tic-tac-toe
-- `src/components/companion/LiarsDice.tsx`, `liarsdice.css` and `liarsdice-lines.ts`, and `src/lib/liarsdice/game.ts` — Liar's Dice (the rules and how Mote bids)
 - `src/components/companion/Solitaire.tsx`, `solitaire.css` and `solitaire-lines.ts`, and `src/lib/solitaire/game.ts` — Solitaire (the rules and Mote's advice)
 - `src/components/companion/cards.tsx` and `cards.css`, and `src/lib/cards.ts` — the playing cards the card games share
 - `src/components/companion/board-ui.tsx` and `board.css` — what both games share (level picker, header, end panel, the board's look)

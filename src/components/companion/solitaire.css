@@ -2,16 +2,20 @@
    table, its spots and columns. (The cards themselves are cards.css.) Empty
    spots are a sunk tone, never an outline (see STYLE.md). */
 
-/* Card sizes follow the width: seven across, with gaps. */
+/* Card sizes follow the window both ways: seven across the width, and short
+   enough that the table (about seven cards tall at most) fits under Mote.
+   So the cards grow when the window does, and shrink again with it. */
 .sol-table {
   container-type: inline-size;
-  --cw: calc((100cqw - 36px) / 7);
+  --cw: min(calc((100cqw - 36px) / 7), calc((100dvh - var(--sol-room, 330px)) / 6.8));
 }
 
 .sol-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;
+  width: calc(var(--cw) * 7 + 36px);
+  margin-inline: auto;
 }
 
 .sol-row.is-columns {

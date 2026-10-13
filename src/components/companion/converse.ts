@@ -22,7 +22,6 @@ export type IntentId =
   | "chess"
   | "checkers"
   | "tictactoe"
-  | "liarsdice"
   | "solitaire"
   | "files"
   // Saved links: bring one up, or how to save one.
@@ -40,7 +39,7 @@ export type IntentId =
 /** A keyword: a word or phrase, and how strongly it points to its intent. */
 type Word = string | [string, number];
 
-const GAMES = ["chess", "checkers", "tictactoe", "liarsdice", "solitaire"] as const;
+const GAMES = ["chess", "checkers", "tictactoe", "solitaire"] as const;
 export type GameIntent = (typeof GAMES)[number];
 export const isGame = (id: IntentId): id is GameIntent => (GAMES as readonly string[]).includes(id);
 
@@ -124,21 +123,6 @@ const INTENTS: Record<IntentId, Word[]> = {
     ["xo", 1],
     ["three in a row", 1.2],
     ["ttt", 1.1],
-  ],
-  liarsdice: [
-    ["liars dice", 1.3],
-    ["liar dice", 1.3],
-    ["liarsdice", 1.3],
-    ["dice", 1.15],
-    ["die", 0.8],
-    ["liar", 1.1],
-    ["bluff", 1.1],
-    ["bluffing", 1.1],
-    ["perudo", 1.3],
-    ["dudo", 1.2],
-    ["roll", 0.8],
-    ["roll dice", 1.3],
-    ["call your bluff", 1.3],
   ],
   solitaire: [
     ["solitaire", 1.3],
@@ -380,7 +364,6 @@ const KEEP_PHRASES = [
   "three in a row",
   "pass the time",
   "how do i save",
-  "call your bluff",
   "free up space",
   "just saying hi",
   "king me",
@@ -405,7 +388,6 @@ const NOT_TYPOS = new Set(
   (
     "same came name gave late lame fame plan plane plate place player clay pray played " +
     "rook look took book cook hook nook week seek peek chest best test rest west nest " +
-    "dice nice mice rice vice ice slice price twice dicey lice dime dine " +
     "bed red fed led wed bad bid bud beg " +
     "file fine mile while tile wile pile life five fire " +
     "fun run sun gun bun fan fin " +
@@ -421,7 +403,6 @@ const NOT_TYPOS = new Set(
     "eat at it eel ear sat bat cat hat mat oat " +
     "roll role rule poll toll doll " +
     "sort sore sorry short snort fort port " +
-    "liar lair " +
     "track trick truck crack stack " +
     "toy boy joy " +
     "clean clear cleat glean " +
@@ -742,7 +723,6 @@ const CHECK: Record<IntentId, string[]> = {
   chess: ["Chess? Want to play?", "You mean chess?"],
   checkers: ["Checkers? Want to play?", "You mean checkers?"],
   tictactoe: ["Tic-tac-toe? Want to play?", "You mean tic-tac-toe?"],
-  liarsdice: ["Liar’s Dice? Want to play?", "You mean Liar’s Dice?"],
   solitaire: ["Solitaire? I’ll help.", "You mean solitaire?"],
   files: ["Something about files?", "You want help with some files?"],
   links: ["One of your saved links?", "Something saved to watch or read?"],

@@ -1,6 +1,6 @@
 // Remembering board games: the game in progress, and your record against Mote.
 
-export type Phase = "pick" | "playing" | "over";
+export type Phase = "playing" | "over";
 export type Winner = "you" | "mote" | "draw";
 export type Record3 = { you: number; mote: number; draw: number };
 export type Stats = Record3;

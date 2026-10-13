@@ -18,7 +18,7 @@ import {
 } from "@/lib/checkers/rules";
 import { think } from "@/lib/checkers/think";
 import { rollMayWin } from "@/lib/close-game";
-import { BoardHead, EndPanel, StartPick } from "./board-ui";
+import { BoardHead, EndPanel } from "./board-ui";
 import {
   addToStats,
   load,
@@ -76,7 +76,7 @@ export function Checkers({ engine, onClose }: Props) {
     load<{ game: unknown; swing?: Swing; mayWin?: boolean }>(SAVE),
   );
   const resumed = useRef(reviveGame(saved.current?.game));
-  const [phase, setPhase] = useState<Phase>(resumed.current ? "playing" : "pick");
+  const [phase, setPhase] = useState<Phase>("playing");
   const [game, setGame] = useState<Game>(resumed.current ?? newGame());
   const [pieces, setPieces] = useState<Piece[]>(() => piecesOf(game.board));
   const [selected, setSelected] = useState<number | null>(null);
@@ -119,6 +119,10 @@ export function Checkers({ engine, onClose }: Props) {
       kicked.current = true;
       tell("resume");
       if (gameRef.current.turn === "mote") void moteMoves(gameRef.current);
+    } else if (!kicked.current) {
+      // A new game starts straight away.
+      kicked.current = true;
+      begin();
     }
     return () => {
       alive.current = false;
@@ -339,10 +343,6 @@ export function Checkers({ engine, onClose }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [steps.length]);
 
-  if (phase === "pick") {
-    return <StartPick title="Checkers" lede="You’re dark and go first." onPlay={begin} onClose={close} />;
-  }
-
   // Mote's pieces look at the piece you've picked up, or else at you.
   const lookAt = selected ?? null;
 
@@ -393,7 +393,7 @@ export function Checkers({ engine, onClose }: Props) {
       </div>
 
       {phase === "over" ? (
-        <EndPanel onAgain={() => setPhase("pick")} onDone={onClose}>
+        <EndPanel onAgain={begin} onDone={onClose}>
           {result === "you" ? "You win!" : result === "mote" ? "Mote wins." : "A draw."}
         </EndPanel>
       ) : (

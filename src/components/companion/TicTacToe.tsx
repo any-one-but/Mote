@@ -12,7 +12,7 @@ import {
   type Grid,
 } from "@/lib/tictactoe/game";
 import { rollMayWin } from "@/lib/close-game";
-import { BoardHead, EndPanel, StartPick } from "./board-ui";
+import { BoardHead, EndPanel } from "./board-ui";
 import { addToStats, load, readStats, sleep, store, type Phase, type Stats, type Winner } from "./board-store";
 
 type Props = {
@@ -31,7 +31,7 @@ const FIRST = "mote.tictactoe.first";
 export function TicTacToe({ engine, onClose }: Props) {
   const saved = useRef(load<Saved>(SAVE));
   const resumed = useRef(reviveGrid(saved.current?.grid));
-  const [phase, setPhase] = useState<Phase>(resumed.current ? "playing" : "pick");
+  const [phase, setPhase] = useState<Phase>("playing");
   const [grid, setGrid] = useState<Grid>(resumed.current ?? emptyGrid());
   const [turn, setTurn] = useState<"you" | "mote">(saved.current?.turn === "mote" ? "mote" : "you");
   const [busy, setBusy] = useState(false);
@@ -135,6 +135,10 @@ export function TicTacToe({ engine, onClose }: Props) {
       kicked.current = true;
       tell("resume");
       if (saved.current?.turn === "mote") void moteMoves(resumed.current);
+    } else if (!kicked.current) {
+      // A new game starts straight away.
+      kicked.current = true;
+      begin();
     }
     return () => {
       alive.current = false;
@@ -147,12 +151,6 @@ export function TicTacToe({ engine, onClose }: Props) {
     if (phase === "playing" && openCells(grid).length < 9 && !busy) tell("pause");
     onClose();
   };
-
-  if (phase === "pick") {
-    return (
-      <StartPick title="Tic-tac-toe" lede="You’re X. You and Mote take turns going first." onPlay={begin} onClose={close} />
-    );
-  }
 
   const yourTurn = phase === "playing" && turn === "you" && !busy;
 
@@ -181,7 +179,7 @@ export function TicTacToe({ engine, onClose }: Props) {
       </div>
 
       {phase === "over" && result ? (
-        <EndPanel onAgain={() => setPhase("pick")} onDone={onClose}>
+        <EndPanel onAgain={begin} onDone={onClose}>
           {result.winner === "you" ? "You win!" : result.winner === "mote" ? "Mote wins." : "A draw."}
         </EndPanel>
       ) : (

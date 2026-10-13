@@ -39,7 +39,6 @@ import { useDark, useMode, useSettings } from "@/lib/companion/settings";
 import { Checkers } from "@/components/companion/Checkers";
 import { Chess } from "@/components/companion/Chess";
 import { TicTacToe } from "@/components/companion/TicTacToe";
-import { LiarsDice } from "@/components/companion/LiarsDice";
 import { Solitaire } from "@/components/companion/Solitaire";
 
 type MediaInfo = EngineOptions["media"];
@@ -53,7 +52,7 @@ export function Companion() {
   const engineRef = useRef<FaceEngine | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [settings] = useSettings();
-  const [playing, setPlaying] = useState<"checkers" | "chess" | "tictactoe" | "liarsdice" | "solitaire" | null>(null);
+  const [playing, setPlaying] = useState<"checkers" | "chess" | "tictactoe" | "solitaire" | null>(null);
   const debugState = useRef<DebugState>({ ...DEBUG_DEFAULTS });
   const events = useRef<string[]>([]);
   const realMedia = useRef<MediaInfo>(null);
@@ -348,7 +347,6 @@ export function Companion() {
     "chess",
     "checkers",
     "tictactoe",
-    "liarsdice",
     "solitaire",
     "files",
     "links",
@@ -394,11 +392,10 @@ export function Companion() {
     checkers: "Checkers",
     chess: "Chess",
     tictactoe: "Tic-tac-toe",
-    liarsdice: "Liar’s Dice",
     solitaire: "Solitaire",
   };
   const offerGames = (text: string = say(LINES.games)) =>
-    offer(text, ["checkers", "chess", "tictactoe", "liarsdice", "solitaire"], GAME_NAMES);
+    offer(text, ["checkers", "chess", "tictactoe", "solitaire"], GAME_NAMES);
 
   /** Whatever was open goes away: a game (it's saved), the file options. */
   const putAway = () => {
@@ -627,7 +624,6 @@ export function Companion() {
       {playing === "checkers" && !helping ? <Checkers engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "chess" && !helping ? <Chess engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "tictactoe" && !helping ? <TicTacToe engine={getEngine} onClose={() => setPlaying(null)} /> : null}
-      {playing === "liarsdice" && !helping ? <LiarsDice engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "solitaire" && !helping ? <Solitaire engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       <SpeechBubble
         bubble={bubble}

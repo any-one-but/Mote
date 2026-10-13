@@ -13,10 +13,13 @@ export function CardFace({
   hint = false,
   style,
   className,
+  id,
   onClick,
   onDoubleClick,
 }: {
   card: Card;
+  /** Which card this is, for a game following cards as they move. */
+  id?: string;
   held?: boolean;
   hint?: boolean;
   style?: CSSProperties;
@@ -53,7 +56,7 @@ export function CardFace({
   );
   if (!onClick) {
     return (
-      <span className={cls} style={style} role="img" aria-label={cardWords(card)}>
+      <span className={cls} style={style} data-card={id} role="img" aria-label={cardWords(card)}>
         {inside}
       </span>
     );
@@ -63,6 +66,7 @@ export function CardFace({
       type="button"
       className={cls}
       style={style}
+      data-card={id}
       aria-label={cardWords(card)}
       onClick={(e) => {
         e.stopPropagation();
@@ -83,15 +87,19 @@ export function CardBack({
   style,
   hint = false,
   className,
+  id,
 }: {
   style?: CSSProperties;
   hint?: boolean;
   className?: string;
+  /** Which card this is, for a game following cards as they move. */
+  id?: string;
 }) {
   return (
     <span
       className={["deck-card is-down", hint ? "is-hint" : "", className ?? ""].filter(Boolean).join(" ")}
       style={style}
+      data-card={id}
       aria-hidden="true"
     >
       <svg viewBox="0 0 50 70" className="deck-back-eyes">

@@ -31,7 +31,7 @@ import {
 } from "@/lib/chess/rules";
 import { think } from "@/lib/chess/think";
 import { rollMayWin } from "@/lib/close-game";
-import { BoardHead, EndPanel, StartPick } from "./board-ui";
+import { BoardHead, EndPanel } from "./board-ui";
 import {
   addToStats,
   load,
@@ -102,7 +102,7 @@ const ENDING_WORDS: Record<Ending["reason"], string> = {
 export function Chess({ engine, onClose }: Props) {
   const saved = useRef(load<Saved>(SAVE));
   const resumed = useRef(revive(saved.current));
-  const [phase, setPhase] = useState<Phase>(resumed.current ? "playing" : "pick");
+  const [phase, setPhase] = useState<Phase>("playing");
   const [pos, setPos] = useState<Position>(resumed.current?.pos ?? fromFen(START));
   const [history, setHistory] = useState<string[]>(resumed.current?.history ?? [positionKey(fromFen(START))]);
   const [pieces, setPieces] = useState<Piece[]>(() => piecesOf(pos));
@@ -261,7 +261,7 @@ export function Chess({ engine, onClose }: Props) {
 
   const yourTurn = phase === "playing" && pos.turn === 1 && !busy;
   const moves = yourTurn ? legalMoves(pos) : [];
-  const checked = phase !== "pick" && inCheck(pos);
+  const checked = inCheck(pos);
   const options = selected === null ? [] : moves.filter((m) => moveFrom(m) === selected);
   const targets = new Map(options.map((m) => [moveTo(m), m]));
   const movable = new Set(moves.map(moveFrom));
@@ -302,6 +302,10 @@ export function Chess({ engine, onClose }: Props) {
       kicked.current = true;
       tell("resume");
       if (posRef.current.turn === -1) void moteMoves(posRef.current);
+    } else if (!kicked.current) {
+      // A new game starts straight away.
+      kicked.current = true;
+      begin();
     }
     return () => {
       alive.current = false;
@@ -351,10 +355,6 @@ export function Chess({ engine, onClose }: Props) {
     if (phase === "playing" && history.length > 1 && !busy) tell("pause");
     onClose();
   };
-
-  if (phase === "pick") {
-    return <StartPick title="Chess" lede="You’re white and go first." onPlay={begin} onClose={close} />;
-  }
 
   const kingInCheck = checked ? pos.kings[pos.turn === 1 ? 0 : 1] : -1;
   const status = note
@@ -406,7 +406,7 @@ export function Chess({ engine, onClose }: Props) {
       </div>
 
       {phase === "over" && result ? (
-        <EndPanel onAgain={() => setPhase("pick")} onDone={onClose}>
+        <EndPanel onAgain={begin} onDone={onClose}>
           {result.winner === "you" ? "You win!" : result.winner === "mote" ? "Mote wins." : "A draw."}
           {result.reason !== "resigned" && result.reason !== "checkmate" ? (
             <small className="cs-why">{ENDING_WORDS[result.reason]}</small>

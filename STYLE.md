@@ -120,13 +120,14 @@ here" (Mote's hints). If everything is accent, nothing is.
 and placeholders are `--text-faint`. Emphasis in Mote's speech is `--warn`
 (it reads as warm red).
 
-### Things that stay put in dark mode
+### Games in dark mode
 
-Game boards, pieces and playing cards are objects, not interface: they keep
-their own colours in both modes (paper cards, a light wooden board, ink and
-cream pieces). Only the card or table they sit on goes dark. If an object
-would vanish on the dark card (ink dice), give it a lighter ink in dark
-mode, not an outline.
+Game boards go a deep walnut (`#6e5d4f` and `#54463b`), and pieces swap the
+way Mote does: Mote's pieces are drawn in Mote's own colours (`--mote-face`
+and `--mote-eyes`, so they're dark with cream eyes in dark mode, and follow
+any special look too), and yours are cream. Playing cards are paper in both
+modes. If an object would vanish on the dark card, give it a lighter tone in
+dark mode, not an outline.
 
 ## 3. Shape
 
@@ -142,7 +143,7 @@ mode, not an outline.
 ## 4. Depth
 
 - **Objects have a rim**: the same shape a few units lower in a deeper tone
-  (see "Tone, not lines"). Pieces, dice and cards all have one.
+  (see "Tone, not lines"). Pieces and cards all have one.
 - **Surfaces float on soft shadows**: wide, blurred, low opacity, warm
   (shadows use `--shade-rgb`, which is warm ink in light mode and black in
   dark mode).

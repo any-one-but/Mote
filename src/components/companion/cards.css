@@ -3,7 +3,7 @@
    deeper tone below it (its thickness), and a soft shadow at its top edge
    where it sits on the card before it. A face-down card is Mote's own warm
    accent, with a deeper panel and a little pair of Mote eyes. Cards stay
-   paper-coloured in dark mode, like the boards and pieces. Their size is
+   paper-coloured in dark mode. Their size is
    `--cw`, a card's width, set by the game holding them. */
 
 .deck-card {
@@ -44,7 +44,6 @@
     0 2px 0 var(--deck-rim),
     0 -1px 6px -2px var(--deck-edge);
   cursor: pointer;
-  animation: deck-in 0.22s ease-out;
 }
 
 .deck-card.is-up:hover {
@@ -94,12 +93,6 @@
 @keyframes deck-hint-back {
   to {
     background: #efb193;
-  }
-}
-
-@keyframes deck-in {
-  from {
-    opacity: 0.4;
   }
 }
 

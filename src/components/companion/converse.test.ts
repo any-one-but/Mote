@@ -7,7 +7,6 @@ const ALL = new Set<IntentId>([
   "chess",
   "checkers",
   "tictactoe",
-  "liarsdice",
   "solitaire",
   "files",
   "links",
@@ -47,8 +46,6 @@ test("plain requests do the thing straight away", () => {
     ["tic-tac-toe", "do:tictactoe"],
     ["tictactoe", "do:tictactoe"],
     ["noughts and crosses", "do:tictactoe"],
-    ["liar's dice", "do:liarsdice"],
-    ["dice", "do:liarsdice"],
     ["solitaire", "do:solitaire"],
     ["I want to play solitaire", "do:solitaire"],
     ["cards", "do:solitaire"],
@@ -91,7 +88,7 @@ test("typos get a check first", () => {
 test("short-cut words and run-together words are understood", () => {
   assert.equal(heard("solitai"), "do:solitaire");
   assert.equal(heard("tictacto"), "do:tictactoe");
-  assert.equal(heard("liars dic"), "do:liarsdice");
+  assert.equal(heard("checke"), "do:checkers");
 });
 
 test("a typo-looking ordinary word isn't taken for a keyword", () => {
@@ -111,7 +108,7 @@ test("two games by name is the games menu", () => {
 });
 
 test("menus can be picked from by number", () => {
-  const games: IntentId[] = ["checkers", "chess", "tictactoe", "liarsdice", "solitaire"];
+  const games: IntentId[] = ["checkers", "chess", "tictactoe", "solitaire"];
   assert.equal(heard("2", ALL, games), "do:chess");
   assert.equal(heard("the first one", ALL, games), "do:checkers");
   assert.equal(heard("last", ALL, games), "do:solitaire");
@@ -123,7 +120,8 @@ test("anything Mote can't do is as if they never heard of it", () => {
   assert.equal(heard("checkers", known), "do:checkers");
 });
 
-test("the diet tracker, Local Gallery, snacks and bedtime are gone", () => {
+test("the diet tracker, Local Gallery, snacks, bedtime and Liar's Dice are gone", () => {
+  assert.equal(heard("liar's dice"), "unknown");
   assert.equal(heard("log calories"), "unknown");
   assert.equal(heard("open local gallery"), "unknown");
   assert.equal(heard("have a cookie"), "unknown");
