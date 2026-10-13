@@ -17,9 +17,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.10.30</string>
+	<string>0.10.31</string>
 	<key>CFBundleVersion</key>
-	<string>0.10.30</string>
+	<string>0.10.31</string>
 	<key>CSResourcesFileMapped</key>
 	<true/>
 	<key>LSApplicationCategoryType</key>
@@ -32,5 +32,7 @@
 	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>Mote listens along to music playing in a window you can see, to dance to the beat. Nothing is recorded or saved.</string>
 </dict>
 </plist>
