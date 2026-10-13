@@ -14,9 +14,9 @@
 // Mote's part is `hint`: the most useful thing to do next, or nothing if
 // there's nothing left that helps (`stuck`).
 
-export type Suit = "spades" | "hearts" | "diamonds" | "clubs";
-export const SUITS: Suit[] = ["spades", "hearts", "diamonds", "clubs"];
-export type Card = { suit: Suit; rank: number; up: boolean };
+import { isCard, isRed, shuffledDeck, type Card } from "../cards.ts";
+
+export { cardWords, isRed, RANK_NAME, SUITS, type Card, type Suit } from "../cards.ts";
 
 /** Where a card can be: the waste's top, a foundation, or a column. */
 export type Place = { pile: "waste" } | { pile: "foundation"; i: number } | { pile: "tableau"; i: number };
@@ -35,21 +35,11 @@ export type Game = {
   moves: number;
 };
 
-export const isRed = (c: Card) => c.suit === "hearts" || c.suit === "diamonds";
-export const RANK_NAME = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-const RANK_WORD = ["", "ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "jack", "queen", "king"];
-export const cardWords = (c: Card) => `${RANK_WORD[c.rank]} of ${c.suit}`;
 const top = <T,>(pile: T[]): T | undefined => pile[pile.length - 1];
 
 /** A shuffled deal. */
 export function deal(rand: () => number = Math.random): Game {
-  const deck: Card[] = SUITS.flatMap((suit) =>
-    Array.from({ length: 13 }, (_, i) => ({ suit, rank: i + 1, up: false })),
-  );
-  for (let i = deck.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [deck[i], deck[j]] = [deck[j], deck[i]];
-  }
+  const deck = shuffledDeck(rand);
   const tableau: Card[][] = [];
   for (let col = 0; col < 7; col++) {
     const cards = deck.splice(0, col + 1);
@@ -275,15 +265,7 @@ export function movingCard(g: Game, m: Extract<Move, { type: "move" }>): Card {
 export function reviveGame(raw: unknown): Game | null {
   if (!raw || typeof raw !== "object") return null;
   const g = raw as Partial<Game>;
-  const okCard = (c: unknown): c is Card =>
-    !!c &&
-    typeof c === "object" &&
-    SUITS.includes((c as Card).suit) &&
-    Number.isInteger((c as Card).rank) &&
-    (c as Card).rank >= 1 &&
-    (c as Card).rank <= 13 &&
-    typeof (c as Card).up === "boolean";
-  const okPile = (p: unknown): p is Card[] => Array.isArray(p) && p.every(okCard);
+  const okPile = (p: unknown): p is Card[] => Array.isArray(p) && p.every(isCard);
   if (!okPile(g.stock) || !okPile(g.waste)) return null;
   if (!Array.isArray(g.foundations) || g.foundations.length !== 4 || !g.foundations.every(okPile)) return null;
   if (!Array.isArray(g.tableau) || g.tableau.length !== 7 || !g.tableau.every(okPile)) return null;

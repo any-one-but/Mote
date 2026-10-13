@@ -1,5 +1,3 @@
-import type { Level } from "../../lib/checkers/ai.ts";
-
 // What Mote says over a game of chess, and the face that goes with it.
 // `{piece}` is the piece of Mote's you took; `{yours}` is the piece of yours
 // Mote took.
@@ -19,8 +17,6 @@ export type ChessEvent =
   | "mote-promote"
   | "mote-ahead"
   | "mote-behind"
-  | "slip"
-  | "hmm"
   | "in-check"
   | "mote-win"
   | "you-win"
@@ -46,7 +42,6 @@ export const CHESS_FACE: Partial<Record<ChessEvent, string>> = {
   "mote-promote": "ck-crown",
   "mote-ahead": "ck-smug",
   "mote-behind": "worry",
-  slip: "uhoh",
   "mote-win": "ck-win",
   "you-win": "ck-lose",
   stalemate: "surprise",
@@ -71,8 +66,6 @@ export const CHESS_CHANCE: Record<ChessEvent, number> = {
   "mote-promote": 1,
   "mote-ahead": 1,
   "mote-behind": 1,
-  slip: 0.8,
-  hmm: 0.5,
   "in-check": 0.6,
   "mote-win": 1,
   "you-win": 1,
@@ -84,19 +77,8 @@ export const CHESS_CHANCE: Record<ChessEvent, number> = {
   pause: 1,
 };
 
-type Pool = string[] | Record<Level, string[]>;
-
-const LINES: Record<ChessEvent, Pool> = {
-  start: {
-    close: ["Chess! Your move.", "Ooh, a proper game. White goes first.", "Let’s see your opening. I’ve been practicing."],
-    easy: [
-      "Chess! The horsey goes in an L, right?",
-      "I’ve been reading about chess. A little.",
-      "You’re white, so you go first. I think.",
-    ],
-    normal: ["Chess! Your move.", "Ooh, a proper game. White goes first.", "Let’s see your opening."],
-    hard: ["Hard? I’ve been studying. Your move.", "I know a lot of openings now. Go ahead.", "Alright. Serious chess."],
-  },
+const LINES: Record<ChessEvent, string[]> = {
+  start: ["Chess! Your move.", "Ooh, a proper game. White goes first.", "Let’s see your opening. I’ve been practicing."],
   resume: ["Back to our game!", "I left everything exactly where it was.", "Now, where was I going with this…"],
   "you-capture": [
     "Hey, that was my {piece}!",
@@ -122,21 +104,9 @@ const LINES: Record<ChessEvent, Pool> = {
   "mote-promote": ["New queen for me!", "My pawn grew up!", "Look! She’s a queen now!"],
   "mote-ahead": ["I’m ahead, I think…", "This is going well for me.", "I like how my pieces look."],
   "mote-behind": ["I’m down some pieces. Thinking hard now.", "Hmm. I need a plan.", "This isn’t going my way."],
-  slip: ["Wait, was that my bishop?", "Oops. I meant that. Probably.", "Hmm. Maybe not that one."],
-  hmm: ["Let me calculate…", "Hmm. Lots of options.", "Thinking… thinking…"],
   "in-check": ["Your king’s in check!", "You have to get out of check first."],
-  "mote-win": {
-    close: ["Checkmate! I finally got you!", "Checkmate. That was a tough one!"],
-    easy: ["Checkmate?! I did it!", "Is that checkmate? It is! Yay!"],
-    normal: ["Checkmate! Good game.", "Checkmate. That was fun!"],
-    hard: ["Checkmate. Good game, though.", "Checkmate! You made me work for it."],
-  },
-  "you-win": {
-    close: ["Checkmate… so close! Well played.", "You were always one move ahead. Good game.", "Aw. I nearly had you."],
-    easy: ["Checkmate… you got me! Teach me?", "You win! I’ll study more."],
-    normal: ["Checkmate. Well played!", "Aw, you got me. Good game."],
-    hard: ["You checkmated me on Hard?! Wow.", "Checkmate. I’m genuinely impressed."],
-  },
+  "mote-win": ["Checkmate! I finally got you!", "Checkmate. That was a tough one!"],
+  "you-win": ["Checkmate… so close! Well played.", "You were always one move ahead. Good game.", "Aw. I nearly had you."],
   stalemate: ["Stalemate! Nobody wins.", "No moves, but no check… it’s a draw!"],
   repetition: ["Same moves again and again… draw!", "We keep going in circles. Draw!"],
   fifty: ["Fifty moves and nothing happened. Draw!", "Nobody’s getting anywhere. Draw!"],
@@ -145,22 +115,17 @@ const LINES: Record<ChessEvent, Pool> = {
   pause: ["I’ll keep the board just like this.", "Our game will be here when you’re back."],
 };
 
-export const CHESS_SPEECH_COUNT = Object.values(LINES).reduce(
-  (n, pool) => n + (Array.isArray(pool) ? pool.length : Object.values(pool).flat().length),
-  0,
-);
+export const CHESS_SPEECH_COUNT = Object.values(LINES).reduce((n, list) => n + list.length, 0);
 
 /** Something to say, avoiding the last few lines, with the pieces filled in. */
 export function pickChessLine(
   event: ChessEvent,
-  level: Level,
   recent: string[],
   words: { piece?: string; yours?: string } = {},
   rand: () => number = Math.random,
 ): { id: string; text: string } {
-  const pool = LINES[event];
-  const list = Array.isArray(pool) ? pool : pool[level];
-  const all = list.map((text, i) => ({ id: `chess-${event}-${Array.isArray(pool) ? "" : `${level}-`}${i}`, text }));
+  const list = LINES[event];
+  const all = list.map((text, i) => ({ id: `chess-${event}-${i}`, text }));
   const fresh = all.filter((l) => !recent.includes(l.id));
   const from = fresh.length ? fresh : all;
   const pick = from[Math.floor(rand() * from.length)] ?? from[0];

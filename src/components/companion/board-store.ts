@@ -1,13 +1,9 @@
-import { LEVELS, type Level } from "@/lib/checkers/ai";
-
 // Remembering board games: the game in progress, and your record against Mote.
 
 export type Phase = "pick" | "playing" | "over";
 export type Winner = "you" | "mote" | "draw";
 export type Record3 = { you: number; mote: number; draw: number };
-export type Stats = Record<Level, Record3>;
-
-export const LEVEL_NAME: Record<Level, string> = { close: "Close", easy: "Easy", normal: "Normal", hard: "Hard" };
+export type Stats = Record3;
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -28,24 +24,24 @@ export function store(key: string, value: unknown) {
   }
 }
 
-export const savedLevel = (raw: unknown): Level =>
-  LEVELS.includes(raw as Level) ? (raw as Level) : "close";
-
+/** Your record against Mote. (Records kept from when there were levels to
+ * pick are added together.) */
 export function readStats(key: string): Stats {
-  const raw = load<Partial<Stats>>(key) ?? {};
-  const blank = (): Record3 => ({ you: 0, mote: 0, draw: 0 });
+  const raw = load<Record<string, unknown>>(key) ?? {};
+  const count = (r: unknown, k: keyof Record3) => Number((r as Partial<Record3> | undefined)?.[k]) || 0;
+  const old = ["close", "easy", "normal", "hard"].map((l) => raw[l]).filter(Boolean);
+  const parts = old.length ? old : [raw];
   return {
-    close: raw.close ?? blank(),
-    easy: raw.easy ?? blank(),
-    normal: raw.normal ?? blank(),
-    hard: raw.hard ?? blank(),
+    you: parts.reduce<number>((n, r) => n + count(r, "you"), 0),
+    mote: parts.reduce<number>((n, r) => n + count(r, "mote"), 0),
+    draw: parts.reduce<number>((n, r) => n + count(r, "draw"), 0),
   };
 }
 
 /** Adds a finished game to the record, and returns the new record. */
-export function addToStats(key: string, level: Level, winner: Winner): Stats {
+export function addToStats(key: string, winner: Winner): Stats {
   const next = readStats(key);
-  next[level][winner] += 1;
+  next[winner] += 1;
   store(key, next);
   return next;
 }

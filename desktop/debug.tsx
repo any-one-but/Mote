@@ -550,7 +550,7 @@ function MindTab({ snap, command, settings }: Ctx) {
             .map((m) => (
               <Row
                 key={m.id}
-                label={`${GAME_NAME[m.game][0].toUpperCase()}${GAME_NAME[m.game].slice(1)} · ${m.level}`}
+                label={`${GAME_NAME[m.game][0].toUpperCase()}${GAME_NAME[m.game].slice(1)}`}
                 hint={`${m.winner === "draw" ? "A draw" : m.winner === "mote" ? "Mote won" : "You won"}${
                   m.winner === "draw" ? "" : `, ${m.how === "resign" ? "by resignation" : m.margin}`
                 }${m.comeback ? ", a comeback" : ""} · ${whenWords(m.at) ?? "a while ago"} · brought up ${m.mentioned}×`}

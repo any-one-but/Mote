@@ -1,8 +1,7 @@
 // How Mote picks a checkers move: a look-ahead search (alpha-beta) over the
 // moves, scoring each position by pieces, kings, how far men have come, and
-// a few habits good players have. The level sets how far ahead Mote looks
-// and how often they go with something other than the best move; "close" (the
-// usual) keeps the game close instead (see close-game.ts).
+// a few habits good players have. Mote looks well ahead, then keeps the game
+// close and lets you edge ahead (see close-game.ts).
 
 import {
   applyToBoard,
@@ -19,10 +18,6 @@ import {
   type Side,
 } from "./rules.ts";
 import { pickClose, type CloseInfo } from "../close-game.ts";
-
-export type Level = "close" | "easy" | "normal" | "hard";
-
-export const LEVELS: Level[] = ["close", "easy", "normal", "hard"];
 
 export type Choice = {
   move: Move;
@@ -147,37 +142,31 @@ function scoreMoves(board: Board, side: Side, depth: number, spread: number, s: 
   return scored.sort((a, b) => b.score - a.score);
 }
 
-const SETTINGS: Record<Level, { depth: number; ms: number; slip: number; spread: number }> = {
-  // Looks well ahead, scoring every move exactly enough to pick a mistake of
-  // just the right size.
-  close: { depth: 8, ms: 900, slip: 0, spread: 1200 },
-  // Looks two moves ahead and often goes with something that just looks fine.
-  easy: { depth: 2, ms: 200, slip: 0.35, spread: 140 },
-  // A fair game: looks a few moves ahead, now and then picks a near-best move.
-  normal: { depth: 5, ms: 500, slip: 0.12, spread: 30 },
-  // Looks as far ahead as it can in about a second, and always plays the best.
-  hard: { depth: 20, ms: 1100, slip: 0, spread: 0 },
-};
+/** Looks well ahead, scoring every move exactly enough to pick a mistake of
+ * just the right size. */
+const DEPTH = 8;
+const MS = 900;
+const SPREAD = 1200;
 
 export function chooseMove(
   board: Board,
   side: Side,
-  level: Level,
   rand: () => number = Math.random,
   close: CloseInfo = { mayWin: false },
+  /** How long to think (tests think quickly). */
+  ms = MS,
 ): Choice | null {
   const moves = legalMoves(board, side);
   if (!moves.length) return null;
-  const cfg = SETTINGS[level];
   if (moves.length === 1) {
     return { move: moves[0], score: evaluate(applyToBoard(board, moves[0]).board, side), depth: 0, slip: false, loss: 0 };
   }
-  const s: Search = { deadline: performance.now() + cfg.ms, nodes: 0, stopped: false };
+  const s: Search = { deadline: performance.now() + ms, nodes: 0, stopped: false };
   let scored: Array<{ move: Move; score: number }> | null = null;
   let glance: Map<string, number> | null = null;
   let reached = 0;
-  for (let depth = 1; depth <= cfg.depth; depth++) {
-    const result = scoreMoves(board, side, depth, cfg.spread, s, scored?.[0]?.move);
+  for (let depth = 1; depth <= DEPTH; depth++) {
+    const result = scoreMoves(board, side, depth, SPREAD, s, scored?.[0]?.move);
     if (!result) break;
     scored = result;
     reached = depth;
@@ -188,60 +177,32 @@ export function chooseMove(
   }
   if (!scored) return { move: moves[0], score: 0, depth: 0, slip: false, loss: 0 };
   const best = scored[0];
-  if (level === "close") {
-    const pieces = board.filter(Boolean).length;
-    const looks = glance;
-    let spread = cfg.spread;
-    // A forced win shows every other move only as "worse". Mote may not want
-    // the win, so score the rest properly, looking a little less far.
-    if (best.score > WIN / 2) {
-      const again: Search = { deadline: performance.now() + 500, nodes: 0, stopped: false };
-      const all = scoreMoves(board, side, Math.min(reached, 6), Infinity, again, best.move);
-      if (all) {
-        scored = all;
-        spread = Infinity;
-      }
+  const pieces = board.filter(Boolean).length;
+  const looks = glance;
+  let spread = SPREAD;
+  // A forced win shows every other move only as "worse". Mote may not want
+  // the win, so score the rest properly, looking a little less far.
+  if (best.score > WIN / 2) {
+    const again: Search = { deadline: performance.now() + 500, nodes: 0, stopped: false };
+    const all = scoreMoves(board, side, Math.min(reached, 6), Infinity, again, best.move);
+    if (all) {
+      scored = all;
+      spread = Infinity;
     }
-    const { pick, slip } = pickClose(
-      scored,
-      {
-        unit: MAN,
-        // By what's been taken or moves played, plus how long since anything happened.
-        progress:
-          Math.min(1, Math.max((24 - pieces) / 16, (close.ply ?? 0) / 100)) + (3 * (close.quiet ?? 0)) / QUIET_LIMIT,
-        won: WIN / 2,
-        spread,
-        glance: looks ? (m) => looks.get(moveKey(m)) : undefined,
-        mayWin: close.mayWin,
-      },
-      rand,
-    );
-    return { move: pick.move, score: pick.score, depth: reached, slip, loss: Math.max(0, scored[0].score - pick.score) };
   }
-  // Slipping: pick among the moves that look roughly as good.
-  if (cfg.slip > 0 && rand() < cfg.slip) {
-    const near = scored.filter((r) => best.score - r.score <= cfg.spread && r.score > -WIN / 2);
-    const pick = near[Math.floor(rand() * near.length)] ?? best;
-    return { move: pick.move, score: pick.score, depth: reached, slip: pick !== best, loss: best.score - pick.score };
-  }
-  return { move: best.move, score: best.score, depth: reached, slip: false, loss: 0 };
-}
-
-/**
- * Every move for `side`, scored for that side (about 100 = a man), looking as
- * far ahead as it can in `ms`. Used for teaching: moves within 300 of the
- * best get exact scores, so a mistake can be measured.
- */
-export function rankMoves(board: Board, side: Side, ms = 300): Array<{ move: Move; score: number }> {
-  const moves = legalMoves(board, side);
-  if (moves.length <= 1) return moves.map((move) => ({ move, score: 0 }));
-  const s: Search = { deadline: performance.now() + ms, nodes: 0, stopped: false };
-  let scored: Array<{ move: Move; score: number }> | null = null;
-  for (let depth = 1; depth <= 12; depth++) {
-    const result = scoreMoves(board, side, depth, 300, s, scored?.[0]?.move);
-    if (!result) break;
-    scored = result;
-    if (Math.abs(result[0].score) > WIN / 2) break;
-  }
-  return scored ?? moves.map((move) => ({ move, score: 0 }));
+  const { pick, slip } = pickClose(
+    scored,
+    {
+      unit: MAN,
+      // By what's been taken or moves played, plus how long since anything happened.
+      progress:
+        Math.min(1, Math.max((24 - pieces) / 16, (close.ply ?? 0) / 100)) + (3 * (close.quiet ?? 0)) / QUIET_LIMIT,
+      won: WIN / 2,
+      spread,
+      glance: looks ? (m) => looks.get(moveKey(m)) : undefined,
+      mayWin: close.mayWin,
+    },
+    rand,
+  );
+  return { move: pick.move, score: pick.score, depth: reached, slip, loss: Math.max(0, scored[0].score - pick.score) };
 }

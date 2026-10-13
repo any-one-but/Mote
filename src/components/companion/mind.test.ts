@@ -81,7 +81,6 @@ describe("Mote's memories of games", () => {
 
   const result = (winner: "mote" | "you" | "draw", lead: number, worst = 0) => ({
     game: "checkers" as const,
-    level: "normal" as const,
     winner,
     how: "no-moves",
     lead,
@@ -121,12 +120,12 @@ describe("Mote's memories of games", () => {
   it("nods to the last game when starting the next, and notices streaks", () => {
     const now = Date.now();
     recordGame(result("you", 7), now - 3 * 60_000);
-    const rematch = startLine("checkers", "normal", { friendly: false, rand: () => 0, now });
+    const rematch = startLine("checkers", { friendly: false, rand: () => 0, now });
     assert.ok(rematch && /Rematch|Again/.test(rematch.text), rematch?.text);
     recordGame(result("you", 7), now - 2 * 60_000);
     recordGame(result("you", 7), now - 60_000);
     assert.match(streakLine("checkers", { friendly: false, rand: () => 0, now }) ?? "", /3 in a row/);
-    assert.match(startLine("checkers", "normal", { friendly: false, rand: () => 0, now })?.text ?? "", /3/);
+    assert.match(startLine("checkers", { friendly: false, rand: () => 0, now })?.text ?? "", /3/);
   });
 
   it("brings up memorable games later, but not right away, not old ones, and not over and over", () => {

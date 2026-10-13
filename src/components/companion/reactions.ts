@@ -19,6 +19,7 @@ export type ReactionGroup =
   | "Tic-tac-toe"
   | "Liar’s Dice"
   | "Solitaire"
+  | "War"
   | "Local Gallery"
   | "Local Gallery passcode"
   | "Time"
@@ -441,7 +442,7 @@ export const REACTIONS: Reaction[] = [
     group: "Checkers",
     name: "A new game",
     when: "You start a game of checkers",
-    then: "A happy hop, and something about the game (or the level you picked)",
+    then: "A happy hop, and something about the game",
     status: "live",
   },
   {
@@ -516,22 +517,8 @@ export const REACTIONS: Reaction[] = [
     then: "Worried, and says so",
     status: "live",
   },
-  {
-    id: "checkers-slip",
-    group: "Checkers",
-    name: "A slip",
-    when: "On Easy, Mote plays a move that wasn't their best",
-    then: "Uh-oh face",
-    status: "live",
-  },
-  {
-    id: "checkers-hmm",
-    group: "Checkers",
-    name: "A long think",
-    when: "Mote has a hard move to work out",
-    then: "Says they need to think",
-    status: "live",
-  },
+
+
   {
     id: "checkers-forced",
     group: "Checkers",
@@ -587,7 +574,7 @@ export const REACTIONS: Reaction[] = [
     group: "Chess",
     name: "A new game",
     when: "You start a game of chess",
-    then: "A happy hop, and something about the game (or the level you picked)",
+    then: "A happy hop, and something about the game",
     status: "live",
   },
   {
@@ -694,22 +681,8 @@ export const REACTIONS: Reaction[] = [
     then: "Worried, and says so",
     status: "live",
   },
-  {
-    id: "chess-slip",
-    group: "Chess",
-    name: "A slip",
-    when: "On Easy, Mote plays a move that wasn't their best",
-    then: "Uh-oh face",
-    status: "live",
-  },
-  {
-    id: "chess-hmm",
-    group: "Chess",
-    name: "A long think",
-    when: "On Hard, now and then before a move",
-    then: "Says they need to think",
-    status: "live",
-  },
+
+
   {
     id: "chess-in-check",
     group: "Chess",
@@ -789,7 +762,7 @@ export const REACTIONS: Reaction[] = [
     group: "Tic-tac-toe",
     name: "A new game",
     when: "You start a game of tic-tac-toe and go first",
-    then: "A happy hop, and something about the game (or the level you picked)",
+    then: "A happy hop, and something about the game",
     status: "live",
   },
   {
@@ -848,14 +821,7 @@ export const REACTIONS: Reaction[] = [
     then: "Sometimes a sly look and a hint",
     status: "live",
   },
-  {
-    id: "tictactoe-slip",
-    group: "Tic-tac-toe",
-    name: "A slip",
-    when: "On Easy, Mote leaves you a win",
-    then: "Uh-oh face",
-    status: "live",
-  },
+
   {
     id: "tictactoe-mote-win",
     group: "Tic-tac-toe",
@@ -1016,6 +982,118 @@ export const REACTIONS: Reaction[] = [
     name: "New cards",
     when: "You deal again",
     then: "Something cute, now and then",
+    status: "live",
+  },
+  {
+    id: "war-start",
+    group: "War",
+    name: "Sitting down to War",
+    when: "You open War (a new game)",
+    then: "A happy hop and a word",
+    status: "live",
+  },
+  {
+    id: "war-resume",
+    group: "War",
+    name: "Back to the war",
+    when: "You open War with a game still going",
+    then: "Something cute",
+    status: "live",
+  },
+  {
+    id: "war-you-take",
+    group: "War",
+    name: "Your round",
+    when: "Your card is higher",
+    then: "Once in a while, a grumble",
+    status: "live",
+  },
+  {
+    id: "war-mote-take",
+    group: "War",
+    name: "Mote’s round",
+    when: "Mote’s card is higher",
+    then: "Once in a while, glee",
+    status: "live",
+  },
+  {
+    id: "war-war",
+    group: "War",
+    name: "War!",
+    when: "The cards tie",
+    then: "Surprised, and always says so",
+    status: "live",
+  },
+  {
+    id: "war-you-win-war",
+    group: "War",
+    name: "You win a war",
+    when: "A war goes your way",
+    then: "An ouch, and dismay at all those cards",
+    status: "live",
+  },
+  {
+    id: "war-mote-win-war",
+    group: "War",
+    name: "Mote wins a war",
+    when: "A war goes Mote’s way",
+    then: "Smug, and pleased with the pile",
+    status: "live",
+  },
+  {
+    id: "war-mote-ahead",
+    group: "War",
+    name: "Mote pulls ahead",
+    when: "Mote gets 10 cards ahead (said again once it’s been close)",
+    then: "Smug",
+    status: "live",
+  },
+  {
+    id: "war-you-ahead",
+    group: "War",
+    name: "You pull ahead",
+    when: "You get 10 cards ahead",
+    then: "Worried",
+    status: "live",
+  },
+  {
+    id: "war-mote-low",
+    group: "War",
+    name: "Mote nearly out",
+    when: "Mote is down to 5 cards",
+    then: "Worried",
+    status: "live",
+  },
+  {
+    id: "war-you-low",
+    group: "War",
+    name: "You nearly out",
+    when: "You’re down to 5 cards",
+    then: "Smug",
+    status: "live",
+  },
+  {
+    id: "war-mote-win",
+    group: "War",
+    name: "Mote wins",
+    when: "You run out of cards",
+    then: "The victory dance",
+    status: "live",
+  },
+  {
+    id: "war-you-win",
+    group: "War",
+    name: "You win",
+    when: "Mote runs out of cards",
+    then: "A good-sport smile",
+    status: "live",
+  },
+  {
+    id: "war-pause",
+    group: "War",
+    name: "Putting War away",
+    when: "You close it mid-game",
+    then: "Says it’s saved",
     status: "live",
   },
   {
@@ -1638,7 +1716,7 @@ export const REACTIONS: Reaction[] = [
     group: "Memories",
     name: "A game begins",
     when: "You start checkers or chess",
-    then: "Satisfying. If there’s a recent game worth a nod (a rematch, a streak, moving up or down a level, a close one or a thrashing), Mote mentions it instead of their usual opener",
+    then: "Satisfying. If there’s a recent game worth a nod (a rematch, a streak, a close one or a thrashing), Mote mentions it instead of their usual opener",
     effects: { peace: 0.3 },
     status: "live",
   },
@@ -1683,6 +1761,7 @@ export const REACTION_GROUPS: ReactionGroup[] = [
   "Tic-tac-toe",
   "Liar’s Dice",
   "Solitaire",
+  "War",
   "Local Gallery",
   "Local Gallery passcode",
   "Speech",

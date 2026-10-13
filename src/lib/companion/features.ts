@@ -24,7 +24,6 @@ export type FeatureId =
   | "games"
   | "moodshape"
   | "hunger"
-  | "levels"
   | "sleep"
   | "brows"
   | "mouth"
@@ -101,11 +100,7 @@ export const FEATURES: Array<{
     name: "Mote eats too",
     about: "Mote gets hungry, feeding them (ask Mote for a snack), and hunger’s effect on their mood, face and what they say.",
   },
-  {
-    id: "levels",
-    name: "Levels and learning",
-    about: "Picking how Mote plays board games: Easy, Normal or Hard (or Close, the usual), plus the Learn with Mote option for checkers and tic-tac-toe. Off, Mote always plays to keep it close and let you edge ahead.",
-  },
+
   {
     id: "sleep",
     name: "Goodnight Mote",

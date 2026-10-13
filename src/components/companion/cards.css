@@ -1,0 +1,193 @@
+/* Playing cards (see cards.tsx), following STYLE.md: no borders or
+   outlines, only tone. A face-up card is a warm paper colour with a rim of a
+   deeper tone below it (its thickness), and a soft shadow at its top edge
+   where it sits on the card before it. A face-down card is Mote's own warm
+   accent, with a deeper panel and a little pair of Mote eyes. Cards stay
+   paper-coloured in dark mode, like the boards and pieces. Their size is
+   `--cw`, a card's width, set by the game holding them. */
+
+.deck-card {
+  --deck-face: #fff8ef;
+  --deck-face-hover: #fffcf7;
+  --deck-rim: #dcc7af;
+  --deck-red: #c4523c;
+  --deck-black: #2e2520;
+  --deck-back: #e3997a;
+  --deck-back-deep: #d5866a;
+  --deck-back-rim: #b96f53;
+  --deck-held: #fde6d8;
+  --deck-hint: #fbdccb;
+  --deck-edge: rgb(35 28 24 / 0.22);
+}
+
+/* A card. */
+.deck-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: 100%;
+  height: calc(var(--cw) * 1.4);
+  padding: 0;
+  border: 0;
+  border-radius: calc(var(--cw) * 0.12);
+  font: inherit;
+  transition:
+    top 0.2s ease,
+    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background 0.15s ease;
+}
+
+.deck-card.is-up {
+  background: var(--deck-face);
+  box-shadow:
+    0 2px 0 var(--deck-rim),
+    0 -1px 6px -2px var(--deck-edge);
+  cursor: pointer;
+  animation: deck-in 0.22s ease-out;
+}
+
+.deck-card.is-up:hover {
+  background: var(--deck-face-hover);
+}
+
+.deck-card.is-up:active {
+  transform: scale(0.97);
+}
+
+.deck-card.is-red {
+  color: var(--deck-red);
+}
+
+.deck-card.is-black {
+  color: var(--deck-black);
+}
+
+/* Picked up: lifted, warmer, on an accent rim. */
+.deck-card.is-held {
+  transform: translateY(calc(var(--cw) * -0.07));
+  background: var(--deck-held);
+  box-shadow:
+    0 2px 0 var(--ck-accent),
+    0 8px 14px -6px rgb(35 28 24 / 0.35);
+}
+
+.deck-card.is-held:hover {
+  background: var(--deck-held);
+}
+
+/* What Mote pointed at: a warm wash that breathes. */
+.deck-card.is-hint {
+  animation: deck-hint 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes deck-hint {
+  to {
+    background: var(--deck-hint);
+  }
+}
+
+.deck-card.is-down.is-hint {
+  animation-name: deck-hint-back;
+}
+
+@keyframes deck-hint-back {
+  to {
+    background: #efb193;
+  }
+}
+
+@keyframes deck-in {
+  from {
+    opacity: 0.4;
+  }
+}
+
+/* The corner: rank, and a small suit under it. */
+.deck-index {
+  position: absolute;
+  left: 7%;
+  top: 4%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+
+.deck-rank {
+  font-size: calc(var(--cw) * 0.3);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+
+.deck-small {
+  width: calc(var(--cw) * 0.2);
+  height: calc(var(--cw) * 0.2);
+  margin-top: calc(var(--cw) * 0.02);
+}
+
+/* The middle: a big suit, or the letter for a face card. */
+.deck-middle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 38%;
+  bottom: 6%;
+  display: grid;
+  place-items: center;
+}
+
+.deck-big {
+  width: 54%;
+  height: auto;
+}
+
+.deck-face-letter {
+  font-size: calc(var(--cw) * 0.62);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.deck-suit {
+  display: block;
+  fill: currentColor;
+}
+
+/* Thickened in its own colour, so the points are soft (not an outline). */
+.deck-suit path {
+  stroke: currentColor;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+/* Face down. */
+.deck-card.is-down {
+  background: var(--deck-back);
+  box-shadow:
+    0 2px 0 var(--deck-back-rim),
+    0 -1px 6px -2px var(--deck-edge);
+}
+
+.deck-card.is-down::before {
+  content: "";
+  position: absolute;
+  inset: 9%;
+  border-radius: calc(var(--cw) * 0.07);
+  background: var(--deck-back-deep);
+}
+
+.deck-back-eyes {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: #fff1e4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-card.is-hint {
+    animation: none;
+    background: var(--deck-hint);
+  }
+}

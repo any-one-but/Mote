@@ -1,4 +1,3 @@
-import type { Level } from "../../lib/checkers/ai.ts";
 import type { Effects } from "./mind.ts";
 
 // What Mote remembers about the games you've played together: who won, by
@@ -15,7 +14,6 @@ export type GameWinner = "mote" | "you" | "draw";
 export type GameMemory = {
   id: string;
   game: GameName;
-  level: Level;
   winner: GameWinner;
   /** How it ended: "checkmate", "no-moves", "resign", "stalemate"… */
   how: string;
@@ -33,7 +31,6 @@ export type GameMemory = {
 /** What a board game tells Mote when it ends. */
 export type GameResult = {
   game: GameName;
-  level: Level;
   winner: GameWinner;
   how: string;
   /** The winner's lead at the end (checkers: pieces, a king counting 1½;
@@ -114,7 +111,6 @@ export function recordGame(r: GameResult, now = Date.now()) {
   const memory: GameMemory = {
     id: `${r.game}-${now}`,
     game: r.game,
-    level: r.level,
     winner: r.winner,
     how: r.how,
     margin: r.winner === "draw" ? "close" : marginOf(r.game, r.lead),
@@ -168,7 +164,6 @@ const capital = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 /** A line for starting a game, if the last one is worth a nod. */
 export function startLine(
   game: GameName,
-  level: Level,
   opts: { friendly: boolean; rand?: () => number; now?: number } = { friendly: false },
 ): { id: string; text: string } | null {
   const rand = opts.rand ?? Math.random;
@@ -184,11 +179,6 @@ export function startLine(
   if (rand() > chance) return null;
   const s = streak(list, game, now);
   const f: Fill = { game: GAME_NAME[game], when, n: s.count };
-  // Moving up or down only means something between Easy, Normal and Hard.
-  const levels = ["easy", "normal", "hard"];
-  const ranked = levels.includes(level) && levels.includes(last.level);
-  const up = ranked && levels.indexOf(level) > levels.indexOf(last.level);
-  const down = ranked && levels.indexOf(level) < levels.indexOf(last.level);
   let lines: string[];
 
   if (s.count >= 3 && s.winner === "you") {
@@ -196,13 +186,7 @@ export function startLine(
       ? ["That’s {n} in a row for you. I’m taking notes.", "{n} wins in a row! Okay, this one’s mine."]
       : ["{n} in a row for you. Not this time.", "{n} in a row. I’m not counting. (I am.)"];
   } else if (s.count >= 3 && s.winner === "mote") {
-    lines = ["I’ve won the last {n}. Feeling lucky?", "{n} in a row for me… want me to go easier?"];
-  } else if (down && last.winner === "you") {
-    lines = [];
-  } else if (down && last.winner === "mote") {
-    lines = ["Trying an easier one? Fair.", "Taking it down a notch? Okay."];
-  } else if (up && last.winner === "you") {
-    lines = ["Moving up? Brave.", "Harder this time? Okay, no holding back."];
+    lines = ["I’ve won the last {n}. Feeling lucky?", "{n} in a row for me… you’re due one, surely?"];
   } else if (mins < 15 && last.how === "resign") {
     lines = ["Again! Stay for a whole game this time?", "Back for more? No giving up this time."];
   } else if (mins < 15) {
@@ -235,7 +219,6 @@ export function startLine(
             ? ["I was winning {when}, and then I wasn’t. Not again."]
             : ["You got me {when}. My turn now."];
   }
-  if (!lines.length) return null;
   return { id: last.id, text: capital(fill(pick(lines, rand), f)) };
 }
 

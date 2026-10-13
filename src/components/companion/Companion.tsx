@@ -52,6 +52,7 @@ import { Chess } from "@/components/companion/Chess";
 import { TicTacToe } from "@/components/companion/TicTacToe";
 import { LiarsDice } from "@/components/companion/LiarsDice";
 import { Solitaire } from "@/components/companion/Solitaire";
+import { War } from "@/components/companion/War";
 import { applyToBook, dateKey, readBook } from "@/lib/companion/calories";
 import { markCalorieCare, useCalorieBook } from "@/lib/companion/calorie-store";
 
@@ -68,7 +69,9 @@ export function Companion() {
   const [settings] = useSettings();
   const [book, commitBook] = useCalorieBook();
   const [logging, setLogging] = useState(false);
-  const [playing, setPlaying] = useState<"checkers" | "chess" | "tictactoe" | "liarsdice" | "solitaire" | null>(null);
+  const [playing, setPlaying] = useState<
+    "checkers" | "chess" | "tictactoe" | "liarsdice" | "solitaire" | "war" | null
+  >(null);
   const debugState = useRef<DebugState>({ ...DEBUG_DEFAULTS });
   const events = useRef<string[]>([]);
   const realMedia = useRef<MediaInfo>(null);
@@ -447,6 +450,7 @@ export function Companion() {
     "tictactoe",
     "liarsdice",
     "solitaire",
+    "war",
     "files",
     "bed",
     "feed",
@@ -511,9 +515,10 @@ export function Companion() {
     tictactoe: "Tic-tac-toe",
     liarsdice: "Liar’s Dice",
     solitaire: "Solitaire",
+    war: "War",
   };
   const offerGames = (text: string = say(LINES.games)) =>
-    offer(text, ["checkers", "chess", "tictactoe", "liarsdice", "solitaire"], GAME_NAMES);
+    offer(text, ["checkers", "chess", "tictactoe", "liarsdice", "solitaire", "war"], GAME_NAMES);
 
   /** Whatever was open goes away: a game (it's saved), the calorie card,
    * the passcode pad, the file options. */
@@ -787,6 +792,7 @@ export function Companion() {
       {playing === "tictactoe" && !helping ? <TicTacToe engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "liarsdice" && !helping ? <LiarsDice engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "solitaire" && !helping ? <Solitaire engine={getEngine} onClose={() => setPlaying(null)} /> : null}
+      {playing === "war" && !helping ? <War engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {asking && !helping ? (
         <PasscodePad
           title="Local Gallery"

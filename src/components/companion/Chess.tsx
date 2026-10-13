@@ -3,7 +3,6 @@ import type { ChessEvent } from "@/components/companion/chess-lines";
 import { ChessPieceArt } from "@/components/companion/chess-pieces";
 import type { FaceEngine } from "@/components/companion/engine";
 import { material, PIECE_NAME } from "@/lib/chess/ai";
-import type { Level } from "@/lib/checkers/ai";
 import {
   BISHOP,
   CASTLE,
@@ -32,13 +31,11 @@ import {
 } from "@/lib/chess/rules";
 import { think } from "@/lib/chess/think";
 import { rollMayWin } from "@/lib/close-game";
-import { featureOn, useFeatures } from "@/lib/companion/features";
-import { BoardHead, EndPanel, LevelPick } from "./board-ui";
+import { BoardHead, EndPanel, StartPick } from "./board-ui";
 import {
   addToStats,
   load,
   readStats,
-  savedLevel,
   sleep,
   store,
   type Phase,
@@ -56,7 +53,7 @@ type Props = {
 
 /** A piece on the board as drawn: `p` is positive for yours, negative for Mote's. */
 type Piece = { id: number; sq: number; p: number; gone?: boolean; lifted?: boolean };
-type Saved = { fen: string; history: string[]; level: Level; swing?: Swing; mayWin?: boolean };
+type Saved = { fen: string; history: string[]; swing?: Swing; mayWin?: boolean };
 
 const SAVE = "mote.chess";
 const STATS = "mote.chess.stats";
@@ -105,7 +102,6 @@ const ENDING_WORDS: Record<Ending["reason"], string> = {
 export function Chess({ engine, onClose }: Props) {
   const saved = useRef(load<Saved>(SAVE));
   const resumed = useRef(revive(saved.current));
-  const [level, setLevel] = useState<Level>(savedLevel(saved.current?.level));
   const [phase, setPhase] = useState<Phase>(resumed.current ? "playing" : "pick");
   const [pos, setPos] = useState<Position>(resumed.current?.pos ?? fromFen(START));
   const [history, setHistory] = useState<string[]>(resumed.current?.history ?? [positionKey(fromFen(START))]);
@@ -125,20 +121,15 @@ export function Chess({ engine, onClose }: Props) {
   historyRef.current = history;
   const piecesRef = useRef(pieces);
   piecesRef.current = pieces;
-  const levelRef = useRef(level);
-  levelRef.current = level;
   const standing = useRef<"even" | "ahead" | "behind">("even");
   const swing = useRef<Swing>(saved.current?.swing ?? { min: 0, max: 0 });
   const lastNag = useRef(0);
-  // Picking a level is an experimental feature: without it, Mote plays the
-  // close way. And whether this is one of the games they may win.
-  const [features] = useFeatures();
-  const canPick = featureOn(features, "levels");
+  // Whether this is one of the games Mote may win (see close-game.ts).
   const mayWin = useRef(saved.current?.mayWin === true);
 
   const tell = useCallback(
     (event: ChessEvent, words?: { piece?: string; yours?: string }) =>
-      engine()?.chess(event, levelRef.current, words),
+      engine()?.chess(event, words),
     [engine],
   );
 
@@ -149,8 +140,8 @@ export function Chess({ engine, onClose }: Props) {
   }, [engine, phase, pos.turn, busy]);
 
   useEffect(() => {
-    if (phase === "playing") store(SAVE, { fen: toFen(pos), history, level, swing: swing.current, mayWin: mayWin.current });
-  }, [phase, pos, history, level]);
+    if (phase === "playing") store(SAVE, { fen: toFen(pos), history, swing: swing.current, mayWin: mayWin.current });
+  }, [phase, pos, history]);
 
   /** Slides a piece (and a castling rook), and takes whatever it lands on. */
   const animate = async (m: Move, lift: boolean) => {
@@ -186,7 +177,7 @@ export function Chess({ engine, onClose }: Props) {
   /** Mote remembers how it went: who won, by how much, from how far behind. */
   const report = (winner: Winner, how: string, p: Position, moves: number, event: ChessEvent) =>
     engine()?.gameOver(
-      { game: "chess", level: levelRef.current, winner, how, moves, ...margins(winner, moteLead(p), swing.current) },
+      { game: "chess", winner, how, moves, ...margins(winner, moteLead(p), swing.current) },
       event,
     );
 
@@ -199,7 +190,7 @@ export function Chess({ engine, onClose }: Props) {
     setResult({ winner, reason: end.reason });
     setPhase("over");
     store(SAVE, null);
-    setStats(addToStats(STATS, levelRef.current, winner));
+    setStats(addToStats(STATS, winner));
     const event: ChessEvent = end.reason === "checkmate" ? (winner === "mote" ? "mote-win" : "you-win") : end.reason;
     report(winner, end.reason, next, hist.length - 1, event);
     return true;
@@ -216,12 +207,10 @@ export function Chess({ engine, onClose }: Props) {
 
   const moteMoves = async (start: Position) => {
     setBusy(true);
-    const lvl = levelRef.current;
     const begun = performance.now();
-    if (lvl === "hard" && Math.random() < 0.25) tell("hmm");
-    const choice = await think(start, lvl, historyRef.current, { mayWin: mayWin.current });
+    const choice = await think(start, historyRef.current, { mayWin: mayWin.current });
     if (!alive.current || !choice) return;
-    const least = (lvl === "easy" ? 700 : 1000) + Math.random() * 800;
+    const least = 1000 + Math.random() * 800;
     const waited = performance.now() - begun;
     if (waited < least) await sleep(least - waited);
     if (!alive.current) return;
@@ -242,8 +231,6 @@ export function Chess({ engine, onClose }: Props) {
     else if (what.taken === QUEEN) tell("mote-take-queen");
     else if (what.promoted) tell("mote-promote");
     else if (what.castled) tell("mote-castle");
-    // Only owning up to slips that actually cost something.
-    else if (choice.slip && lvl === "easy" && choice.loss >= 80 && Math.random() < 0.6) tell("slip");
     else if (standing.current !== was && standing.current !== "even") {
       tell(standing.current === "ahead" ? "mote-ahead" : "mote-behind");
     } else if (what.taken) tell("mote-capture", { yours });
@@ -348,18 +335,15 @@ export function Chess({ engine, onClose }: Props) {
     setBusy(false);
     setPhase("playing");
     swing.current = { min: 0, max: 0 };
-    const lvl = canPick ? level : "close";
-    setLevel(lvl);
-    levelRef.current = lvl;
     mayWin.current = rollMayWin();
-    engine()?.gameStart("chess", lvl);
+    engine()?.gameStart("chess");
   };
 
   const resign = () => {
     setResult({ winner: "mote", reason: "resigned" });
     setPhase("over");
     store(SAVE, null);
-    setStats(addToStats(STATS, level, "mote"));
+    setStats(addToStats(STATS, "mote"));
     report("mote", "resign", pos, history.length - 1, "resign");
   };
 
@@ -369,16 +353,7 @@ export function Chess({ engine, onClose }: Props) {
   };
 
   if (phase === "pick") {
-    return (
-      <LevelPick
-        title="Chess"
-        lede="You’re white and go first."
-        level={level}
-        onLevel={canPick ? setLevel : undefined}
-        onPlay={begin}
-        onClose={close}
-      />
-    );
+    return <StartPick title="Chess" lede="You’re white and go first." onPlay={begin} onClose={close} />;
   }
 
   const kingInCheck = checked ? pos.kings[pos.turn === 1 ? 0 : 1] : -1;
@@ -392,7 +367,7 @@ export function Chess({ engine, onClose }: Props) {
 
   return (
     <div className="ck">
-      <BoardHead level={level} record={stats[level]} playing={phase === "playing"} onResign={resign} onClose={close} />
+      <BoardHead record={stats} playing={phase === "playing"} onResign={resign} onClose={close} />
 
       <div className="ck-board cs-board" role="grid" aria-label="Chess board">
         {Array.from({ length: 64 }, (_, i) => {

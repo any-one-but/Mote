@@ -64,17 +64,15 @@ describe("chess rules", () => {
 });
 
 describe("Mote's chess moves", () => {
-  it("finds a mate in one at every level", () => {
+  it("keeps it close: no mate in one this early, in a game Mote isn't to win", () => {
     const pos = fromFen("rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2");
-    for (const level of ["easy", "normal", "hard"] as const) {
-      assert.equal(name(chooseMove(pos, level, () => 0.99)!.move), "d8h4", level);
-    }
+    const pick = chooseMove(pos, () => 0.99, [], { mayWin: false }, 400);
+    assert.ok(pick);
+    assert.notEqual(name(pick.move), "d8h4");
   });
 
-  it("takes a queen left hanging on Normal and Hard", () => {
+  it("takes a queen left hanging when behind", () => {
     const pos = fromFen("rnb1kb1r/pppp1ppp/8/4pn2/3Q4/8/PPP1PPPP/RNB1KBNR b KQkq - 0 1");
-    for (const level of ["normal", "hard"] as const) {
-      assert.equal(squareName(moveTo(chooseMove(pos, level)!.move)), "d4", level);
-    }
+    assert.equal(squareName(moveTo(chooseMove(pos, Math.random, [], { mayWin: false }, 600)!.move)), "d4");
   });
 });

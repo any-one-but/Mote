@@ -178,7 +178,7 @@ however you like, and press Return:
 - "I want to play a game", "game", "I'm bored" — the games, as a list to
   pick from (click one, type its name, or type "2")
 - "chess", "I want to play chess", "checkers", "tic tac toe", "liar's dice",
-  "solitaire" (or "cards", "patience")
+  "solitaire" (or "cards", "patience"), "war"
   — that game, straight away
 - "calories", "log my lunch", "track my food", "diet" — the calorie card;
   "my week", "calorie history" — the Days window (with the diet tracker
@@ -250,8 +250,9 @@ next morning. Every line is in `src/components/companion/calorie-lines.ts`.
 
 ## How Mote plays board games
 
-There's no difficulty to pick. Mote plays well, but keeps themself just
-behind you, so games are close and you usually win by a hair:
+There's no difficulty to pick, and no other way to play: in every game,
+Mote plays well but keeps themself just behind you, so games are close and
+you usually win by a hair:
 
 - **When you're ahead**, Mote plays their best and keeps the pressure on.
 - **When Mote gets further ahead than they should**, they make a mistake on
@@ -267,20 +268,13 @@ In tic-tac-toe, Mote always blocks a line you're about to finish, but now and
 then plays a square that lets you set up two ways to win at once, if you spot
 it. They only sometimes take a win you leave open.
 
-The old levels (Easy, Normal, Hard) and Learn with Mote are still there,
-behind the **Levels and learning** switch in Debug's Features tab
-(see below). With it on, the level picker comes back, with **Close** (the
-usual way) as a fourth choice.
-
 The thinking is in `src/lib/close-game.ts`.
 
 ## Checkers
 
-Double-click Mote and say "checkers" (or pick it from the games), then **Play** (with Levels and
-learning switched on, pick a level first: **Easy**: Mote is still learning;
-**Normal**: a fair game; **Hard**: Mote looks as far ahead as they can in
-about a second and always plays their best). Mote's window grows to fit the
-board, with Mote sitting just above it.
+Double-click Mote and say "checkers" (or pick it from the games), then
+**Play**. Mote's window grows to fit the board, with Mote sitting just above
+it.
 
 You're the dark pieces and go first. Click a piece, then one of the dots. The
 usual rules: jumping is compulsory (the pieces that can jump pulse), a jump
@@ -291,29 +285,10 @@ up.
 Mote plays along: watching your pointer on your turn, scanning the board on
 theirs, wincing when you take a piece, looking smug when they take one,
 puffing up proud when they're crowned, a victory dance or a good-sport smile
-at the end. They comment on the big moments (and once in a while on a slip of
-their own). Close the board mid-game and it's saved for next time. Your
-record against Mote sits at the top of the board (kept separately for each
-level).
+at the end. They comment on the big moments. Close the board mid-game and
+it's saved for next time. Your record against Mote sits at the top of the
+board.
 
-### Learning with Mote
-
-With the **Levels and learning** feature switched on (in Debug's Features tab), checkers
-and tic-tac-toe have a **Learn with Mote** option on the level picker. Mote's notes appear under the board, in their own words:
-
-- **On your turn**, a tip about what matters right now (a win to take, a
-  threat to block, a piece in danger, a king to be had, the value of the
-  center or your back row). **Show me** marks the squares on the board.
-- **After a mistake** (a move that throws away a win, or hands Mote a piece
-  or a win), Mote waits, explains what went wrong and marks the better move:
-  **Take it back** to try again, or **Keep going**. Good moves that took some
-  finding get a word too.
-- **After Mote's move**, why they made it: a block, a fork, a trap, getting
-  a piece out of danger, pushing for a king.
-
-Learning games don't count toward your record or go into Mote's memories of
-games, though playing together still keeps Mote company. At the end, Mote
-says how many mistakes you made.
 
 ## Chess
 
@@ -326,10 +301,6 @@ stalemate, and draws by threefold repetition, fifty quiet moves, or too
 little left to mate.
 
 Mote's pieces are cream with little eyes (the knight, side-on, has one).
-With Levels and learning on: **Easy** looks one move ahead and often goes with something that only looks
-about right; **Normal** looks three moves ahead and follows trades through;
-**Hard** looks as far as it can in about a second and a half and knows how to
-finish off a won endgame.
 
 Mote has their own chess lines and faces: a sly, narrow-eyed nod when they put
 you in check, wide darting eyes when you check them, a pout (naming the
@@ -342,9 +313,7 @@ good-sport smile at the end.
 Double-click Mote and say "tic-tac-toe". Same record-keeping
 and saving as the other games. You're X; you and Mote take turns going first.
 Your X draws itself in ink; Mote's marks are tiny Motes that blink and glance
-at your latest move. With Levels and learning on, **Easy** Mote mostly plays wherever (though often grabs
-a win or a block); **Normal** always takes a win and nearly always blocks;
-**Hard** plays perfectly, so the best you can do is a draw. Mote reacts when
+at your latest move. Mote reacts when
 you block them, when they block you, and when either of you sets up two ways
 to win at once.
 
@@ -401,6 +370,26 @@ one card at a time, and Mote is on your side: they watch, cheer the good bits
 The cards follow the style guide (see `STYLE.md`): warm paper faces with a
 deeper rim and no outlines, Mote's colour on the back with a little pair of
 Mote eyes.
+
+## War
+
+Double-click Mote and say "war". The deck is dealt in half; click your pile
+(or **Flip**) and you and Mote each turn over your top card. The higher card
+(aces high) takes both. A tie is a war: three cards face down each, one face
+up, and the higher of those takes the lot (another tie, another war).
+Whoever runs out of cards loses. **Keep flipping** turns the cards for you,
+round after round, until you stop it or the game's over.
+
+Mote is all feelings about it: gleeful when they take a round, sulky when
+you do, very dramatic about wars, smug when they pull ahead, worried when
+their pile gets thin. Games are saved as you go; your record against Mote
+sits at the top.
+
+War has no choices to make, so Mote keeps it close the only way there is:
+before dealing, they try shuffles, play each one out in their head, and deal
+one that's close (Mote ahead for a while, you edging back, nobody running
+away with it, about a hundred rounds) and that you win, or, in the games
+Mote may win, that they win. Nothing changes once the cards are dealt.
 
 ## Local Gallery
 
@@ -535,9 +524,6 @@ feature that's switched off (Links, Gallery) isn't shown.
   - **Mote eats too**: Mote getting hungry, feeding them (ask for a snack), and
     hunger's effect on their mood, face and what they say. Off, Mote simply
     stays full.
-  - **Levels and learning**: picking a level for board games (Easy, Normal,
-    Hard, or the usual Close), and the Learn with Mote option for checkers and
-    tic-tac-toe. Off, Mote always plays the close way.
   - **Goodnight Mote**: Mote getting tired and needing sleep (sleepy and
     exhausted moods, asking for bed, tucking them in by asking, waking once rested).
     Off, Mote stays rested and simply naps after a few quiet minutes left
@@ -651,10 +637,11 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 - `src/components/companion/Chess.tsx`, `chess-pieces.tsx` and `chess-lines.ts` — the chess board, its pieces, and what Mote says
 - `src/lib/chess/rules.ts` — every chess rule; `ai.ts` — how Mote picks a chess move
 - `src/lib/close-game.ts` — how Mote keeps games close (the usual way they play)
-- `src/lib/checkers/coach.ts` and `src/lib/tictactoe/coach.ts` — Learn with Mote: tips, mistakes and Mote's explanations
 - `src/components/companion/TicTacToe.tsx` and `tictactoe-lines.ts`, and `src/lib/tictactoe/game.ts` — tic-tac-toe
 - `src/components/companion/LiarsDice.tsx`, `liarsdice.css` and `liarsdice-lines.ts`, and `src/lib/liarsdice/game.ts` — Liar's Dice (the rules and how Mote bids)
 - `src/components/companion/Solitaire.tsx`, `solitaire.css` and `solitaire-lines.ts`, and `src/lib/solitaire/game.ts` — Solitaire (the rules and Mote's advice)
+- `src/components/companion/War.tsx`, `war.css` and `war-lines.ts`, and `src/lib/war/game.ts` — War (the rules, and how Mote picks a close shuffle)
+- `src/components/companion/cards.tsx` and `cards.css`, and `src/lib/cards.ts` — the playing cards the card games share
 - `src/components/companion/board-ui.tsx` and `board.css` — what both games share (level picker, header, end panel, the board's look)
 - `src/components/companion/links.ts` — saved links, their history, and how Mote picks one to suggest
 - `src-tauri/src/links.rs` — reading a dragged link, and opening one in your browser
