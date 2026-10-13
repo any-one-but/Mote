@@ -602,6 +602,8 @@ function PieceView({
     >
       <svg viewBox="0 0 100 100" className="ck-disc">
         <ellipse cx="50" cy="58" rx="38" ry="36" className="ck-shadow" />
+        {/* The piece's thickness, a deeper tone just below it (no outlines). */}
+        <circle cx="50" cy="55" r="38" className="ck-rim" />
         <circle cx="50" cy="50" r="38" className="ck-body" />
         <circle cx="50" cy="50" r="29" className="ck-ring" />
         {mote ? (

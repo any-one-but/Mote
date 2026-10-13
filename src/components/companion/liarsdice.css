@@ -1,6 +1,7 @@
 /* Liar's Dice in Mote's window: the same cream card as the board games. Your
    dice are ink with cream pips (like your checkers); Mote's are cream, and
-   face down they're blank with a little pair of Mote eyes. */
+   face down they're blank with a little pair of Mote eyes. Like every piece,
+   each die has a rim in a deeper tone below it, and no outline. */
 
 .ld {
   padding: 12px 14px 14px;
@@ -30,18 +31,28 @@
   fill: #fff1e4;
 }
 
-/* In dark mode your ink dice get a soft edge, so they show on the dark card. */
+.ld-die.is-you .ld-rim {
+  fill: #140f0c;
+}
+
+/* In dark mode your ink dice are a lighter ink, so they show on the dark card. */
 :root[data-theme="dark"] .ld-die.is-you .ld-body,
 :root[data-theme="dark"] .ld-mini .ld-body {
-  stroke: #6a5b50;
-  stroke-width: 3;
+  fill: #54463d;
+}
+
+:root[data-theme="dark"] .ld-die.is-you .ld-rim {
+  fill: #2a221d;
 }
 
 .ld-die.is-mote .ld-body,
 .ld-die.is-hidden .ld-body {
   fill: #fff1e4;
-  stroke: #ead8c5;
-  stroke-width: 3;
+}
+
+.ld-die.is-mote .ld-rim,
+.ld-die.is-hidden .ld-rim {
+  fill: #dcc7af;
 }
 
 .ld-die.is-mote .ld-pip,
@@ -60,14 +71,13 @@
   }
 }
 
-/* Dice showing the number in play lift up, with an accent ring. */
+/* Dice showing the number in play lift up, on an accent rim. */
 .ld-die.is-match {
   transform: translateY(-5px);
 }
 
-.ld-die.is-match .ld-body {
-  stroke: var(--ck-accent);
-  stroke-width: 7;
+.ld-die.is-match .ld-rim {
+  fill: var(--ck-accent);
 }
 
 .ld-bid {

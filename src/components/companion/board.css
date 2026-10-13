@@ -1,5 +1,7 @@
 /* Checkers in Mote's window: a cream card under Mote, a warm wooden-feeling
-   board, your pieces in ink and Mote's as little cream Motes. */
+   board, your pieces in ink and Mote's as little cream Motes. No outlines
+   anywhere (see STYLE.md): pieces stand out by tone, with a deeper-toned rim
+   below each for its thickness, and marks are washes of colour. */
 
 /* Dark mode: the card goes dark; the board and pieces stay as they are. */
 :root[data-theme="dark"] .ck {
@@ -33,9 +35,7 @@
   background: var(--ck-card);
   color: var(--ck-ink);
   font-family: "Outfit", ui-rounded, system-ui, sans-serif;
-  box-shadow:
-    0 0 0 1px rgb(var(--ink-rgb) / 0.06),
-    0 10px 24px -12px rgb(var(--shade-rgb) / 0.25);
+  box-shadow: 0 10px 24px -12px rgb(var(--shade-rgb) / 0.25);
 }
 
 .ck button {
@@ -137,7 +137,6 @@
   margin: 0 auto;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgb(var(--ink-rgb) / 0.08);
 }
 
 .ck-sq {
@@ -242,10 +241,13 @@
   fill: var(--ck-piece);
 }
 
+.is-you .ck-rim {
+  fill: #140f0c;
+}
+
+/* A slightly lighter middle, where the old ring line was. */
 .is-you .ck-ring {
-  fill: none;
-  stroke: #4c3f37;
-  stroke-width: 3;
+  fill: #3a2f28;
 }
 
 .is-you .ck-crown {
@@ -254,8 +256,10 @@
 
 .is-mote .ck-body {
   fill: #fff1e4;
-  stroke: #ead8c5;
-  stroke-width: 2;
+}
+
+.is-mote .ck-rim {
+  fill: #dcc7af;
 }
 
 .is-mote .ck-ring {
@@ -307,9 +311,8 @@
   }
 }
 
-.ck-piece.is-selected .ck-body {
-  stroke: var(--ck-accent);
-  stroke-width: 5;
+.ck-piece.is-selected .ck-rim {
+  fill: var(--ck-accent);
 }
 
 .ck-status {
@@ -473,7 +476,7 @@
   position: absolute;
   inset: 7%;
   border-radius: 999px;
-  border: 4px solid var(--ck-accent);
+  background: color-mix(in srgb, var(--ck-accent) 45%, transparent);
   opacity: 0.8;
   animation: ck-dot 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -493,34 +496,41 @@
   overflow: visible;
 }
 
-/* Each piece: a thick outline layer, the fill on top, then detail lines. */
+/* Each piece: its rim (a deeper tone, a little lower), its own colour on
+   top, then bands of a nearby tone. The fill is thickened in its own colour,
+   so the silhouette stays chunky without any outline. */
 .cs-art {
-  --edge: #1f1915;
+  --rim: #120e0b;
   --fill: var(--ck-piece);
-  --line: #54453c;
+  --line: #4a3c33;
 }
 
 .cs-art.is-cream {
-  --edge: #b9a48e;
-  --fill: #fff6ec;
-  --line: #cdbba6;
+  --rim: #d2b99c;
+  --fill: #fffaf3;
+  --line: #ecdcc8;
 }
 
-.cs-edge > * {
-  fill: var(--edge);
-  stroke: var(--edge);
+.cs-rim > *,
+.cs-fill > * {
   stroke-width: 5;
   stroke-linejoin: round;
 }
 
+.cs-rim > * {
+  fill: var(--rim);
+  stroke: var(--rim);
+}
+
 .cs-fill > * {
   fill: var(--fill);
+  stroke: var(--fill);
 }
 
 .cs-detail {
   fill: none;
   stroke: var(--line);
-  stroke-width: 2;
+  stroke-width: 3;
   stroke-linecap: round;
 }
 
@@ -529,7 +539,7 @@
 }
 
 .cs-piece.is-selected .cs-art {
-  --edge: var(--ck-accent);
+  --rim: var(--ck-accent);
 }
 
 .cs-piece .ck-shadow {
@@ -559,9 +569,7 @@
   border: 0;
   border-radius: 16px;
   background: var(--ck-card);
-  box-shadow:
-    0 0 0 1px rgb(var(--ink-rgb) / 0.08),
-    0 8px 18px -10px rgb(var(--shade-rgb) / 0.35);
+  box-shadow: 0 8px 18px -10px rgb(var(--shade-rgb) / 0.35);
   transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -658,8 +666,10 @@
 
 .tt-o-body {
   fill: #fff6ec;
-  stroke: #b9a48e;
-  stroke-width: 3;
+}
+
+.tt-o-rim {
+  fill: #d8c2a8;
 }
 
 .tt-o .ck-eyes rect {
@@ -730,8 +740,6 @@
 
 .coach-face circle {
   fill: #fff1e4;
-  stroke: #d4bfa8;
-  stroke-width: 2;
 }
 
 .coach-face rect {
@@ -802,12 +810,12 @@
 /* Marked squares: green for a move worth making, red for a piece in danger. */
 .ck-sq.is-go,
 .tt-cell.is-go {
-  box-shadow: inset 0 0 0 4px rgb(111 154 91 / 0.85);
+  background-color: color-mix(in srgb, #6f9a5b 38%, var(--ck-dark));
 }
 
 .ck-sq.is-danger,
 .tt-cell.is-danger {
-  box-shadow: inset 0 0 0 4px rgb(197 87 63 / 0.85);
+  background-color: color-mix(in srgb, #c5573f 38%, var(--ck-dark));
 }
 
 .tt-cell.is-go {

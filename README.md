@@ -177,7 +177,8 @@ however you like, and press Return:
 
 - "I want to play a game", "game", "I'm bored" — the games, as a list to
   pick from (click one, type its name, or type "2")
-- "chess", "I want to play chess", "checkers", "tic tac toe", "liar's dice"
+- "chess", "I want to play chess", "checkers", "tic tac toe", "liar's dice",
+  "solitaire" (or "cards", "patience")
   — that game, straight away
 - "calories", "log my lunch", "track my food", "diet" — the calorie card;
   "my week", "calorie history" — the Days window (with the diet tracker
@@ -373,6 +374,33 @@ best. Mote says their bids out loud now and then, sounds very sure of
 themself when bluffing, looks sly when calling you a liar and alarmed when
 you call them one, and has a word for who was right (and for three in a row
 either way). Rounds won and lost nudge their mood a little.
+
+## Solitaire
+
+Double-click Mote and say "solitaire" (or "cards"). It's Klondike, turning
+one card at a time, and Mote is on your side: they watch, cheer the good bits
+(an ace going home, a hidden card turning over, a column cleared), and help.
+
+- Click a card to pick it up (a face-up card in a column picks up the cards
+  on it too), then click where it goes: onto a column, a foundation, or an
+  empty spot. Double-click a card to send it home.
+- Click the deck to turn a card; when it's empty, click it to turn the pile
+  back over, as often as you like.
+- **Ask Mote** for a move: they say it ("Try the 7 of clubs on the 8 of
+  hearts") and light up the card and where it goes. Mote's advice goes: an
+  ace or two home, then anything that uncovers a hidden card, then the pile,
+  then the deck. Look at one spot for 25 seconds and Mote offers a move on
+  their own.
+- **Undo** takes moves back, one at a time. **New deal** asks once if a game
+  is going.
+- When nothing on the table or in the deck helps any more, Mote says so and
+  offers a new deal. When every card is face up, **Let Mote finish** puts
+  them all home.
+- It's saved as you go, and the header keeps count: "Won 3 of 8".
+
+The cards follow the style guide (see `STYLE.md`): warm paper faces with a
+deeper rim and no outlines, Mote's colour on the back with a little pair of
+Mote eyes.
 
 ## Local Gallery
 
@@ -594,6 +622,8 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 
 ## Where things live
 
+- `STYLE.md` — the style guide: how Mote and everything around them should
+  look (tone, not lines; colours; shapes; motion; games; voice)
 - `src/components/companion/engine.ts` — every expression and how Mote moves between them
 - `src/components/companion/Face.tsx` — how the face is drawn (the eyebrows' shape is in `eyeShape`, in engine.ts)
 - `src/lib/companion/theme.ts` — sizes and positions of the face and eyes
@@ -624,6 +654,7 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 - `src/lib/checkers/coach.ts` and `src/lib/tictactoe/coach.ts` — Learn with Mote: tips, mistakes and Mote's explanations
 - `src/components/companion/TicTacToe.tsx` and `tictactoe-lines.ts`, and `src/lib/tictactoe/game.ts` — tic-tac-toe
 - `src/components/companion/LiarsDice.tsx`, `liarsdice.css` and `liarsdice-lines.ts`, and `src/lib/liarsdice/game.ts` — Liar's Dice (the rules and how Mote bids)
+- `src/components/companion/Solitaire.tsx`, `solitaire.css` and `solitaire-lines.ts`, and `src/lib/solitaire/game.ts` — Solitaire (the rules and Mote's advice)
 - `src/components/companion/board-ui.tsx` and `board.css` — what both games share (level picker, header, end panel, the board's look)
 - `src/components/companion/links.ts` — saved links, their history, and how Mote picks one to suggest
 - `src-tauri/src/links.rs` — reading a dragged link, and opening one in your browser

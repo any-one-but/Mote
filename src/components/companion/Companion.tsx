@@ -51,6 +51,7 @@ import { Checkers } from "@/components/companion/Checkers";
 import { Chess } from "@/components/companion/Chess";
 import { TicTacToe } from "@/components/companion/TicTacToe";
 import { LiarsDice } from "@/components/companion/LiarsDice";
+import { Solitaire } from "@/components/companion/Solitaire";
 import { applyToBook, dateKey, readBook } from "@/lib/companion/calories";
 import { markCalorieCare, useCalorieBook } from "@/lib/companion/calorie-store";
 
@@ -67,7 +68,7 @@ export function Companion() {
   const [settings] = useSettings();
   const [book, commitBook] = useCalorieBook();
   const [logging, setLogging] = useState(false);
-  const [playing, setPlaying] = useState<"checkers" | "chess" | "tictactoe" | "liarsdice" | null>(null);
+  const [playing, setPlaying] = useState<"checkers" | "chess" | "tictactoe" | "liarsdice" | "solitaire" | null>(null);
   const debugState = useRef<DebugState>({ ...DEBUG_DEFAULTS });
   const events = useRef<string[]>([]);
   const realMedia = useRef<MediaInfo>(null);
@@ -96,7 +97,15 @@ export function Companion() {
     ownMoveUntil.current = performance.now() + 800;
     // The board needs a taller window than the file options do; the
     // passcode pad, room for its keys with Mote above them.
-    const size = playing ? { width: 430, height: 740 } : asking ? { width: 380, height: 640 } : undefined;
+    // Solitaire's seven columns want a little more room still.
+    const size =
+      playing === "solitaire"
+        ? { width: 480, height: 800 }
+        : playing
+          ? { width: 430, height: 740 }
+          : asking
+            ? { width: 380, height: 640 }
+            : undefined;
     setHelpingSize(helping || !!playing || !!asking, size);
   }, [helping, playing, !!asking]); // eslint-disable-line react-hooks/exhaustive-deps
   const [anchor, setAnchor] = useState({ x: 0, y: 0 });
@@ -437,6 +446,7 @@ export function Companion() {
     "checkers",
     "tictactoe",
     "liarsdice",
+    "solitaire",
     "files",
     "bed",
     "feed",
@@ -500,9 +510,10 @@ export function Companion() {
     chess: "Chess",
     tictactoe: "Tic-tac-toe",
     liarsdice: "Liar’s Dice",
+    solitaire: "Solitaire",
   };
   const offerGames = (text: string = say(LINES.games)) =>
-    offer(text, ["checkers", "chess", "tictactoe", "liarsdice"], GAME_NAMES);
+    offer(text, ["checkers", "chess", "tictactoe", "liarsdice", "solitaire"], GAME_NAMES);
 
   /** Whatever was open goes away: a game (it's saved), the calorie card,
    * the passcode pad, the file options. */
@@ -775,6 +786,7 @@ export function Companion() {
       {playing === "chess" && !helping ? <Chess engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "tictactoe" && !helping ? <TicTacToe engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "liarsdice" && !helping ? <LiarsDice engine={getEngine} onClose={() => setPlaying(null)} /> : null}
+      {playing === "solitaire" && !helping ? <Solitaire engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {asking && !helping ? (
         <PasscodePad
           title="Local Gallery"

@@ -18,6 +18,7 @@ export type ReactionGroup =
   | "Chess"
   | "Tic-tac-toe"
   | "Liar’s Dice"
+  | "Solitaire"
   | "Local Gallery"
   | "Local Gallery passcode"
   | "Time"
@@ -898,6 +899,126 @@ export const REACTIONS: Reaction[] = [
 
   // Liar’s Dice
   {
+    id: "solitaire-start",
+    group: "Solitaire",
+    name: "Sitting down to solitaire",
+    when: "You open Solitaire",
+    then: "A happy hop and an offer to help",
+    status: "live",
+  },
+  {
+    id: "solitaire-resume",
+    group: "Solitaire",
+    name: "Back to the cards",
+    when: "You open Solitaire with a game still going",
+    then: "Something cute",
+    status: "live",
+  },
+  {
+    id: "solitaire-home-low",
+    group: "Solitaire",
+    name: "An ace home",
+    when: "An ace or a two goes onto a foundation",
+    then: "Delighted, often says so",
+    status: "live",
+  },
+  {
+    id: "solitaire-home",
+    group: "Solitaire",
+    name: "A card home",
+    when: "Any other card goes onto a foundation",
+    then: "Now and then, a word",
+    status: "live",
+  },
+  {
+    id: "solitaire-reveal",
+    group: "Solitaire",
+    name: "A hidden card",
+    when: "A face-down card turns over",
+    then: "Surprised, now and then a word",
+    status: "live",
+  },
+  {
+    id: "solitaire-cleared",
+    group: "Solitaire",
+    name: "An empty column",
+    when: "A column is cleared (not by moving a king out)",
+    then: "Pleased, often points out a king would fit",
+    status: "live",
+  },
+  {
+    id: "solitaire-hint",
+    group: "Solitaire",
+    name: "Mote’s advice",
+    when: "You press Ask Mote",
+    then: "Thinks, then says the most useful move (an ace home first, then uncovering a hidden card, then the waste, then the deck) and lights it up",
+    status: "live",
+  },
+  {
+    id: "solitaire-nudge",
+    group: "Solitaire",
+    name: "Offering a move",
+    when: "25 seconds on one position with a move on the table",
+    then: "A glance, and suggests it, lit up",
+    status: "live",
+  },
+  {
+    id: "solitaire-hint-draw",
+    group: "Solitaire",
+    name: "Try the deck",
+    when: "You ask, and nothing on the table helps but the deck might",
+    then: "Says to turn a card",
+    status: "live",
+  },
+  {
+    id: "solitaire-hint-recycle",
+    group: "Solitaire",
+    name: "Go round again",
+    when: "You ask, the deck is empty and the pile could help",
+    then: "Says to turn the pile over",
+    status: "live",
+  },
+  {
+    id: "solitaire-undo",
+    group: "Solitaire",
+    name: "Taking it back",
+    when: "You press Undo",
+    then: "Now and then, “No worries”",
+    status: "live",
+  },
+  {
+    id: "solitaire-stuck",
+    group: "Solitaire",
+    name: "Stuck",
+    when: "Nothing on the table or in the deck helps any more",
+    then: "Worried, and suggests a new deal",
+    status: "live",
+  },
+  {
+    id: "solitaire-finish",
+    group: "Solitaire",
+    name: "All showing",
+    when: "Every card is face up and out of the deck",
+    then: "Pleased, and offers to finish (Let Mote finish puts them all home)",
+    status: "live",
+  },
+  {
+    id: "solitaire-win",
+    group: "Solitaire",
+    name: "We won",
+    when: "Every card is home",
+    then: "Over the moon",
+    status: "live",
+  },
+  {
+    id: "solitaire-new-deal",
+    group: "Solitaire",
+    name: "New cards",
+    when: "You deal again",
+    then: "Something cute, now and then",
+    status: "live",
+  },
+  {
     id: "liarsdice-start",
     group: "Liar’s Dice",
     name: "Sitting down to dice",
@@ -1561,6 +1682,7 @@ export const REACTION_GROUPS: ReactionGroup[] = [
   "Chess",
   "Tic-tac-toe",
   "Liar’s Dice",
+  "Solitaire",
   "Local Gallery",
   "Local Gallery passcode",
   "Speech",

@@ -58,14 +58,9 @@
   fill: #f5ad6e;
 }
 
-/* Snowman: snow white with a soft outline and coal eyes, dark mode or not. */
+/* Snowman (switched off for now): snow white with coal eyes, dark mode or not. */
 :root[data-mode="snow"] {
   --skin: #fbfdff;
-}
-
-:root[data-mode="snow"] .mini-skin {
-  stroke: #c6d1de;
-  stroke-width: 1.5;
 }
 
 :root[data-mode="snow"] .mini-eyes {
@@ -189,10 +184,6 @@ input:focus-visible {
   justify-content: space-between;
   gap: calc(var(--unit) * 2);
   padding: calc(var(--unit) * 1.75) 0;
-}
-
-.row + .row {
-  border-top: 1px solid var(--line);
 }
 
 .row.is-stacked {
@@ -443,9 +434,10 @@ input:focus-visible {
   width: 22px;
   height: 22px;
   margin-top: -7px;
-  border: 3px solid var(--accent);
+  border: 0;
   border-radius: 999px;
-  background: var(--card);
+  background: var(--accent);
+  box-shadow: 0 2px 6px -1px rgb(0 0 0 / 0.25);
   transition: transform 380ms var(--spring);
 }
 
@@ -539,9 +531,10 @@ input:focus-visible {
   padding-top: var(--unit);
 }
 
+/* Quieter than the cards above: a sunk tone, no ring. */
 .settings-foot .card {
-  background: transparent;
-  box-shadow: inset 0 0 0 1.5px var(--line);
+  background: var(--sunk);
+  box-shadow: none;
 }
 
 .settings-foot .row-label {
@@ -683,10 +676,6 @@ input:focus-visible {
   font-size: 13px;
 }
 
-.log li + li {
-  border-top: 1px solid var(--line);
-}
-
 .log-time {
   flex: none;
   width: 56px;
@@ -710,10 +699,6 @@ input:focus-visible {
 
 .meter {
   padding: calc(var(--unit) * 1.75) 0;
-}
-
-.meter + .meter {
-  border-top: 1px solid var(--line);
 }
 
 .meter-top {
@@ -774,9 +759,8 @@ input:focus-visible {
   width: 22px;
   height: 22px;
   margin: -11px 0 0 -11px;
-  border: 3px solid var(--ink);
   border-radius: 999px;
-  background: var(--card);
+  background: var(--ink);
   transition: left 600ms var(--spring);
 }
 
@@ -811,10 +795,6 @@ input:focus-visible {
   margin: 0 calc(var(--unit) * -1);
   padding: calc(var(--unit) * 1.5) var(--unit);
   transition: background-color 600ms var(--soft);
-}
-
-.reaction + .reaction {
-  border-top: 1px solid var(--line);
 }
 
 .reaction.is-recent {
@@ -940,10 +920,6 @@ input:focus-visible {
   align-items: center;
   gap: var(--unit);
   padding: calc(var(--unit) * 1.1) 0;
-}
-
-.link-row + .link-row {
-  border-top: 1px solid var(--line);
 }
 
 .link-text {
@@ -1102,9 +1078,7 @@ input:focus-visible {
 }
 
 .mood-chart .q-dot {
-  fill: var(--card);
-  stroke: var(--ink);
-  stroke-width: 3;
+  fill: var(--ink);
   transition:
     cx 600ms var(--spring),
     cy 600ms var(--spring);
@@ -1202,7 +1176,6 @@ input:focus-visible {
 .passcode-library {
   margin: 0;
   padding: calc(var(--unit) * 1.5) 0 0;
-  border-top: 1px solid var(--line);
   font-size: 13px;
   color: var(--ink-soft);
   overflow-wrap: anywhere;

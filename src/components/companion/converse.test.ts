@@ -8,6 +8,7 @@ const ALL = new Set<IntentId>([
   "checkers",
   "tictactoe",
   "liarsdice",
+  "solitaire",
   "diet",
   "dietDays",
   "gallery",
@@ -56,6 +57,11 @@ test("plain requests do the thing straight away", () => {
     ["noughts and crosses", "do:tictactoe"],
     ["liar's dice", "do:liarsdice"],
     ["dice", "do:liarsdice"],
+    ["solitaire", "do:solitaire"],
+    ["I want to play solitaire", "do:solitaire"],
+    ["cards", "do:solitaire"],
+    ["play cards", "do:solitaire"],
+    ["patience", "do:solitaire"],
     ["calories", "do:diet"],
     ["log calories", "do:diet"],
     ["I want to track my food", "do:diet"],
@@ -103,6 +109,7 @@ test("typos get a check first", () => {
     ["gmae", "check:games"],
     ["chss", "check:chess"],
     ["chekers", "check:checkers"],
+    ["solitare", "check:solitaire"],
     ["galery", "do:gallery"],
     ["gallrey", "check:gallery"],
     ["calroies", "check:diet"],
@@ -139,10 +146,10 @@ test("two games by name is the games menu", () => {
 });
 
 test("menus can be picked from by number", () => {
-  const games: IntentId[] = ["checkers", "chess", "tictactoe", "liarsdice"];
+  const games: IntentId[] = ["checkers", "chess", "tictactoe", "liarsdice", "solitaire"];
   assert.equal(heard("2", ALL, games), "do:chess");
   assert.equal(heard("the first one", ALL, games), "do:checkers");
-  assert.equal(heard("last", ALL, games), "do:liarsdice");
+  assert.equal(heard("last", ALL, games), "do:solitaire");
 });
 
 test("anything locked away is as if Mote never heard of it", () => {

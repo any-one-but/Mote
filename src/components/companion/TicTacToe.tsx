@@ -355,6 +355,7 @@ function MoteMark({ cell, lookAt }: { cell: number; lookAt: number | null }) {
   return (
     <svg viewBox="0 0 100 100" className="tt-o" aria-hidden="true">
       <ellipse cx="50" cy="80" rx="22" ry="4" className="ck-shadow" />
+      <circle cx="50" cy="54" r="27" className="tt-o-rim" />
       <circle cx="50" cy="50" r="27" className="tt-o-body" />
       <g className="ck-eyes" style={{ animationDelay: `${(cell * 1.7) % 6}s`, transformOrigin: "50% 50px" }}>
         <rect x={39 + lx} y={41 + ly} width="7" height="15" rx="3.5" />

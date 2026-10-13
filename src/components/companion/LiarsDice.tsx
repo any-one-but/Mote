@@ -366,6 +366,7 @@ function Die({ face, side, match, delay = 0 }: { face: number; side: Who; match:
       role="img"
       aria-label={String(face)}
     >
+      <rect x="6" y="11" width="88" height="88" rx="22" className="ld-rim" />
       <rect x="6" y="6" width="88" height="88" rx="22" className="ld-body" />
       {PIPS[face].map(([x, y], i) => (
         <circle key={i} cx={x} cy={y} r="9" className="ld-pip" />
@@ -390,6 +391,7 @@ function MiniDie({ face }: { face: number }) {
 function HiddenDie({ index }: { index: number }) {
   return (
     <svg viewBox="0 0 100 100" className="ld-die is-hidden" aria-hidden="true">
+      <rect x="6" y="11" width="88" height="88" rx="22" className="ld-rim" />
       <rect x="6" y="6" width="88" height="88" rx="22" className="ld-body" />
       <g className="ck-eyes" style={{ animationDelay: `${(index * 1.3) % 5}s`, transformOrigin: "50% 50px" }}>
         <rect x="35" y="38" width="9" height="20" rx="4.5" />

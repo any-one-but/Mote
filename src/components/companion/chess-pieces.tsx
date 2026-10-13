@@ -2,10 +2,11 @@ import type { ReactNode } from "react";
 import { BISHOP, KING, KNIGHT, PAWN, QUEEN, ROOK } from "@/lib/chess/rules";
 
 // The chess pieces, drawn in a 100 × 100 box as solid, chunky silhouettes.
-// Each piece is a few overlapping shapes drawn twice: once thick in the
-// outline colour, then filled on top, so only the outer edge shows as a line
-// (no seams where the shapes meet). A few detail lines go on last. Yours are
-// ink; Mote's are cream and have little eyes that look about.
+// Each piece is a few overlapping shapes drawn twice, with no outlines (see
+// STYLE.md): first a little lower in a deeper tone, for the piece's
+// thickness, then in its own colour on top. The collars and steps are bands
+// of a nearby tone. Yours are ink; Mote's are cream and have little eyes that
+// look about.
 
 const BASE = (
   <>
@@ -105,7 +106,9 @@ export function ChessPieceArt({
   return (
     <svg viewBox="0 0 100 100" className={`cs-art ${mote ? "is-cream" : "is-ink"}`} aria-hidden="true">
       <ellipse cx="50" cy="90" rx="30" ry="5" className="ck-shadow" />
-      <g className="cs-edge">{shape}</g>
+      <g className="cs-rim" transform="translate(0 4)">
+        {shape}
+      </g>
       <g className="cs-fill">{shape}</g>
       <path d={DETAILS[type]} className="cs-detail" />
       {mote ? (
