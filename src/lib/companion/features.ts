@@ -354,5 +354,14 @@ export function useFeatures() {
     [commit],
   );
 
-  return [state, { unlockTyped, lock, setOn }] as const;
+  /** Every switch in the Features tab back to how it starts: the usual
+   * ones on, the experimental ones off. (Debug stays unlocked.) */
+  const setDefaults = useCallback(() => {
+    const now = current.current;
+    const on: FeatureState["on"] = {};
+    for (const id of now.unlocked) if (now.on[id] === false) on[id] = false;
+    commit({ unlocked: now.unlocked, on });
+  }, [commit]);
+
+  return [state, { unlockTyped, lock, setOn, setDefaults }] as const;
 }

@@ -1235,8 +1235,22 @@ const MODE_HINT: Record<Mode, string> = {
 /** Everything Mote does, a switch each, sorted by kind. A few of Mote's
  * settings sit here too, right after the feature they go with. */
 function FeaturesTab() {
-  const [features, { setOn }] = useFeatures();
+  const [features, { setOn, setDefaults }] = useFeatures();
   const [settings, update] = useSettings();
+  // Asks once: a second press within a few seconds does it.
+  const [sure, setSure] = useState(false);
+  useEffect(() => {
+    if (!sure) return;
+    const t = window.setTimeout(() => setSure(false), 3000);
+    return () => window.clearTimeout(t);
+  }, [sure]);
+  const toDefaults = () => {
+    if (!sure) return setSure(true);
+    setSure(false);
+    setDefaults();
+    const { friendly, energy, mode } = DEFAULT_SETTINGS;
+    update({ friendly, energy, mode });
+  };
   const nameOf = (id: FeatureId) => FEATURES.find((f) => f.id === id)?.name ?? id;
   const after: Partial<Record<FeatureId, ReactNode>> = {
     mind: (
@@ -1257,6 +1271,11 @@ function FeaturesTab() {
   };
   return (
     <>
+      <div className="button-row">
+        <Button onClick={toDefaults} active={sure}>
+          {sure ? "Sure? Press again" : "Set to defaults"}
+        </Button>
+      </div>
       {FEATURE_SECTIONS.map((section) => (
         <Section key={section.id} title={section.title}>
           {FEATURES.filter((f) => f.section === section.id).map((f) => {

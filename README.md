@@ -336,7 +336,9 @@ open. A tab about a feature that's switched off (Links) isn't shown.
 - **Features**: a switch for everything Mote does, sorted by kind. The usual
   ones are on until switched off; the ones tagged Experimental are off until
   switched on. A switch tagged "Needs …" only works with that one on too
-  (it's greyed out without it).
+  (it's greyed out without it). **Set to defaults** at the top (press it
+  twice) puts every switch, and Friendly mode, Energy and Mode, back to how
+  they start.
 
   **Mind**
   - **Mind**: how Mote feels and everything that moves it (joy, peace, the
