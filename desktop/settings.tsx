@@ -7,9 +7,28 @@ import {
   widenSettingsWindow,
 } from "@/lib/companion/desktop";
 import { featureOn, useFeatures } from "@/lib/companion/features";
-import { nameOf, useDark, useMode, useSettings, type Settings, type Theme } from "@/lib/companion/settings";
+import {
+  lookOf,
+  nameOf,
+  useDark,
+  useMode,
+  useSettings,
+  type MoteAppearance,
+  type Settings,
+  type Theme,
+} from "@/lib/companion/settings";
 import { DebugPanel } from "./debug";
 import { MiniMote, Page, Row, Section, Segmented, Toggle } from "./ui";
+
+const MOTE_APPEARANCE: Array<{ value: MoteAppearance; label: string }> = [
+  { value: "normal", label: "Normal" },
+  { value: "jack", label: "Jack-o’-lantern" },
+];
+
+const MOTE_APPEARANCE_HINT: Record<MoteAppearance, string> = {
+  normal: "Just Mote.",
+  jack: "Pumpkin orange, triangle eyes, and a carved, toothy grin. Happy Halloween!",
+};
 
 const THEME: Array<{ value: Theme; label: string }> = [
   { value: "light", label: "Light" },
@@ -26,7 +45,7 @@ function SettingsWindow() {
   const [features, { unlockTyped }] = useFeatures();
   const debug = featureOn(features, "debug");
   useDark(settings.theme);
-  useMode(settings.mode);
+  useMode(lookOf(settings));
   // Debug's key, typed anywhere in this window (there's no box for it).
   const typed = useRef("");
   useEffect(() => {
@@ -81,9 +100,17 @@ function SettingsPanel() {
       </Section>
 
       <Section title="Mote">
-        <Row label="Appearance" hint="Dark swaps Mote’s colours: a dark face with cream eyes." stacked>
+        <Row label="Mote Appearance" hint={MOTE_APPEARANCE_HINT[settings.moteAppearance]} stacked>
           <Segmented
-            label="Appearance"
+            label="Mote Appearance"
+            options={MOTE_APPEARANCE}
+            value={settings.moteAppearance}
+            onChange={(moteAppearance) => set({ moteAppearance })}
+          />
+        </Row>
+        <Row label="Light or dark" hint="Dark swaps Mote’s colours: a dark face with cream eyes." stacked>
+          <Segmented
+            label="Light or dark"
             options={THEME}
             value={settings.theme}
             onChange={(theme) => set({ theme })}

@@ -36,7 +36,7 @@ import {
   windowPlacement,
 } from "@/lib/companion/desktop";
 import { featureOn, useFeatures } from "@/lib/companion/features";
-import { nameOf, readSettings, useDark, useMode, useSettings } from "@/lib/companion/settings";
+import { forcedMouth, lookOf, nameOf, readSettings, useDark, useMode, useSettings } from "@/lib/companion/settings";
 import { Checkers } from "@/components/companion/Checkers";
 import { Chess } from "@/components/companion/Chess";
 import { TicTacToe } from "@/components/companion/TicTacToe";
@@ -153,11 +153,14 @@ export function Companion() {
 
   const { energy, friendly } = settings;
   const dark = useDark(settings.theme);
-  useMode(settings.mode);
+  const look = lookOf(settings);
+  useMode(look);
 
   const [features] = useFeatures();
   const brows = featureOn(features, "brows");
-  const mouth = featureOn(features, "mouth");
+  // The mouth is an experimental switch, except that Mote Appearance's
+  // jack-o'-lantern always has its grin.
+  const mouth = featureOn(features, "mouth") || forcedMouth(settings);
   const links = featureOn(features, "links");
   const checkIns = featureOn(features, "checkins");
   const games = featureOn(features, "games");
@@ -227,14 +230,14 @@ export function Companion() {
     dark,
     glint,
     moodShape,
-    look: settings.mode,
+    look,
     name: settings.name,
   };
   const optionsNow = useRef(engineOptions);
   optionsNow.current = engineOptions;
   useEffect(() => {
     engineRef.current?.configure(optionsNow.current);
-  }, [energy, friendly, mindOn, remarks, chat, needs, memories, gameTalk, dizzy, antics, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape, settings.mode, settings.name]);
+  }, [energy, friendly, mindOn, remarks, chat, needs, memories, gameTalk, dizzy, antics, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape, look, settings.name]);
   // Noticing the screen switched on or off: sound elsewhere counts, or doesn't.
   useEffect(() => {
     applyAudio();

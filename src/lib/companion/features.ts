@@ -10,7 +10,8 @@ import { listenBus, send } from "@/lib/companion/bus";
 // Features tab switches everything else Mote
 // does on and off, sorted by kind (their mind, each kind of thing they say,
 // what you do together, what they notice, how they look): the usual ones are
-// on until switched off, the experimental ones off until switched on. Some
+// on until switched off, the rest (the experimental ones, and a few plain
+// ones like getting dizzy) off until switched on. Some
 // only work with another on (remembering games needs the games).
 //
 // Only a fingerprint of the key (its SHA-256) lives in the app, never the key.
@@ -67,9 +68,10 @@ export const FEATURES: Array<{
   section: FeatureSection;
   name: string;
   about: string;
-  /** One of Mote's usual skills: on until switched off. (The rest are
-   * experimental: off until switched on.) */
+  /** On until switched off. (The rest are off until switched on.) */
   usual?: boolean;
+  /** Still being tried out (tagged in the Features tab). */
+  experimental?: boolean;
   /** Only works with this one on too (its switch is greyed out without it). */
   needs?: FeatureId;
 }> = [
@@ -148,14 +150,12 @@ export const FEATURES: Array<{
     section: "together",
     name: "Saved links",
     about: "Links dragged onto Mote are saved, and now and then Mote suggests one. Off, Mote doesn’t take links or bring them up (the ones already saved are kept), and Settings hides the list.",
-    usual: true,
   },
   {
     id: "apps",
     section: "together",
     name: "Reacting to apps",
     about: "Apps dragged onto Mote: games get played (Chess, Minecraft, any game) and the Mac’s own apps get a reaction. Off, Mote doesn’t take apps.",
-    usual: true,
   },
 
   // Noticing and moving
@@ -171,7 +171,6 @@ export const FEATURES: Array<{
     section: "noticing",
     name: "Getting dizzy",
     about: "Whipping the pointer around or shaking Mote’s window makes them dizzy: swirling eyes, a wobble, and a bit of a grump about it. Off, they just ride it out (the window still swings them along).",
-    usual: true,
   },
   {
     id: "antics",
@@ -187,30 +186,33 @@ export const FEATURES: Array<{
     section: "looks",
     name: "Mood effects persistent eye shape",
     about: "How Mote feels shapes their eyes while they rest: a scowl when frustrated, a little smile when joyful, a droop when low. Off, the eyes rest in their usual shape whatever the mood (expressions still play).",
-    usual: true,
     needs: "mind",
   },
   {
     id: "brows",
     section: "looks",
+    experimental: true,
     name: "Eyebrows",
     about: "Two little eyebrows above Mote’s eyes. They follow every expression: down and slanted when cross, up when surprised or worried, relaxed when sleepy.",
   },
   {
     id: "mouth",
     section: "looks",
+    experimental: true,
     name: "Mouth",
     about: "A little mouth under Mote’s eyes. It follows every expression: a smile when happy, a small frown when worried or cross, a small “o” when surprised.",
   },
   {
     id: "eyes",
     section: "looks",
+    experimental: true,
     name: "Just the eyes",
     about: "No body, no dot, no shadow: just Mote’s eyes (bigger), on a window the colour of Mote, so the whole window is Mote. Touching anywhere in it counts as touching Mote. Eyebrows and the mouth still work if they’re on.",
   },
   {
     id: "glint",
     section: "looks",
+    experimental: true,
     name: "Eye reflection dot",
     about: "A little reflection in each eye that moves with them. Its colour quietly follows Mote’s mood: Mote’s own colour when all’s well, a touch of red when frustrated, a touch of blue when low, a little purple when both.",
   },

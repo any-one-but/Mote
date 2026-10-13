@@ -7,7 +7,11 @@ export type Settings = {
   name: string;
   /** Light, dark, or whatever the Mac is set to. */
   theme: Theme;
-  /** A special look for Mote, for a vibe or a season (or plain Mote). */
+  /** Mote Appearance, in Settings: plain Mote, or the jack-o'-lantern
+   * (which always has its carved grin). */
+  moteAppearance: MoteAppearance;
+  /** Debug's Mode: a special look for Mote, for testing (the mouth follows
+   * its own switch here). Mote Appearance wins when it isn't plain. */
   mode: Mode;
   /** Mote never gets too upset: hurt counts for less, no sulking or sharp words. */
   friendly: boolean;
@@ -19,10 +23,19 @@ export type Theme = "light" | "dark" | "system";
 // (The engine also has a snowman look, switched off for now: it isn't
 // offered, and a saved "snow" reads as neutral.)
 export type Mode = "neutral" | "jack";
+export type MoteAppearance = "normal" | "jack";
+
+/** The look Mote has right now: Mote Appearance's, or else Debug's Mode. */
+export const lookOf = (s: Settings): Mode => (s.moteAppearance === "jack" ? "jack" : s.mode);
+
+/** Mote Appearance's jack-o'-lantern always has its grin. (Plain Mote never
+ * gets a mouth this way: that's only Debug's experimental switch.) */
+export const forcedMouth = (s: Settings) => s.moteAppearance === "jack";
 
 export const DEFAULT_SETTINGS: Settings = {
   name: "",
   theme: "system",
+  moteAppearance: "normal",
   mode: "neutral",
   friendly: false,
   energy: "normal",
@@ -52,6 +65,7 @@ export function readSettings(): Settings {
   return {
     name: nameOf(raw.name),
     theme: pick(raw.theme, ["light", "dark", "system"] as const, d.theme),
+    moteAppearance: pick(raw.moteAppearance, ["normal", "jack"] as const, d.moteAppearance),
     mode: pick(raw.mode, ["neutral", "jack"] as const, d.mode),
     friendly: bool(raw.friendly, d.friendly),
     energy: pick(raw.energy, ["calm", "normal", "lively"] as const, d.energy),

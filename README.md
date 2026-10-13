@@ -293,10 +293,11 @@ Mote eyes.
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. It's kept
-short: **Your name** (what Mote calls you), the **Appearance** (Light, Dark,
-or System to follow the Mac), whether Mote opens when you log in, and
-whether the window floats above others. Everything else (Friendly mode,
-Energy, Mode, saved links) is in Debug. Mote's eyes
+short: **Your name** (what Mote calls you), **Mote Appearance** (Normal, or
+the Jack-o'-lantern, see below), **Light or dark** (Light, Dark, or System to
+follow the Mac), whether Mote opens when you log in, and whether the window
+floats above others. Everything else (Friendly mode, Energy, Debug's own
+Mode, saved links) is in Debug. Mote's eyes
 always follow your pointer, and Mote always naps when left alone.
 
 **Dark mode** swaps Mote's colours, like a photo negative: a dark face with
@@ -307,7 +308,12 @@ swap like Mote does: Mote's pieces (and tic-tac-toe marks) are dark with
 cream eyes, yours cream. Chess is the exception: you're white and Mote is
 black in both modes. The playing cards stay paper.
 
-**Mode** (in Debug's Features tab, with the Looks) gives Mote a special look for a vibe or a season. **Neutral** is just
+**Mote Appearance** (in Settings) gives Mote a special look: **Normal**, or
+the **Jack-o'-lantern**, which always has its carved grin there (the mouth is
+otherwise an experimental switch, and plain Mote never gets one from
+Settings). Debug's own **Mode** (in the Features tab, with the Looks) does the
+same for testing, but leaves the mouth to its switch; Mote Appearance wins
+when it's the jack-o'-lantern. **Neutral** is just
 Mote. **Jack-o'-lantern** (for Halloween) turns Mote's cream a soft pumpkin
 orange, makes the eyes triangles like a carved pumpkin's (they still scowl,
 smile, blink and look around), and turns the mouth, if it's on, into a
@@ -333,8 +339,9 @@ the window grows to fit them): **Settings** first, then the Debug tabs. Mote
 is in debug mode (taking orders from those tabs) only while Settings is
 open. A tab about a feature that's switched off (Links) isn't shown.
 
-- **Features**: a switch for everything Mote does, sorted by kind. The usual
-  ones are on until switched off; the ones tagged Experimental are off until
+- **Features**: a switch for everything Mote does, sorted by kind. Most are
+  on until switched off; the ones tagged Experimental, and Saved links,
+  Reacting to apps, Getting dizzy and the mood-shaped eyes, are off until
   switched on. A switch tagged "Needs …" only works with that one on too
   (it's greyed out without it). **Set to defaults** at the top (press it
   twice) puts every switch, and Friendly mode, Energy and Mode, back to how

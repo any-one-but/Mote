@@ -1264,7 +1264,11 @@ function FeaturesTab() {
       </>
     ),
     glint: (
-      <Row label="Mode" hint={MODE_HINT[settings.mode]} stacked>
+      <Row
+        label="Mode"
+        hint={`${MODE_HINT[settings.mode]} (The mouth follows its own switch here.${settings.moteAppearance === "jack" ? " Settings’ Mote Appearance is the jack-o’-lantern right now, so that’s what shows." : ""})`}
+        stacked
+      >
         <Segmented label="Mode" options={MODE} value={settings.mode} onChange={(mode) => update({ mode })} />
       </Row>
     ),
@@ -1291,9 +1295,9 @@ function FeaturesTab() {
                     onChange={(on) => setOn(f.id, on)}
                   />
                 </Row>
-                {!f.usual || f.needs ? (
+                {f.experimental || f.needs ? (
                   <div className="feature-tags">
-                    {f.usual ? null : <span className="tag is-idea">Experimental</span>}
+                    {f.experimental ? <span className="tag is-idea">Experimental</span> : null}
                     {f.needs ? (
                       <span className={blocked ? "tag is-needs" : "tag is-idea"}>Needs {nameOf(f.needs)}</span>
                     ) : null}
