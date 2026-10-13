@@ -27,6 +27,9 @@ export type Effects = Partial<Record<Feeling, number>>;
 
 export const MIND_START: MindValues = { joy: 2, peace: 3, fullness: 7, rest: 8 };
 
+/** With the mind switched off: even, fed and rested, no lasting moods at all. */
+export const MIND_STEADY: MindValues = { joy: 0, peace: 0, fullness: 10, rest: 10 };
+
 export const AXES: Array<{ key: Feeling; low: string; high: string }> = [
   { key: "joy", low: "Frustrated", high: "Joyful" },
   { key: "peace", low: "Depressed", high: "Satisfied" },

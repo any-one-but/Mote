@@ -7,9 +7,11 @@ import { listenBus, send } from "@/lib/companion/bus";
 // tracker and Local Gallery. Keys are typed in at the bottom of Settings, and
 // unlocking is remembered for good (resetting settings doesn't undo it); each
 // unlocked one gets a switch there. With Debug unlocked and on, Settings
-// grows the Debug tabs, and the Features tab switches the rest on and off:
-// Mote's usual skills (on until switched off) and the experimental features
-// (off until switched on).
+// grows the Debug tabs, and the Features tab switches everything else Mote
+// does on and off, sorted by kind (their mind, each kind of thing they say,
+// what you do together, what they notice, how they look): the usual ones are
+// on until switched off, the experimental ones off until switched on. Some
+// only work with another on (remembering games needs the games).
 //
 // Only a fingerprint of the key (its SHA-256) lives in the app, never the key.
 
@@ -17,18 +19,39 @@ import { listenBus, send } from "@/lib/companion/bus";
 export type KeyedId = "debug" | "diet" | "gallery";
 /** Features switched on and off in the Features tab (with Debug on). */
 export type FeatureId =
+  | "mind"
+  | "hunger"
+  | "sleep"
+  | "remarks"
+  | "chat"
+  | "needs"
+  | "checkins"
+  | "memories"
+  | "gametalk"
+  | "talk"
+  | "games"
   | "links"
   | "files"
   | "apps"
-  | "checkins"
-  | "games"
+  | "noticing"
+  | "dizzy"
+  | "antics"
   | "moodshape"
-  | "hunger"
-  | "sleep"
   | "brows"
   | "mouth"
   | "eyes"
   | "glint";
+
+/** How the Features tab is laid out: everything Mote does, one section per kind of thing. */
+export type FeatureSection = "mind" | "speech" | "together" | "noticing" | "looks";
+
+export const FEATURE_SECTIONS: Array<{ id: FeatureSection; title: string }> = [
+  { id: "mind", title: "Mind" },
+  { id: "speech", title: "Speech: what Mote says on their own" },
+  { id: "together", title: "Doing things together" },
+  { id: "noticing", title: "Noticing and moving" },
+  { id: "looks", title: "Looks" },
+];
 
 export const KEYED: Array<{ id: KeyedId; name: string; about: string; fingerprint: string }> = [
   {
@@ -53,76 +76,174 @@ export const KEYED: Array<{ id: KeyedId; name: string; about: string; fingerprin
 
 export const FEATURES: Array<{
   id: FeatureId;
+  section: FeatureSection;
   name: string;
   about: string;
   /** One of Mote's usual skills: on until switched off. (The rest are
    * experimental: off until switched on.) */
   usual?: boolean;
+  /** Only works with this one on too (its switch is greyed out without it). */
+  needs?: FeatureId;
 }> = [
+  // Mind
+  {
+    id: "mind",
+    section: "mind",
+    name: "Mind",
+    about: "How Mote feels, and everything that moves it: joy that goes up with pets, play and winning and down with pokes, shaking and losing; peace that grows with company and wears down when they’re ignored; the lasting moods those add up to (joyful, cross, down…) and how they show in Mote’s face, idle moods and words. Off, Mote stays even and nothing changes how they feel; how they felt is kept for when it’s back on.",
+    usual: true,
+  },
+  {
+    id: "hunger",
+    section: "mind",
+    name: "Mote eats too",
+    about: "Mote gets hungry, feeding them (ask Mote for a snack), and hunger’s effect on their mood, face and what they say.",
+    needs: "mind",
+  },
+  {
+    id: "sleep",
+    section: "mind",
+    name: "Goodnight Mote",
+    about: "Mote getting tired and needing sleep: sleepy and exhausted moods, asking for bed, tucking them in (ask Mote for “bed”), and waking when rested. Off, Mote still naps when left alone.",
+    needs: "mind",
+  },
+
+  // Speech
+  {
+    id: "remarks",
+    section: "speech",
+    name: "Remarks",
+    about: "A word about something that just happened: after a pet or a dizzy spell, waking up from a nap, being startled awake, something starting to play, you coming back after a while. Off, Mote still reacts with their face, just without the words.",
+    usual: true,
+  },
+  {
+    id: "chat",
+    section: "speech",
+    name: "Small talk",
+    about: "Every few minutes while you’re around, something just to chat: about the time of day, your typing or what’s playing, a passing thought, or how they feel (cheerful, low, grumpy, hungry, sleepy).",
+    usual: true,
+  },
+  {
+    id: "needs",
+    section: "speech",
+    name: "Asking for things",
+    about: "Mote speaking up when they need something: a snack when hungry, bed when exhausted, a game or a pet when they’ve been left out too long. Off, they still need it, they just don’t say.",
+    usual: true,
+  },
+  {
+    id: "checkins",
+    section: "speech",
+    name: "Check-ins",
+    about: "Every hour or two, Mote asks a simple question about how you’re doing, and answers kindly whichever way you reply (or says nothing if you don’t). Off, Mote doesn’t ask.",
+    usual: true,
+  },
+  {
+    id: "memories",
+    section: "speech",
+    name: "Remembering games",
+    about: "Mote bringing up games you’ve played together: a nod to the last one when you sit down to a rematch, a word about a winning or losing streak, and now and then a memorable game in small talk. Off, the games are still remembered, just never mentioned.",
+    usual: true,
+    needs: "games",
+  },
+  {
+    id: "gametalk",
+    section: "speech",
+    name: "Talking during games",
+    about: "Mote’s lines while you play: cheering, groaning and gloating over captures, crowns, checks, bluffs and calls, saying hello and goodbye to a game. Off, Mote plays in silence, with just their faces (advice you ask for in Solitaire is still said).",
+    usual: true,
+    needs: "games",
+  },
+
+  // Doing things together
+  {
+    id: "talk",
+    section: "together",
+    name: "Conversations",
+    about: "Double-click Mote (or press Enter on them) and they ask what you’d like to do, with a box to type in; they understand plenty of ways of putting things, typos and all. Off, a double-click is just two pokes, so nothing can be asked for (Mote can still offer a game).",
+    usual: true,
+  },
+  {
+    id: "games",
+    section: "together",
+    name: "Games",
+    about: "Games with Mote (checkers, chess, tic-tac-toe, Liar’s Dice, Solitaire: ask Mote for one), and Mote asking for or suggesting a game. Off, a game that’s open is put away, Mote says the games are put away if you ask, and never brings them up (games you’ve played are still remembered).",
+    usual: true,
+  },
   {
     id: "links",
+    section: "together",
     name: "Saved links",
     about: "Links dragged onto Mote are saved, and now and then Mote suggests one. Off, Mote doesn’t take links or bring them up (the ones already saved are kept), and Settings hides the list.",
     usual: true,
   },
   {
     id: "files",
+    section: "together",
     name: "Helping with files",
     about: "Folders and videos dragged onto Mote get the cleanup jobs (opening archives, clearing clutter, tidying names, converting, compressing…). Off, Mote doesn’t take them, and Settings hides the Pace.",
     usual: true,
   },
   {
     id: "apps",
+    section: "together",
     name: "Reacting to apps",
     about: "Apps dragged onto Mote: games get played (Chess, Minecraft, any game) and the Mac’s own apps get a reaction. Off, Mote doesn’t take apps.",
     usual: true,
   },
+
+  // Noticing and moving
   {
-    id: "checkins",
-    name: "Check-ins",
-    about: "Every hour or two, Mote asks a simple question about how you’re doing, and answers kindly whichever way you reply (or says nothing if you don’t). Off, Mote doesn’t ask.",
+    id: "noticing",
+    section: "noticing",
+    name: "Noticing the screen",
+    about: "Mote turning to look when something plays sound in another window or you type in another app, finding it intriguing, watching along, and chatting about it. Off, Mote doesn’t notice either (their eyes still follow the pointer).",
     usual: true,
   },
   {
-    id: "games",
-    name: "Games",
-    about: "Games with Mote (checkers, chess, tic-tac-toe, Liar’s Dice: ask Mote for one), and Mote asking for or suggesting a game. Off, a game that’s open is put away, Mote says the games are put away if you ask, and never brings them up (games you’ve played are still remembered).",
+    id: "dizzy",
+    section: "noticing",
+    name: "Getting dizzy",
+    about: "Whipping the pointer around or shaking Mote’s window makes them dizzy: swirling eyes, a wobble, and a bit of a grump about it. Off, they just ride it out (the window still swings them along).",
     usual: true,
   },
+  {
+    id: "antics",
+    section: "noticing",
+    name: "Little moods",
+    about: "The little things Mote does on their own between everything else: glancing about, thinking, feeling cute, a surprise, and with their mood, a hum, a huff, a sulk, a fidget or a look your way. Off, Mote just rests between things (still blinking, napping and following the pointer).",
+    usual: true,
+  },
+
+  // Looks
   {
     id: "moodshape",
+    section: "looks",
     name: "Mood effects persistent eye shape",
     about: "How Mote feels shapes their eyes while they rest: a scowl when frustrated, a little smile when joyful, a droop when low, heavy lids when sleepy, worried brows when hungry. Off, the eyes rest in their usual shape whatever the mood (expressions still play).",
     usual: true,
-  },
-  {
-    id: "hunger",
-    name: "Mote eats too",
-    about: "Mote gets hungry, feeding them (ask Mote for a snack), and hunger’s effect on their mood, face and what they say.",
-  },
-
-  {
-    id: "sleep",
-    name: "Goodnight Mote",
-    about: "Mote getting tired and needing sleep: sleepy and exhausted moods, asking for bed, tucking them in (ask Mote for “bed”), and waking when rested. Off, Mote still naps when left alone.",
+    needs: "mind",
   },
   {
     id: "brows",
+    section: "looks",
     name: "Eyebrows",
     about: "Two little eyebrows above Mote’s eyes. They follow every expression: down and slanted when cross, up when surprised or worried, relaxed when sleepy.",
   },
   {
     id: "mouth",
+    section: "looks",
     name: "Mouth",
     about: "A little mouth under Mote’s eyes. It follows every expression: a smile when happy, a small frown when worried or cross, a small “o” when surprised.",
   },
   {
     id: "eyes",
+    section: "looks",
     name: "Just the eyes",
     about: "No body, no dot, no shadow: just Mote’s eyes (bigger), on a window the colour of Mote, so the whole window is Mote. Touching anywhere in it counts as touching Mote. Eyebrows and the mouth still work if they’re on.",
   },
   {
     id: "glint",
+    section: "looks",
     name: "Eye reflection dot",
     about: "A little reflection in each eye that moves with them. Its colour quietly follows Mote’s mood: Mote’s own colour when all’s well, a touch of red when frustrated, a touch of blue when low, a little purple when both.",
   },
@@ -181,11 +302,19 @@ function writeFeatures(next: FeatureState) {
 
 const isKeyed = (id: KeyedId | FeatureId): id is KeyedId => KEYED.some((f) => f.id === id);
 
-/** Whether a feature is on (and, for a keyed one, unlocked). */
-export function featureOn(state: FeatureState, id: KeyedId | FeatureId): boolean {
+/** Where a feature's own switch is set (ignoring what it needs). */
+export function featureSwitch(state: FeatureState, id: KeyedId | FeatureId): boolean {
   if (isKeyed(id)) return state.unlocked.includes(id) && state.on[id] !== false;
   if (FEATURES.some((f) => f.id === id && f.usual)) return state.on[id] !== false;
   return state.on[id] === true;
+}
+
+/** Whether a feature is on (and, for a keyed one, unlocked), along with
+ * anything it needs. */
+export function featureOn(state: FeatureState, id: KeyedId | FeatureId): boolean {
+  if (!featureSwitch(state, id)) return false;
+  const needs = FEATURES.find((f) => f.id === id)?.needs;
+  return needs ? featureOn(state, needs) : true;
 }
 
 async function fingerprint(text: string): Promise<string> {

@@ -276,6 +276,20 @@ input:focus-visible {
   transform: translateX(20px);
 }
 
+.toggle:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+}
+
+.toggle:disabled:hover {
+  background: var(--sunk);
+}
+
+.toggle[aria-checked="true"]:disabled:hover {
+  background: var(--accent);
+}
+
 .toggle:active .toggle-thumb {
   width: 33px;
 }
@@ -856,6 +870,26 @@ input:focus-visible {
 .tag.is-idea {
   background: var(--sunk);
   color: var(--ink-soft);
+}
+
+.tag.is-needs {
+  background: var(--accent-wash);
+  color: var(--ink);
+}
+
+/* The Features tab: a switch per feature, with little tags under it. */
+
+.feature-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: calc(var(--unit) * -1);
+  padding-bottom: calc(var(--unit) * 1.75);
+}
+
+.feature.is-blocked .row-label,
+.feature.is-blocked .row-hint {
+  opacity: 0.55;
 }
 
 .effect {

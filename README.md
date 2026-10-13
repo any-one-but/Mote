@@ -479,7 +479,37 @@ to fit them): **Settings** first, then the Debug tabs. Mote is in debug mode
 (taking orders from those tabs) only while Settings is open. A tab about a
 feature that's switched off (Links, Gallery) isn't shown.
 
-- **Features**: switches for Mote's usual skills (all on until switched off):
+- **Features**: a switch for everything Mote does, sorted by kind. The usual
+  ones are on until switched off; the ones tagged Experimental are off until
+  switched on. A switch tagged "Needs …" only works with that one on too
+  (it's greyed out without it).
+
+  **Mind**
+  - **Mind**: how Mote feels and everything that moves it (joy, peace, the
+    lasting moods, and how they show). Off, Mote is held even (no lasting
+    moods, nothing changes how they feel) and how they felt is kept aside,
+    so switching it back on picks up where it left off. Mote eats too,
+    Goodnight Mote and the mood-shaped eyes need it.
+
+  **Speech: what Mote says on their own** (replies to what you do, and
+  what the skills below need to say, aren't affected)
+  - **Remarks**: a word about something that just happened (after a pet or
+    a dizzy spell, waking up, being startled awake, something starting to
+    play, you coming back). Off, the face still reacts.
+  - **Small talk**: the every-few-minutes chat (time of day, your typing or
+    what's playing, a passing thought, how Mote feels).
+  - **Asking for things**: speaking up for a snack, bed, a game or a pet.
+    Off, the need is still there, Mote just doesn't say.
+  - **Check-ins**: Mote now and then asking how you're doing.
+  - **Remembering games** (needs Games): rematch nods, streaks, and old
+    games in small talk. Off, games are still remembered, never mentioned.
+  - **Talking during games** (needs Games): Mote's lines while you play.
+    Off, they play in silence with just their faces; Solitaire advice you
+    ask for is still said.
+
+  **Doing things together**
+  - **Conversations**: double-click (or Enter) to talk to Mote. Off, a
+    double-click is just two pokes, and nothing can be asked for.
   - **Saved links**: saving links dragged onto Mote, and Mote suggesting
     them. Off, a dropped link gets a polite "not right now", no link is
     brought up, and Settings hides the list (saved ones are kept).
@@ -488,19 +518,28 @@ feature that's switched off (Links, Gallery) isn't shown.
     Pace. A job already running finishes first.
   - **Reacting to apps**: playing games and reacting to the Mac's own apps
     dragged onto Mote. Off, apps get the same "not right now".
-  - **Check-ins**: Mote now and then asking how you're doing. Off, they
-    don't ask.
-  - **Mood effects persistent eye shape**: how Mote feels shaping their
-    resting eyes (a scowl, a little smile, a droop, heavy lids, worried
-    brows). Off, the eyes rest in their usual shape whatever the mood;
-    expressions still play.
   - **Games**: the games, and Mote asking for or suggesting a game. Off, an
     open game is put away, Mote says the games are put away if you ask, and
     never brings them up: a lonely Mote asks for a pet instead,
     and "not having fun" gets a nudge toward something fun rather than a
     game. Games already played are still remembered.
 
-  and for the experimental features (all off until switched on):
+  **Noticing and moving**
+  - **Noticing the screen**: turning to look at sound in another window or
+    typing in another app. Off, Mote notices neither (the eyes still follow
+    the pointer).
+  - **Getting dizzy**: whipping the pointer or shaking the window. Off, Mote
+    rides it out.
+  - **Little moods**: the glances, thoughts, cute moments, hums, huffs and
+    sulks Mote does on their own between things. Off, they just rest.
+
+  **Looks**
+  - **Mood effects persistent eye shape** (needs Mind): how Mote feels
+    shaping their resting eyes (a scowl, a little smile, a droop, heavy
+    lids, worried brows). Off, the eyes rest in their usual shape whatever
+    the mood; expressions still play.
+
+  and in **Mind** and **Looks**, the experimental ones:
   - **Mote eats too**: Mote getting hungry, feeding them (ask for a snack), and
     hunger's effect on their mood, face and what they say. Off, Mote simply
     stays full.
@@ -596,7 +635,7 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 - `desktop/` — the Mac app's pages: Mote (`index.html`), Settings (with the Debug tabs in `debug.tsx`), Days, and the expression sheet
 - `desktop/ui.tsx` and `desktop/ui.css` — the soft buttons, switches and sliders
 - `src/lib/companion/settings.ts` — the list of settings and their defaults, and dark mode (`useDark`)
-- `src/lib/companion/features.ts` — the Feature Keys (Debug, Diet tracker, Local Gallery) and the experimental features
+- `src/lib/companion/features.ts` — the Feature Keys (Debug, Diet tracker, Local Gallery) and every switch in the Features tab, by section
 - `local-gallery/` — Local Gallery's own code, kept separate; `src-tauri/src/gallery.rs` opens it,
   keeps its passcode and reads its logs
 - `src/lib/companion/gallery.ts` — talking to that from Mote's windows (and a pretend gallery, passcode 1234, in a browser)

@@ -46,7 +46,15 @@ import {
   type LibraryReport,
   type LogFile,
 } from "@/lib/companion/gallery";
-import { FEATURES, featureOn, useFeatures, type FeatureId, type KeyedId } from "@/lib/companion/features";
+import {
+  FEATURE_SECTIONS,
+  FEATURES,
+  featureOn,
+  featureSwitch,
+  useFeatures,
+  type FeatureId,
+  type KeyedId,
+} from "@/lib/companion/features";
 import { DEFAULT_SETTINGS, useSettings, type Settings } from "@/lib/companion/settings";
 import { Button, Page, Row, Section, Segmented, Slider, Toggle } from "./ui";
 
@@ -1308,23 +1316,39 @@ function LogTab({ log, clearLog }: Ctx) {
 
 /* Data */
 
-/** Experimental features: each one switched on and off here. */
+/** Everything Mote does, a switch each, sorted by kind. */
 function FeaturesTab() {
   const [features, { setOn }] = useFeatures();
-  const list = (usual: boolean) =>
-    FEATURES.filter((f) => !!f.usual === usual).map((f) => (
-      <Row key={f.id} label={f.name} hint={f.about}>
-        <Toggle
-          label={f.name}
-          checked={featureOn(features, f.id)}
-          onChange={(on) => setOn(f.id, on)}
-        />
-      </Row>
-    ));
+  const nameOf = (id: FeatureId) => FEATURES.find((f) => f.id === id)?.name ?? id;
   return (
     <>
-      <Section title="Mote’s skills">{list(true)}</Section>
-      <Section title="Experimental features">{list(false)}</Section>
+      {FEATURE_SECTIONS.map((section) => (
+        <Section key={section.id} title={section.title}>
+          {FEATURES.filter((f) => f.section === section.id).map((f) => {
+            const blocked = !!f.needs && !featureOn(features, f.needs);
+            return (
+              <div key={f.id} className={blocked ? "feature is-blocked" : "feature"}>
+                <Row label={f.name} hint={f.about}>
+                  <Toggle
+                    label={f.name}
+                    checked={featureSwitch(features, f.id)}
+                    disabled={blocked}
+                    onChange={(on) => setOn(f.id, on)}
+                  />
+                </Row>
+                {!f.usual || f.needs ? (
+                  <div className="feature-tags">
+                    {f.usual ? null : <span className="tag is-idea">Experimental</span>}
+                    {f.needs ? (
+                      <span className={blocked ? "tag is-needs" : "tag is-idea"}>Needs {nameOf(f.needs)}</span>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </Section>
+      ))}
     </>
   );
 }

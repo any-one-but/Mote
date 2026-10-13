@@ -149,10 +149,11 @@ export function Companion() {
   }, []);
 
   // Media playing in another window, or Debug's pretend version of it.
+  // (With noticing the screen switched off, only the pretend one.)
   const applyAudio = () => {
     const { fakeAudio } = debugState.current;
     engineRef.current?.configure({
-      media: fakeAudio ? pretend(fakeAudio) : realMedia.current,
+      media: fakeAudio ? pretend(fakeAudio) : noticingOn.current ? realMedia.current : null,
     });
   };
 
@@ -179,8 +180,20 @@ export function Companion() {
   const files = featureOn(features, "files");
   const apps = featureOn(features, "apps");
   const debugOn = featureOn(features, "debug");
+  const mindOn = featureOn(features, "mind");
+  const remarks = featureOn(features, "remarks");
+  const chat = featureOn(features, "chat");
+  const needs = featureOn(features, "needs");
+  const memories = featureOn(features, "memories");
+  const gameTalk = featureOn(features, "gametalk");
+  const talkOn = featureOn(features, "talk");
+  const noticing = featureOn(features, "noticing");
+  const dizzy = featureOn(features, "dizzy");
+  const antics = featureOn(features, "antics");
   const linksOn = useRef(links);
   linksOn.current = links;
+  const noticingOn = useRef(noticing);
+  noticingOn.current = noticing;
   // Debug mode: on while Settings is open with its Debug tabs, which says
   // hello every second. A few seconds without one (Settings closed, or Debug
   // switched off), and it's over.
@@ -226,6 +239,14 @@ export function Companion() {
     energy,
     calorieGoal,
     friendly,
+    mind: mindOn,
+    remarks,
+    chat,
+    needs,
+    memories,
+    gameTalk,
+    dizzy,
+    antics,
     hunger,
     sleepNeed,
     brows,
@@ -243,7 +264,11 @@ export function Companion() {
   optionsNow.current = engineOptions;
   useEffect(() => {
     engineRef.current?.configure(optionsNow.current);
-  }, [energy, calorieGoal, friendly, hunger, sleepNeed, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape, settings.mode]);
+  }, [energy, calorieGoal, friendly, mindOn, remarks, chat, needs, memories, gameTalk, dizzy, antics, hunger, sleepNeed, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape, settings.mode]);
+  // Noticing the screen switched on or off: sound elsewhere counts, or doesn't.
+  useEffect(() => {
+    applyAudio();
+  }, [noticing]);
 
   useEffect(
     () =>
@@ -271,7 +296,13 @@ export function Companion() {
       onPointerElsewhere((dx, dy, inside) => engineRef.current?.pointerElsewhere(dx, dy, inside)),
     [],
   );
-  useEffect(() => onTypingElsewhere((dx, dy) => engineRef.current?.typingAt(dx, dy)), []);
+  useEffect(
+    () =>
+      onTypingElsewhere((dx, dy) => {
+        if (noticingOn.current) engineRef.current?.typingAt(dx, dy);
+      }),
+    [],
+  );
   // Folders and videos dropped on the window, for Mote to help with.
   const give = useCallback((paths: string[]) => {
     setGift((g) => ({ paths, seq: (g?.seq ?? 0) + 1 }));
@@ -655,7 +686,7 @@ export function Companion() {
   const lastTap = useRef<{ at: number; woke: boolean } | null>(null);
   const talkNow = () => {
     const engine = engineRef.current;
-    if (!engine || engine.drowsy()) return;
+    if (!engine || engine.drowsy() || !talkOn) return;
     if (helperBusy.current) return engine.say("busy");
     putAway();
     engine.react("talk");
@@ -666,7 +697,8 @@ export function Companion() {
     if (!engine) return;
     const now = performance.now();
     const last = lastTap.current;
-    if (last && now - last.at < 350) {
+    // (With conversations switched off, every click is just a poke.)
+    if (talkOn && last && now - last.at < 350) {
       lastTap.current = null;
       if (!last.woke) talkNow();
       return;
