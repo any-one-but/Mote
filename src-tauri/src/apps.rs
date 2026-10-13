@@ -1,4 +1,4 @@
-// Apps dropped on Mote: they can't be cleaned up, but Mote has opinions.
+// Apps dropped on Mote: Mote has opinions.
 // Games get played (Chess and Minecraft have their own animations), and the
 // apps that come with every Mac get a reaction of their own. Only the app's
 // own description of itself (Info.plist) is read, plus, for a game
@@ -127,6 +127,24 @@ fn app_info(path: &Path) -> AppInfo {
         None
     };
     AppInfo { name, bundle: (!id.is_empty()).then_some(id), game }
+}
+
+/// An app dropped on Mote: its name, its ID, and whether it's a game.
+#[derive(serde::Serialize)]
+pub struct Dropped {
+    name: String,
+    bundle: Option<String>,
+    game: Option<&'static str>,
+}
+
+/// The first app among what was dropped on Mote, if there is one.
+#[tauri::command]
+pub fn app_dropped(paths: Vec<String>) -> Option<Dropped> {
+    let app = paths.iter().map(Path::new).find(|p| {
+        p.is_dir() && p.extension().is_some_and(|e| e.eq_ignore_ascii_case("app"))
+    })?;
+    let (name, bundle, game) = inspect(app);
+    Some(Dropped { name, bundle, game })
 }
 
 /// The name you see in Finder (or the app's own display name), its ID, and

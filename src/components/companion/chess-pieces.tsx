@@ -5,8 +5,8 @@ import { BISHOP, KING, KNIGHT, PAWN, QUEEN, ROOK } from "@/lib/chess/rules";
 // Each piece is a few overlapping shapes drawn twice, with no outlines (see
 // STYLE.md): first a little lower in a deeper tone, for the piece's
 // thickness, then in its own colour on top. The collars and steps are bands
-// of a nearby tone. Yours are ink; Mote's are cream and have little eyes that
-// look about.
+// of a nearby tone. You're white, so yours are cream; Mote's are ink and have
+// little cream eyes that look about.
 
 const BASE = (
   <>
@@ -104,7 +104,7 @@ export function ChessPieceArt({
     </>
   );
   return (
-    <svg viewBox="0 0 100 100" className={`cs-art ${mote ? "is-cream" : "is-ink"}`} aria-hidden="true">
+    <svg viewBox="0 0 100 100" className={`cs-art ${mote ? "is-ink" : "is-cream"}`} aria-hidden="true">
       <ellipse cx="50" cy="90" rx="30" ry="5" className="ck-shadow" />
       <g className="cs-rim" transform="translate(0 4)">
         {shape}

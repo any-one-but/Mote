@@ -24,6 +24,8 @@ export type DebugCommand =
   | { do: "give"; paths: string[] }
   | { do: "saveLink"; url: string; title: string | null }
   | { do: "suggestLink"; url?: string }
+  /** Forget your name and meet Mote again from the start. */
+  | { do: "meet" }
   | { do: "manual"; face: ManualFace | null };
 
 /** The debug knobs as Mote's window currently has them. */

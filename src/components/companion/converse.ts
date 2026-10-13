@@ -23,7 +23,6 @@ export type IntentId =
   | "checkers"
   | "tictactoe"
   | "solitaire"
-  | "files"
   // Saved links: bring one up, or how to save one.
   | "links"
   | "saveLink"
@@ -139,40 +138,6 @@ const INTENTS: Record<IntentId, Word[]> = {
     ["on my own", 0.9],
     ["help me play", 1],
     ["together", 0.6],
-  ],
-  files: [
-    ["file", 1],
-    ["folder", 1],
-    ["directory", 0.95],
-    ["clean", 0.95],
-    ["cleanup", 1],
-    ["clean up", 1],
-    ["tidy", 1],
-    ["tidy up", 1],
-    ["organize", 1],
-    ["organise", 1],
-    ["sort", 0.8],
-    ["declutter", 1],
-    ["clutter", 0.95],
-    ["rename", 1],
-    ["compress", 1],
-    ["shrink", 0.9],
-    ["convert", 1],
-    ["unzip", 1],
-    ["zip", 0.9],
-    ["archive", 0.9],
-    ["extract", 0.95],
-    ["duplicate", 0.9],
-    ["trim", 0.9],
-    ["mp4", 0.9],
-    ["downloads", 0.9],
-    ["desktop", 0.7],
-    ["storage", 0.85],
-    ["disk", 0.85],
-    ["space", 0.6],
-    ["free up space", 1.1],
-    ["delete", 0.75],
-    ["junk", 0.85],
   ],
   links: [
     ["link", 1.1],
@@ -656,11 +621,26 @@ export function understand(text: string, u: Understanding): Heard {
 
 const pick = <T,>(list: readonly T[]): T => list[Math.floor(Math.random() * list.length)];
 
+/**
+ * Lines that call you by name have `{name}` in them. With a name, it's filled
+ * in; without one, those lines are left out (every list has some without).
+ */
+export function forName(lines: readonly string[], name: string): string[] {
+  if (name) return lines.map((l) => l.replaceAll("{name}", name));
+  const plain = lines.filter((l) => !l.includes("{name}"));
+  return plain.length ? plain : lines.map((l) => l.replaceAll(", {name}", "").replaceAll("{name}", "friend"));
+}
+
+/** A line, said to you by name when Mote knows it. */
+export const sayTo = (lines: readonly string[], name: string) => pick(forName(lines, name));
+
 export type Mind = {
   /** Lasting moods right now (see mind.ts). */
   moods: readonly string[];
   friendly: boolean;
   hour: number;
+  /** What to call you (empty if Mote doesn't know). */
+  name: string;
 };
 
 /** Asking what you'd like to do: open enough for anything, but always about
@@ -678,6 +658,8 @@ export function introLine(m: Mind): string {
       "What’ll it be?",
       "Tell me what you’d like to do.",
       "Need something? Tell me what.",
+      "Hi, {name}! What would you like to do?",
+      "{name}! What are we doing?",
     ],
   ];
   if (has("joyful")) {
@@ -693,10 +675,10 @@ export function introLine(m: Mind): string {
   if (has("down") || has("depressed")) {
     lists.push(["Oh! You want to do something with me? What?", "Hi. …What should we do?", "Oh, hello. What do you need?"]);
   }
-  if (m.hour >= 23 || m.hour < 5) lists.push(["Still up? What do you need?"]);
-  if (m.hour >= 5 && m.hour < 11) lists.push(["Morning! What should we do?"]);
+  if (m.hour >= 23 || m.hour < 5) lists.push(["Still up? What do you need?", "Still up, {name}? What do you need?"]);
+  if (m.hour >= 5 && m.hour < 11) lists.push(["Morning! What should we do?", "Morning, {name}! What should we do?"]);
   // Moods get the say more often than the plain lines.
-  return pick(lists.length > 1 && Math.random() < 0.7 ? lists[1 + Math.floor(Math.random() * (lists.length - 1))] : lists[0]);
+  return sayTo(lists.length > 1 && Math.random() < 0.7 ? lists[1 + Math.floor(Math.random() * (lists.length - 1))] : lists[0], m.name);
 }
 
 /** The hint in the typing box: plain, with no particular thing to do in it
@@ -724,7 +706,6 @@ const CHECK: Record<IntentId, string[]> = {
   checkers: ["Checkers? Want to play?", "You mean checkers?"],
   tictactoe: ["Tic-tac-toe? Want to play?", "You mean tic-tac-toe?"],
   solitaire: ["Solitaire? I’ll help.", "You mean solitaire?"],
-  files: ["Something about files?", "You want help with some files?"],
   links: ["One of your saved links?", "Something saved to watch or read?"],
   saveLink: ["You want to save a link?"],
   settings: ["You want Settings?", "Open Settings?"],
@@ -750,11 +731,6 @@ export const LINES = {
     "Lots of things! Pick one, or say it your way:",
     "Try one of these, or tell me in your own words:",
   ],
-  files: [
-    "Drag a folder or some videos onto me, and I’ll show you what I can do with them.",
-    "Just drop a folder or a few videos on me. I’ll take it from there.",
-    "Give me something to work on: drag a folder or videos right onto me.",
-  ],
   noLinks: [
     "Nothing saved yet! Drag a link from your browser onto me and I’ll keep it.",
     "I don’t have any links yet. Drop one on me from your browser.",
@@ -764,7 +740,12 @@ export const LINES = {
     "Just drop a link on me, from the address bar or a page.",
   ],
   settings: ["Opening Settings.", "Here you go: Settings.", "Settings, coming up."],
-  greet: ["Hi! What would you like to do?", "Hello! What should we do?", "Hey you. What are we doing?"],
+  greet: [
+    "Hi! What would you like to do?",
+    "Hello! What should we do?",
+    "Hey you. What are we doing?",
+    "Hi, {name}! What would you like to do?",
+  ],
   thanks: ["Anytime!", "You’re welcome!", "Happy to help.", "Of course!"],
   pet: [
     "Stroke my face! Slowly, back and forth. I love that.",
@@ -774,18 +755,50 @@ export const LINES = {
   cancel: ["Okay! I’ll be here.", "No problem.", "Okay. Double-click me if you need me.", "Alright!"],
   off: {
     games: ["The games are put away right now.", "No games right now. They’re switched off."],
-    files: ["I’m not helping with files right now. That’s switched off."],
     links: ["Saved links are switched off right now."],
   },
+} as const;
+
+/**
+ * Meeting Mote: the first time Mote opens (while they don't know your name),
+ * they say hello, show you the basics a step at a time (each with a button to
+ * go on, or type anything), and ask what to call you. Saying you'd rather not
+ * is fine too.
+ */
+export const MEETING = {
+  hello: { text: "Hi! I’m Mote. I live here, on your screen.", next: "Hi, Mote!" },
+  touch: {
+    text: "Click me for a little poke. Or pet me: press and stroke across my face, nice and slow. I love that.",
+    next: "Got it",
+  },
+  talk: {
+    text: "Whenever you want to do something together, double-click me and tell me what. Like a game. I love games.",
+    next: "Okay!",
+  },
+  /** What else Mote likes, as it's switched on: watching along, and links. */
+  watch: "When something’s playing, I like to watch along with you.",
+  links: "And if you drag a link onto me, I’ll keep it and bring it up some day.",
+  shareNext: "Sounds good",
+  name: { text: "So… what should I call you?", placeholder: "Your name…", skip: "I’d rather not say" },
+  /** Typed nothing: ask again. */
+  again: ["Hm? What should I call you?", "Sorry, I missed that. Your name?"],
+  hi: [
+    "Nice to meet you, {name}! I’m really glad you’re here.",
+    "{name}! That’s a lovely name. Hi, {name}!",
+    "Hi, {name}! I think we’re going to get along.",
+  ],
+  skipped: ["That’s okay! I’m just glad you’re here.", "No problem at all. Hi anyway!"],
+  /** Your name changed in Settings. */
+  renamed: ["{name}! Got it.", "Okay, {name} it is.", "{name}. I’ll remember."],
 } as const;
 
 /** How Mote's doing, in a line, then back to business. */
 export function howAmI(m: Mind): string {
   const has = (x: string) => m.moods.includes(x);
-  if (has("joyful")) return pick(["Wonderful, actually! What should we do?", "So good. What are we doing?"]);
-  if ((has("frustrated") || has("annoyed")) && !m.friendly) return pick(["A bit cross. But go on, what do you need?"]);
-  if (has("down") || has("depressed")) return pick(["A little lonely. Want to do something together?"]);
-  return pick(["Pretty good! What would you like to do?", "I’m good! What should we do?"]);
+  if (has("joyful")) return sayTo(["Wonderful, actually! What should we do?", "So good. What are we doing?"], m.name);
+  if ((has("frustrated") || has("annoyed")) && !m.friendly) return sayTo(["A bit cross. But go on, what do you need?"], m.name);
+  if (has("down") || has("depressed")) return sayTo(["A little lonely. Want to do something together?"], m.name);
+  return sayTo(["Pretty good! What would you like to do?", "I’m good! What should we do?"], m.name);
 }
 
 export const say = pick;

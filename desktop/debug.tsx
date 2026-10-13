@@ -48,7 +48,7 @@ import {
   type FeatureId,
   type KeyedId,
 } from "@/lib/companion/features";
-import { DEFAULT_SETTINGS, useSettings, type Mode, type Pace, type Settings } from "@/lib/companion/settings";
+import { DEFAULT_SETTINGS, useSettings, type Mode, type Settings } from "@/lib/companion/settings";
 import { Button, Page, Row, Section, Segmented, Slider, Toggle } from "./ui";
 
 // Settings with Debug unlocked: Settings first, then the Debug tabs, all down
@@ -110,10 +110,6 @@ const MOOD_NAMES: Record<Mood, string> = {
   chess: "Chess",
   minecraft: "Minecraft",
   gaming: "Gaming",
-  present: "Offering options",
-  work: "Working",
-  tada: "Job done",
-  uhoh: "Job trouble",
   beam: "Pleased",
   worry: "Worried",
   care: "Check-in: concerned",
@@ -130,11 +126,6 @@ const MOOD_NAMES: Record<Mood, string> = {
   decline: "No thanks",
 };
 
-/**
- * Things to give Mote from the debug window. In the Mac app a path you type
- * is real (Mote really works on it); these quick ones are only for trying
- * the conversation in a browser, where everything is pretend.
- */
 /** Links to save from the debug window (they're real links, saved for real). */
 const PRETEND_LINKS: Array<[string, string, string | null]> = [
   ["Save a video", "https://www.youtube.com/watch?v=jfKfPfyJRdk", "lofi hip hop radio"],
@@ -142,10 +133,11 @@ const PRETEND_LINKS: Array<[string, string, string | null]> = [
   ["Save an untitled link", "https://example.com/some/nice-article", null],
 ];
 
+/**
+ * Things to drop on Mote from the debug window. In the Mac app a path you
+ * type is real; these quick ones are pretend apps (browser only).
+ */
 const PRETEND_GIFTS: Array<[string, string[]]> = [
-  ["A folder", ["/Users/you/Pictures/Holiday/"]],
-  ["A video", ["/Users/you/Movies/talk.mov"]],
-  ["Two videos", ["/Users/you/Movies/a.mp4", "/Users/you/Movies/b.mkv"]],
   ["A photo", ["/Users/you/Pictures/cat.jpg"]],
   ["Chess", ["/System/Applications/Chess.app"]],
   ["Minecraft", ["/Applications/Minecraft.app"]],
@@ -645,7 +637,7 @@ function GiveForm({ onGive }: { onGive: (paths: string[]) => void }) {
         className="text-input"
         value={path}
         onChange={(e) => setPath(e.target.value)}
-        placeholder="/path/to/a/folder"
+        placeholder="/Applications/Some App.app"
         aria-label="Path"
       />
       <Button onClick={() => path.trim() && onGive([path.trim()])}>Give</Button>
@@ -1124,7 +1116,7 @@ function MotionTab({ snap, debug, command }: Ctx) {
         </Row>
         <Row
           label="Give Mote something"
-          hint="As if you dropped it on the window. A path you type is real in the Mac app; the quick ones are pretend (browser only)."
+          hint="As if you dropped it on the window: an app gets played or reacted to, anything else gets a polite no. A path you type is real in the Mac app; the quick ones are pretend (browser only)."
           stacked
         >
           <GiveForm onGive={(paths) => command({ do: "give", paths })} />
@@ -1240,25 +1232,12 @@ const MODE_HINT: Record<Mode, string> = {
   jack: "Pumpkin orange, triangle eyes, and a carved, toothy grin if the mouth is on. Happy Halloween!",
 };
 
-const PACE: Array<{ value: Pace; label: string }> = [
-  { value: "gentle", label: "Gentle" },
-  { value: "normal", label: "Normal" },
-  { value: "turbo", label: "Turbo" },
-];
-
-const PACE_HINT: Record<Pace, string> = {
-  gentle: "Works quietly in the background. Easy on your Mac, but slower.",
-  normal: "Works through one thing at a time.",
-  turbo: "Works on many things at once. Much faster, but your Mac will be busy.",
-};
-
 /** Everything Mote does, a switch each, sorted by kind. A few of Mote's
  * settings sit here too, right after the feature they go with. */
 function FeaturesTab() {
   const [features, { setOn }] = useFeatures();
   const [settings, update] = useSettings();
   const nameOf = (id: FeatureId) => FEATURES.find((f) => f.id === id)?.name ?? id;
-  const filesOn = featureOn(features, "files");
   const after: Partial<Record<FeatureId, ReactNode>> = {
     mind: (
       <>
@@ -1269,13 +1248,6 @@ function FeaturesTab() {
           <Segmented label="Energy" options={ENERGY} value={settings.energy} onChange={(energy) => update({ energy })} />
         </Row>
       </>
-    ),
-    files: (
-      <div className={filesOn ? "feature" : "feature is-blocked"}>
-        <Row label="Pace" hint={PACE_HINT[settings.pace]} stacked>
-          <Segmented label="Pace" options={PACE} value={settings.pace} onChange={(pace) => update({ pace })} />
-        </Row>
-      </div>
     ),
     glint: (
       <Row label="Mode" hint={MODE_HINT[settings.mode]} stacked>
@@ -1319,12 +1291,20 @@ function FeaturesTab() {
   );
 }
 
-function DataTab({ settings, updateSettings, snap }: Ctx) {
+function DataTab({ settings, updateSettings, snap, command }: Ctx) {
   const [, { lock }] = useFeatures();
   return (
     <>
       <Section title="Version">
         <p className="mono data">Mote {__MOTE_VERSION__}</p>
+      </Section>
+      <Section title="Meeting Mote">
+        <Row
+          label="Meet Mote again"
+          hint="Mote forgets your name and introduces themself from the start, as on a first launch."
+        >
+          <Button onClick={() => command({ do: "meet" })}>Meet again</Button>
+        </Row>
       </Section>
       <Section title="Debugging">
         <Row
@@ -1338,7 +1318,7 @@ function DataTab({ settings, updateSettings, snap }: Ctx) {
         <pre className="mono data">{JSON.stringify(settings, null, 2)}</pre>
       </Section>
       <div className="button-row">
-        <Button onClick={() => updateSettings({ ...DEFAULT_SETTINGS })}>Reset settings</Button>
+        <Button onClick={() => updateSettings({ ...DEFAULT_SETTINGS, name: settings.name })}>Reset settings</Button>
         <Button
           onClick={() =>
             void navigator.clipboard?.writeText(

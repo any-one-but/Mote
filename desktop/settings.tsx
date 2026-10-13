@@ -7,7 +7,7 @@ import {
   widenSettingsWindow,
 } from "@/lib/companion/desktop";
 import { featureOn, useFeatures } from "@/lib/companion/features";
-import { useDark, useMode, useSettings, type Settings, type Theme } from "@/lib/companion/settings";
+import { nameOf, useDark, useMode, useSettings, type Settings, type Theme } from "@/lib/companion/settings";
 import { DebugPanel } from "./debug";
 import { MiniMote, Page, Row, Section, Segmented, Toggle } from "./ui";
 
@@ -74,6 +74,12 @@ function SettingsPanel() {
         </div>
       </header>
 
+      <Section title="You">
+        <Row label="Your name" hint="What Mote calls you." stacked>
+          <NameField value={settings.name} onChange={(name) => set({ name })} />
+        </Row>
+      </Section>
+
       <Section title="Mote">
         <Row label="Appearance" hint="Dark swaps Mote’s colours: a dark face with cream eyes." stacked>
           <Segmented
@@ -106,6 +112,34 @@ createRoot(document.getElementById("root")!).render(
     <SettingsWindow />
   </StrictMode>,
 );
+
+/** Your name, saved when you're done typing it (Return, or clicking away),
+ * so Mote hears it once, not a letter at a time. */
+function NameField({ value, onChange }: { value: string; onChange: (next: string) => void }) {
+  const [text, setText] = useState(value);
+  useEffect(() => setText(value), [value]);
+  const commit = () => {
+    const name = nameOf(text);
+    setText(name);
+    if (name !== value) onChange(name);
+  };
+  return (
+    <input
+      className="text-input name-input"
+      aria-label="Your name"
+      placeholder="Your name"
+      autoComplete="off"
+      spellCheck={false}
+      maxLength={40}
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur();
+      }}
+    />
+  );
+}
 
 /** Lives on the Mac rather than in Mote's settings, so it's asked for. */
 function OpenAtLogin({ onChange }: { onChange: () => void }) {

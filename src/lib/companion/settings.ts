@@ -3,6 +3,8 @@ import type { Energy } from "@/components/companion/engine";
 import { listenBus, send } from "@/lib/companion/bus";
 
 export type Settings = {
+  /** What Mote calls you (empty until you've told them). */
+  name: string;
   /** Light, dark, or whatever the Mac is set to. */
   theme: Theme;
   /** A special look for Mote, for a vibe or a season (or plain Mote). */
@@ -10,26 +12,20 @@ export type Settings = {
   /** Mote never gets too upset: hurt counts for less, no sulking or sharp words. */
   friendly: boolean;
   energy: Energy;
-  /**
-   * How hard the computer works when Mote helps with files: as each job
-   * always has, as much at once as it can take, or quietly in the background.
-   */
-  pace: Pace;
   floatOnTop: boolean;
 };
 
-export type Pace = "normal" | "turbo" | "gentle";
 export type Theme = "light" | "dark" | "system";
 // (The engine also has a snowman look, switched off for now: it isn't
 // offered, and a saved "snow" reads as neutral.)
 export type Mode = "neutral" | "jack";
 
 export const DEFAULT_SETTINGS: Settings = {
+  name: "",
   theme: "system",
   mode: "neutral",
   friendly: false,
   energy: "normal",
-  pace: "normal",
   floatOnTop: false,
 };
 
@@ -37,6 +33,11 @@ const KEY = "mote.settings";
 
 function pick<T>(value: unknown, allowed: readonly T[], fallback: T): T {
   return allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+/** A name as typed, tidied: no spaces at the ends, and not too long. */
+export function nameOf(value: unknown): string {
+  return typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, 40) : "";
 }
 
 export function readSettings(): Settings {
@@ -49,11 +50,11 @@ export function readSettings(): Settings {
   const d = DEFAULT_SETTINGS;
   const bool = (v: unknown, fb: boolean) => (typeof v === "boolean" ? v : fb);
   return {
+    name: nameOf(raw.name),
     theme: pick(raw.theme, ["light", "dark", "system"] as const, d.theme),
     mode: pick(raw.mode, ["neutral", "jack"] as const, d.mode),
     friendly: bool(raw.friendly, d.friendly),
     energy: pick(raw.energy, ["calm", "normal", "lively"] as const, d.energy),
-    pace: pick(raw.pace, ["normal", "turbo", "gentle"] as const, d.pace),
     floatOnTop: bool(raw.floatOnTop, d.floatOnTop),
   };
 }

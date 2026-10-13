@@ -1,4 +1,5 @@
 import type { Effects, LastingMood, MindValues } from "@/components/companion/mind";
+import { forName } from "@/components/companion/converse";
 
 // Everything Mote can say on their own, and when. Mote speaks up when
 // something happens that they'd naturally react to, when they need something
@@ -17,8 +18,6 @@ import type { Effects, LastingMood, MindValues } from "@/components/companion/mi
 // Now and then, rarely, a question is a check-in on how you're doing (see
 // CHECK_INS): green always means you're doing fine. Left unanswered, Mote
 // just gives you a soft look and lets it go.
-//
-// (Helping you with files is a conversation of its own; see assistant.ts.)
 //
 // Every bubble disappears after a while. Questions and requests you don't
 // answer in time count as ignored.
@@ -59,6 +58,9 @@ export type SpeechContext = {
   game: string | null;
   gameKind: "chess" | "minecraft" | "game" | null;
   gameWon: boolean;
+  /** What to call you (empty if Mote doesn't know). Lines with `{name}` in
+   * them use it, and are left out without one. */
+  name: string;
   /** A saved link being talked about: what it's called, whether it's a
    * video, and its history with you. */
   link: {
@@ -162,6 +164,7 @@ export const LINES: Line[] = [
     say: [
       "Good morning! …Is it morning?",
       "I’m back! Did I miss anything?",
+      "Oh! Hi, {name}. Was I asleep?",
       "That was a great nap. I dreamed about bits.",
       "Mmf… was I snoring?",
     ],
@@ -178,7 +181,7 @@ export const LINES: Line[] = [
     group: "After something happens",
     kind: "flavor",
     when: (c) => c.event === "welcome-back",
-    say: ["Oh! You’re back!", "There you are! I kept your screen warm."],
+    say: ["Oh! You’re back!", "There you are! I kept your screen warm.", "{name}! You’re back!", "Hi, {name}. I missed you."],
   },
 
   {
@@ -349,6 +352,7 @@ export const LINES: Line[] = [
       "Morning! What are we doing today?",
       "Is it coffee time? It feels like coffee time.",
       "Good morning, screen. Good morning, you.",
+      "Morning, {name}!",
       "I’m awake. Mostly.",
     ],
   },
@@ -371,6 +375,7 @@ export const LINES: Line[] = [
     when: (c) => c.event === "chat" && c.hour >= 17 && c.hour < 22,
     say: [
       "Evening! Long day?",
+      "Evening, {name}. How was today?",
       "It’s getting cozy out there. Probably.",
       "Dinner time? Tell me what you’re having. I can’t eat, but I like hearing.",
     ],
@@ -383,6 +388,7 @@ export const LINES: Line[] = [
     when: (c) => c.event === "chat" && (c.hour >= 22 || c.hour < 5),
     say: [
       "It’s late, you know.",
+      "Still up, {name}?",
       "Shouldn’t we both be asleep?",
       "Night owl, huh? Me too, I guess.",
       "The screen’s the brightest thing in the room, isn’t it?",
@@ -440,7 +446,6 @@ export const LINES: Line[] = [
       "Hmm. What was I thinking about?",
       "If I had hands, I’d wave.",
       "Don’t mind me. Just floating.",
-      "Got any folders that need tidying? I love that stuff.",
       "I had a thought, but it wandered off.",
       "Favorite color? Mine’s cream.",
       "Is your chair comfy? I hope it’s comfy.",
@@ -478,6 +483,17 @@ export const LINES: Line[] = [
     unkind: true,
     when: (c) => c.event === "chat" && (c.moods.includes("annoyed") || c.moods.includes("frustrated")),
     say: ["Hmph.", "Still a bit cross, if you were wondering.", "I’m fine. (I’m not.)"],
+  },
+  {
+    id: "drop-file",
+    group: "After something happens",
+    kind: "flavor",
+    when: never,
+    say: [
+      "Ooh, a file! …I don’t know what to do with those, though. Got a game?",
+      "That’s a bit too much like work for me. I’m more of a games-and-movies friend.",
+      "Files! Not really my thing. Drop me a game, or a link to something fun?",
+    ],
   },
   {
     id: "drop-declined",
@@ -1028,7 +1044,7 @@ export function chooseCheckIn(c: SpeechContext, lastSaid: Map<string, number>, n
 }
 
 export function textFor(l: Line, c: SpeechContext) {
-  const options = typeof l.say === "function" ? l.say(c) : l.say;
+  const options = forName(typeof l.say === "function" ? l.say(c) : l.say, c.name);
   return options[Math.floor(Math.random() * options.length)] ?? "…";
 }
 

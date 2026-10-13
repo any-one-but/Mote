@@ -6,7 +6,8 @@
 /* Dark mode: the card goes dark, the board turns a deep walnut, and the
    pieces swap like Mote does: Mote's are dark with cream eyes, yours cream.
    (Mote's pieces always take Mote's own colours, so a mode like the
-   jack-o'-lantern reaches them too.) Chess pieces swap the same way. */
+   jack-o'-lantern reaches them too.) Chess is the exception: you're always
+   white (cream) and Mote black (ink), as chess goes. */
 :root[data-theme="dark"] .ck {
   --ck-card: var(--surface);
   --ck-ink: #f6ebe0;
@@ -483,17 +484,20 @@
   --line: #ecdcc8;
 }
 
-/* Dark mode: swapped like checkers, yours cream and Mote's ink. */
-:root[data-theme="dark"] .cs-art {
-  --rim: #c9b29a;
-  --fill: #f6ebe0;
-  --line: #ddcbb7;
+/* You're white and Mote's black, in both modes: Mote's ink pieces have
+   little cream eyes. */
+.cs-eyes rect {
+  fill: #f6ebe0;
 }
 
-:root[data-theme="dark"] .cs-art.is-cream {
-  --rim: #0d0a08;
-  --fill: #241d18;
-  --line: #3b302a;
+.cs-eyes .ck-shut {
+  stroke: #f6ebe0;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.cs-art.is-cream .cs-notch {
+  fill: #b9a089;
 }
 
 .cs-rim > *,

@@ -8,7 +8,6 @@ const ALL = new Set<IntentId>([
   "checkers",
   "tictactoe",
   "solitaire",
-  "files",
   "links",
   "saveLink",
   "settings",
@@ -51,8 +50,6 @@ test("plain requests do the thing straight away", () => {
     ["cards", "do:solitaire"],
     ["play cards", "do:solitaire"],
     ["patience", "do:solitaire"],
-    ["clean up my downloads", "do:files"],
-    ["help me tidy a folder", "do:files"],
     ["show me a video", "do:links"],
     ["play a video", "do:links"],
     ["something to watch", "do:links"],
@@ -115,8 +112,8 @@ test("menus can be picked from by number", () => {
 });
 
 test("anything Mote can't do is as if they never heard of it", () => {
-  const known = new Set([...ALL].filter((i) => i !== "files"));
-  assert.equal(heard("clean up my downloads", known), "unknown");
+  const known = new Set([...ALL].filter((i) => i !== "links" && i !== "saveLink"));
+  assert.equal(heard("my saved links", known), "unknown");
   assert.equal(heard("checkers", known), "do:checkers");
 });
 
@@ -126,4 +123,5 @@ test("the diet tracker, Local Gallery, snacks, bedtime and Liar's Dice are gone"
   assert.equal(heard("open local gallery"), "unknown");
   assert.equal(heard("have a cookie"), "unknown");
   assert.equal(heard("go to bed"), "unknown");
+  assert.equal(heard("clean up my downloads"), "unknown");
 });

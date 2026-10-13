@@ -3,7 +3,6 @@ import "@fontsource/outfit/400.css";
 import "@fontsource/outfit/500.css";
 import "@fontsource/outfit/600.css";
 import { Face } from "@/components/companion/Face";
-import { Helper, type Gift } from "@/components/companion/Helper";
 import { SpeechBubble } from "@/components/companion/SpeechBubble";
 import type { Bubble } from "@/components/companion/speech";
 import { GEO } from "@/lib/companion/theme";
@@ -16,8 +15,9 @@ import {
   howAmI,
   introLine,
   isGame,
+  MEETING,
   PLACEHOLDERS,
-  say,
+  sayTo,
   understand,
   type IntentId,
 } from "@/components/companion/converse";
@@ -31,11 +31,12 @@ import {
   onPointerElsewhere,
   onTypingElsewhere,
   onWindowMoved,
-  setHelpingSize,
+  appDropped,
+  growWindow,
   windowPlacement,
 } from "@/lib/companion/desktop";
 import { featureOn, useFeatures } from "@/lib/companion/features";
-import { useDark, useMode, useSettings } from "@/lib/companion/settings";
+import { nameOf, readSettings, useDark, useMode, useSettings } from "@/lib/companion/settings";
 import { Checkers } from "@/components/companion/Checkers";
 import { Chess } from "@/components/companion/Chess";
 import { TicTacToe } from "@/components/companion/TicTacToe";
@@ -48,10 +49,37 @@ function pretend(side: "left" | "right"): NonNullable<MediaInfo> {
   return { dx: side === "left" ? -700 : 700, dy: 0, app: "Pretend" };
 }
 
+type MeetStep = "hello" | "touch" | "talk" | "share" | "name";
+const MEET_STEPS: MeetStep[] = ["hello", "touch", "talk", "share", "name"];
+
+/** Whether you've met Mote (told them your name, or said you'd rather not). */
+const MET = "mote.met";
+function metBefore() {
+  try {
+    return localStorage.getItem(MET) === "1";
+  } catch {
+    return false;
+  }
+}
+function markMet() {
+  try {
+    localStorage.setItem(MET, "1");
+  } catch {
+    // Fine: Mote will just say hello again next time.
+  }
+}
+function forgetMeeting() {
+  try {
+    localStorage.removeItem(MET);
+  } catch {
+    // Nothing to forget.
+  }
+}
+
 export function Companion() {
   const engineRef = useRef<FaceEngine | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [settings] = useSettings();
+  const [settings, updateSettings] = useSettings();
   const [playing, setPlaying] = useState<"checkers" | "chess" | "tictactoe" | "solitaire" | null>(null);
   const debugState = useRef<DebugState>({ ...DEBUG_DEFAULTS });
   const events = useRef<string[]>([]);
@@ -60,8 +88,6 @@ export function Companion() {
     null,
   );
   const [bubble, setBubble] = useState<Bubble | null>(null);
-  const [gift, setGift] = useState<Gift | null>(null);
-  const [helping, setHelping] = useState(false);
   const getEngine = useCallback(() => engineRef.current, []);
   // Mote's own resizing moves the window; that isn't someone flinging it.
   const ownMoveUntil = useRef(0);
@@ -75,8 +101,8 @@ export function Companion() {
         : playing
           ? { width: 430, height: 740 }
           : undefined;
-    setHelpingSize(helping || !!playing, size);
-  }, [helping, playing]);
+    growWindow(!!playing, size);
+  }, [playing]);
   const [anchor, setAnchor] = useState({ x: 0, y: 0 });
 
   // The bubble's tail points down at Mote, just above the eyes.
@@ -125,7 +151,7 @@ export function Companion() {
     });
   };
 
-  const { energy, pace, friendly } = settings;
+  const { energy, friendly } = settings;
   const dark = useDark(settings.theme);
   useMode(settings.mode);
 
@@ -138,7 +164,6 @@ export function Companion() {
   const eyesOnly = featureOn(features, "eyes");
   const glint = featureOn(features, "glint");
   const moodShape = featureOn(features, "moodshape");
-  const files = featureOn(features, "files");
   const apps = featureOn(features, "apps");
   const debugOn = featureOn(features, "debug");
   const mindOn = featureOn(features, "mind");
@@ -203,12 +228,13 @@ export function Companion() {
     glint,
     moodShape,
     look: settings.mode,
+    name: settings.name,
   };
   const optionsNow = useRef(engineOptions);
   optionsNow.current = engineOptions;
   useEffect(() => {
     engineRef.current?.configure(optionsNow.current);
-  }, [energy, friendly, mindOn, remarks, chat, needs, memories, gameTalk, dizzy, antics, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape, settings.mode]);
+  }, [energy, friendly, mindOn, remarks, chat, needs, memories, gameTalk, dizzy, antics, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape, settings.mode, settings.name]);
   // Noticing the screen switched on or off: sound elsewhere counts, or doesn't.
   useEffect(() => {
     applyAudio();
@@ -247,9 +273,18 @@ export function Companion() {
       }),
     [],
   );
-  // Folders and videos dropped on the window, for Mote to help with.
+  // Something dropped on the window: an app gets played or reacted to (if
+  // that's switched on); anything else, Mote has a word about but doesn't take.
+  const appsOn = useRef(apps);
+  appsOn.current = apps;
   const give = useCallback((paths: string[]) => {
-    setGift((g) => ({ paths, seq: (g?.seq ?? 0) + 1 }));
+    void appDropped(paths).then((app) => {
+      const engine = engineRef.current;
+      if (!engine) return;
+      if (!app) return engine.notForMe();
+      if (!appsOn.current) return engine.declined();
+      engine.offerApp(app);
+    });
   }, []);
   useEffect(
     () =>
@@ -302,6 +337,11 @@ export function Companion() {
       else if (cmd.do === "give") give(cmd.paths);
       else if (cmd.do === "saveLink") e.saveLink(cmd.url, cmd.title);
       else if (cmd.do === "suggestLink") e.suggestLink(cmd.url);
+      else if (cmd.do === "meet") {
+        forgetMeeting();
+        updateSettings({ name: "" });
+        window.setTimeout(() => meetRef.current(), 300);
+      }
       else if (cmd.do === "fakeAudio") {
         d.fakeAudio = cmd.value;
         applyAudio();
@@ -328,14 +368,40 @@ export function Companion() {
   }, [debug]);
 
 
+  /** A line from a list, said to you by name when Mote knows it. */
+  const say = (lines: readonly string[]) => sayTo(lines, settings.name);
+  const meeting = useRef<MeetStep | null>(null);
+  // The first time: a moment after Mote opens, if they don't know you yet.
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      if (!readSettings().name && !metBefore()) meetRef.current();
+    }, 1500);
+    return () => window.clearTimeout(t);
+  }, []);
+  // Your name changed in Settings: Mote takes note, out loud.
+  const knownName = useRef<string | null>(null);
+  useEffect(() => {
+    knownName.current = settings.name;
+  }, [settings.name]);
+  useEffect(() => {
+    knownName.current = readSettings().name;
+    return listenBus((msg) => {
+      if (msg.type !== "settings") return;
+      const name = msg.settings.name;
+      if (name === knownName.current) return;
+      knownName.current = name;
+      if (!name) return;
+      if (meeting.current) {
+        meeting.current = null;
+        markMet();
+      }
+      engineRef.current?.talk({ kind: "flavor", text: sayTo(MEETING.renamed, name) });
+    });
+  }, []);
+
   // Talking with Mote (see converse.ts). A click on Mote puts away whatever
   // was open and Mote asks what you'd like to do; you type it, and Mote does
   // it (or checks a guess first, or asks you to say it another way).
-  const [putAwaySeq, setPutAwaySeq] = useState(0);
-  const helperBusy = useRef(false);
-  const noteHelperBusy = useCallback((busy: boolean) => {
-    helperBusy.current = busy;
-  }, []);
   /** Choices on offer right now, and a guess waiting for a yes or no. */
   const menu = useRef<IntentId[] | null>(null);
   const checking = useRef<IntentId | null>(null);
@@ -348,7 +414,6 @@ export function Companion() {
     "checkers",
     "tictactoe",
     "solitaire",
-    "files",
     "links",
     "saveLink",
     "settings",
@@ -363,9 +428,7 @@ export function Companion() {
   const on = (i: IntentId) =>
     isGame(i) || i === "games"
       ? games
-      : i === "files"
-        ? files
-        : i === "links" || i === "saveLink"
+      : i === "links" || i === "saveLink"
           ? links
           : true;
   const ready = new Set([...known].filter(on));
@@ -374,6 +437,7 @@ export function Companion() {
     moods: engineRef.current?.snapshot().moods ?? [],
     friendly,
     hour: new Date().getHours(),
+    name: settings.name,
   });
   const talk = (t: Talk) => engineRef.current?.talk(t);
   const hint = () => say(PLACEHOLDERS);
@@ -397,17 +461,79 @@ export function Companion() {
   const offerGames = (text: string = say(LINES.games)) =>
     offer(text, ["checkers", "chess", "tictactoe", "solitaire"], GAME_NAMES);
 
-  /** Whatever was open goes away: a game (it's saved), the file options. */
+  /** Whatever was open goes away: a game (it's saved). */
   const putAway = () => {
     setPlaying(null);
-    setPutAwaySeq((n) => n + 1);
   };
 
   const startTalking = () => {
     menu.current = null;
     checking.current = null;
+    meeting.current = null;
     question(introLine(mind()));
   };
+
+  // Meeting Mote (see MEETING in converse.ts): the first time Mote opens,
+  // while they don't know your name. Which step is up (null when not
+  // meeting). Each step has a button to go on, and typing anything goes on
+  // too; the last asks your name. Skipping it is fine: Mote won't ask again.
+  const after = (step: MeetStep): MeetStep => {
+    const i = MEET_STEPS.indexOf(step);
+    const next = MEET_STEPS[Math.min(i + 1, MEET_STEPS.length - 1)];
+    if (next === "talk" && !talkOn) return after(next);
+    if (next === "share" && !noticing && !links) return after(next);
+    return next;
+  };
+  const askName = (text: string) =>
+    talk({
+      kind: "choose",
+      text,
+      choices: [{ id: "meet-skip", label: MEETING.name.skip }],
+      placeholder: MEETING.name.placeholder,
+    });
+  const meetStep = (step: MeetStep) => {
+    meeting.current = step;
+    const go = (text: string, next: string) =>
+      talk({ kind: "choose", text, choices: [{ id: "meet-next", label: next }], placeholder: "Or type anything…" });
+    if (step === "hello") return go(MEETING.hello.text, MEETING.hello.next);
+    if (step === "touch") return go(MEETING.touch.text, MEETING.touch.next);
+    if (step === "talk") return go(MEETING.talk.text, MEETING.talk.next);
+    if (step === "share") {
+      const text = [noticing ? MEETING.watch : null, links ? MEETING.links : null].filter(Boolean).join(" ");
+      return go(text.replace(/^And i/, "I"), MEETING.shareNext);
+    }
+    askName(MEETING.name.text);
+  };
+  const metDone = (name: string | null) => {
+    meeting.current = null;
+    markMet();
+    if (name) {
+      updateSettings({ name });
+      engineRef.current?.poke();
+      talk({ kind: "flavor", text: sayTo(MEETING.hi, name) });
+    } else talk({ kind: "flavor", text: say(MEETING.skipped) });
+  };
+  const meetChoice = (id: string) => {
+    const step = meeting.current;
+    if (!step) return;
+    if (id === "meet-skip") return metDone(null);
+    meetStep(after(step));
+  };
+  const meetText = (text: string) => {
+    const step = meeting.current;
+    if (!step) return;
+    if (step !== "name") return meetStep(after(step));
+    const name = nameOf(text);
+    if (!name) return askName(say(MEETING.again));
+    metDone(name);
+  };
+  const meet = () => {
+    if (!engineRef.current) return;
+    putAway();
+    meetStep("hello");
+  };
+  const meetRef = useRef(meet);
+  meetRef.current = meet;
 
   /** Doing what was asked for. */
   const act = (intent: IntentId) => {
@@ -418,11 +544,7 @@ export function Companion() {
     if (!on(intent)) {
       const off = LINES.off;
       return remark(
-        isGame(intent) || intent === "games"
-          ? off.games
-          : intent === "files"
-            ? off.files
-            : off.links,
+        isGame(intent) || intent === "games" ? off.games : off.links,
       );
     }
     if (isGame(intent)) {
@@ -434,8 +556,6 @@ export function Companion() {
     switch (intent) {
       case "games":
         return offerGames();
-      case "files":
-        return remark(LINES.files);
       case "links":
         if (!loadLinks().length) return remark(LINES.noLinks);
         engine.endTalk();
@@ -449,7 +569,6 @@ export function Companion() {
         const labels: Partial<Record<IntentId, string>> = {
           games: "Play a game",
           links: "Something you saved",
-          files: "Help with files",
           settings: "Settings",
         };
         const ids = (Object.keys(labels) as IntentId[]).filter((i) => ready.has(i));
@@ -496,7 +615,6 @@ export function Companion() {
   const talkNow = () => {
     const engine = engineRef.current;
     if (!engine || engine.drowsy() || !talkOn) return;
-    if (helperBusy.current) return engine.say("busy");
     putAway();
     engine.react("talk");
     startTalking();
@@ -521,7 +639,7 @@ export function Companion() {
   // empty window around Mote do nothing.
   return (
     <div
-      className={`stage${eyesOnly ? " is-eyes" : ""}${helping ? " is-helping" : ""}${playing && !helping ? " is-playing" : ""}`}
+      className={`stage${eyesOnly ? " is-eyes" : ""}${playing ? " is-playing" : ""}`}
       onContextMenu={(e) => {
         const target = e.target;
         if (target instanceof Element && target.closest("input, textarea")) return;
@@ -602,36 +720,23 @@ export function Companion() {
           onSpeech={(b) => {
             if (b) measure();
             setBubble(b);
+            // The meeting's bubble went (timed out, or something else came
+            // up): it's over for now, and picks up next time Mote opens.
+            if (meeting.current && b?.lineId !== TALK) meeting.current = null;
           }}
         />
       </button>
-      <Helper
-        engine={getEngine}
-        pace={pace}
-        gift={gift}
-        files={files}
-        apps={apps}
-        putAway={putAwaySeq}
-        onBusy={noteHelperBusy}
-        onOpen={(open) => {
-          setHelping(open);
-          if (open) {
-            // The game is saved; it'll be there when you open the board again.
-            setPlaying(null);
-          }
-        }}
-      />
-      {playing === "checkers" && !helping ? <Checkers engine={getEngine} onClose={() => setPlaying(null)} /> : null}
-      {playing === "chess" && !helping ? <Chess engine={getEngine} onClose={() => setPlaying(null)} /> : null}
-      {playing === "tictactoe" && !helping ? <TicTacToe engine={getEngine} onClose={() => setPlaying(null)} /> : null}
-      {playing === "solitaire" && !helping ? <Solitaire engine={getEngine} onClose={() => setPlaying(null)} /> : null}
+      {playing === "checkers" ? <Checkers engine={getEngine} onClose={() => setPlaying(null)} /> : null}
+      {playing === "chess" ? <Chess engine={getEngine} onClose={() => setPlaying(null)} /> : null}
+      {playing === "tictactoe" ? <TicTacToe engine={getEngine} onClose={() => setPlaying(null)} /> : null}
+      {playing === "solitaire" ? <Solitaire engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       <SpeechBubble
         bubble={bubble}
         anchor={anchor}
         onAnswer={(yes) => (bubble?.lineId === TALK ? answered(yes) : engineRef.current?.answer(yes))}
         onDismiss={() => engineRef.current?.dismissSpeech()}
-        onSubmit={heard}
-        onChoose={(id) => act(id as IntentId)}
+        onSubmit={(text) => (meeting.current ? meetText(text) : heard(text))}
+        onChoose={(id) => (meeting.current ? meetChoice(id) : act(id as IntentId))}
         onTyping={() => engineRef.current?.stillTalking()}
       />
     </div>

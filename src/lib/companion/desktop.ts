@@ -19,12 +19,32 @@ export function widenSettingsWindow() {
   if (isDesktopApp()) void invoke("widen_settings").catch(() => {});
 }
 
-/** Grows Mote's window to fit the options while helping (or the board while
- * playing), and back after. */
-export function setHelpingSize(helping: boolean, size?: { width: number; height: number }) {
+/** Grows Mote's window to fit a game while it's out, and back after. */
+export function growWindow(grown: boolean, size?: { width: number; height: number }) {
   if (isDesktopApp()) {
-    void invoke("set_helping_size", { helping, width: size?.width, height: size?.height }).catch(() => {});
+    void invoke("grow_window", { grown, width: size?.width, height: size?.height }).catch(() => {});
   }
+}
+
+/** An app among what was dropped on Mote: its name, ID, and whether it's a
+ * game (Apple's Chess, Minecraft, or any other). In a browser, where files
+ * can't be looked at, a dropped ".app" name is taken at its word. */
+export type DroppedApp = { name: string; bundle: string | null; game: "chess" | "minecraft" | "game" | null };
+
+export async function appDropped(paths: string[]): Promise<DroppedApp | null> {
+  if (isDesktopApp()) return invoke<DroppedApp | null>("app_dropped", { paths }).catch(() => null);
+  const app = paths.find((p) => /\.app\/?$/i.test(p));
+  if (!app) return null;
+  const name = app.replace(/\/$/, "").split("/").pop()!.replace(/\.app$/i, "");
+  const known: Record<string, [string | null, DroppedApp["game"]]> = {
+    Chess: ["com.apple.chess", "chess"],
+    Minecraft: ["com.mojang.minecraftlauncher", "minecraft"],
+    Safari: ["com.apple.safari", null],
+    Music: ["com.apple.music", null],
+    Numbers: ["com.apple.iwork.numbers", null],
+  };
+  const [bundle, game] = known[name] ?? [null, /game|steam/i.test(name) ? "game" : null];
+  return { name, bundle, game };
 }
 
 /** Whether Mote opens when you log in to your Mac. */
@@ -161,10 +181,10 @@ export function openLink(url: string) {
 const LINK_FILE = /\.(webloc|inetloc)$/i;
 
 /**
- * Things dragged over and dropped on Mote's window: files and folders (where
- * they are on disk, for Mote to help with), or a link (from a browser, or a
- * link file from Finder), for Mote to save. A plain browser can't say where
- * files are, so there it passes just their names, and Mote only pretends.
+ * Things dragged over and dropped on Mote's window: files, folders and apps
+ * (where they are on disk: an app gets played or reacted to), or a link (from
+ * a browser, or a link file from Finder), for Mote to save. A plain browser
+ * can't say where files are, so there it passes just their names.
  */
 export function onDropped(
   hover: (over: boolean) => void,

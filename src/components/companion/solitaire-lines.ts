@@ -5,8 +5,12 @@
 export type SolitaireEvent =
   | "start"
   | "resume"
-  /** An ace (or a two) goes home. */
-  | "home-low"
+  /** An ace goes home, starting a pile. */
+  | "home-ace"
+  /** A two goes home, onto its ace. */
+  | "home-two"
+  /** A king goes home: that pile's finished. */
+  | "home-king"
   /** Any other card goes home. */
   | "home"
   /** A hidden card turns over. */
@@ -31,7 +35,9 @@ export type SolitaireEvent =
 export const SOLITAIRE_FACE: Partial<Record<SolitaireEvent, string>> = {
   start: "delight",
   resume: "cute",
-  "home-low": "delight",
+  "home-ace": "delight",
+  "home-two": "cute",
+  "home-king": "beam",
   reveal: "surprise",
   cleared: "beam",
   hint: "think",
@@ -45,7 +51,9 @@ export const SOLITAIRE_FACE: Partial<Record<SolitaireEvent, string>> = {
 export const SOLITAIRE_CHANCE: Record<SolitaireEvent, number> = {
   start: 1,
   resume: 1,
-  "home-low": 0.5,
+  "home-ace": 0.6,
+  "home-two": 0.3,
+  "home-king": 0.8,
   home: 0.15,
   reveal: 0.15,
   cleared: 0.6,
@@ -63,9 +71,11 @@ export const SOLITAIRE_CHANCE: Record<SolitaireEvent, number> = {
 const LINES: Record<SolitaireEvent, string[]> = {
   start: ["Solitaire! I’ll help.", "Ooh, cards. Let’s do this together.", "Fresh deck! I’m right here if you want a hand."],
   resume: ["Back to our cards!", "I kept them just how we left them.", "Where were we? Oh, right."],
-  "home-low": ["An ace! Off it goes.", "Ooh, a good start for that pile.", "Home it goes!"],
+  "home-ace": ["An ace! Off it goes.", "An ace home. A good start for that pile.", "Ooh, an ace!"],
+  "home-two": ["A two, right on its ace.", "That pile’s getting going.", "Two! Home it goes."],
+  "home-king": ["The king! That whole pile’s done.", "A whole suit, all the way home!", "King on top. That’s one finished."],
   home: ["Home it goes.", "One more home.", "Nice."],
-  reveal: ["Ooh, what’s under there?", "A new card!", "Look at that."],
+  reveal: ["Ooh, look what was under there!", "A new card!", "There’s one we hadn’t seen."],
   cleared: ["A whole column, empty! A king would love that spot.", "Look at all that room.", "Ooh, a free column."],
   hint: ["Try {move}.", "How about {move}?", "Psst: {move}.", "I think {move}."],
   nudge: ["Psst. {move}?", "Can I help? {move}.", "Hmm… what about {move}?"],

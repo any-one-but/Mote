@@ -1,53 +1,28 @@
 # Mote
 
-A little face in a window that helps you tidy up your files. Everything Mote
-feels shows in two pill-shaped eyes, shaped by two soft cuts: one from above
-(the brows) and one from below (the cheeks).
+A little friend who lives in a window on your Mac. Mote isn't a tool: they
+watch things with you, play games with you, react to you, and remember you,
+and how they feel about you grows with how you treat them (see
+`Mote Design Doc.md`). Everything Mote feels shows in two pill-shaped eyes,
+shaped by two soft cuts: one from above (the brows) and one from below (the
+cheeks).
 
-## Helping with files
+## Meeting Mote
 
-Drop something on Mote's window and Mote works out what it is, then offers
-what they can do with it. Pick one (click it, or press its number, like the
-terminal cleaner Mote grew out of), and Mote gets to work, reports back on
-how it went, and offers everything again until you pick **Done**. While the
-options are up, Mote's window grows to fit them and Mote tucks into the corner.
+The first time Mote opens, they say hello and show you the basics a step at
+a time (poking and petting them, double-clicking to do something together,
+watching things along with you, dropping links on them), each with a button
+to go on. Then they ask what to call you. Type your name and Mote remembers
+it: now and then they'll call you by it (a hello, a "Morning, Sam!", a "Still
+up, Sam?"). Saying you'd rather not is fine too, and Mote won't ask again.
+Your name can be changed any time in Settings, and Mote notices ("Robin! Got
+it."). Debug's Data tab has **Meet Mote again**, to see it all from the start.
 
-**A folder** gets the core cleanup:
+## Things you give Mote
 
-1. **Do all of these**: every job below, top to bottom. Mote asks up front
-   whether to delete anything along the way and how to compress at the end,
-   and before deleting shows you what matched and waits for a yes.
-2. **Open archives**: zips, rars, 7z, tarballs and more are unpacked where
-   they are, then deleted (up to 8 passes, for archives inside archives). One
-   that won't open is left alone.
-3. **Clear out clutter**: exact duplicates are deleted (the oldest copy
-   stays); look-alike pictures and videos (the best copy stays), pictures that
-   are just a frame of a video, videos that never move, and empty files and
-   folders are moved into `_quarantined_media` inside the folder.
-4. **Tidy names**: file and folder names down to letters, numbers, spaces,
-   `_` and `-`.
-5. **Convert to MP4**: other video formats, and animated GIFs (when it makes
-   them smaller).
-6. **Remove metadata**: hidden location, camera and date info, with mat2.
-7. **Delete files…**: by a rule you pick (all videos, files bigger than a
-   size, older than some days, with some text in the name, leftovers like
-   `.tmp` and `Thumbs.db`…). Mote always shows what matched first.
-8. **Compress media…**: smaller files (pictures to AVIF, no bigger than your
-   biggest screen; videos to AV1), or better quality (Optimage at its own
-   settings). Nothing is replaced unless the new version is smaller.
+Drag something onto Mote's window:
 
-**Videos** (one or several) get: **trim the start**, **trim the end** (by
-however many seconds you like), and **save the audio as an MP3** next to them.
-
-Mote won't work on your Mac's own folders, your Library, your whole Home
-folder, or the inside of apps. If a job needs a tool that isn't installed
-(ffmpeg, czkawka, mat2…), Mote offers to install it with Homebrew.
-
-How hard your Mac works on it is the **Pace** (in Debug's Features tab, by Helping with files): Gentle (quietly in
-the background), Normal (one thing at a time), or Turbo (many at once, much
-faster, but your Mac will be busy).
-
-**Apps** dropped on Mote aren't work, they're fun:
+**Apps** are fun:
 
 - **Games** get played. Apple's **Chess** has its own animations (a long
   think, then a clever move, a smug look and checkmate, or a blunder and a
@@ -62,6 +37,9 @@ faster, but your Mac will be busy).
 - **The Mac's own apps** (Safari, Music, Calculator, Photo Booth, Terminal
   and about 60 more) each get their own line and a little reaction.
 - **Any other app** gets "That's an app, not a game."
+- **Files and folders** aren't Mote's kind of thing: a sorry-but-no shake of
+  the head ("That's a bit too much like work for me. I'm more of a
+  games-and-movies friend.").
 
 **Links** dragged onto Mote (from a browser's address bar or a page, or a
 `.webloc` link file from Finder) are saved: any website, with YouTube and
@@ -170,8 +148,6 @@ however you like, and press Return:
 - "chess", "I want to play chess", "checkers", "tic tac toe",
   "solitaire" (or "cards", "patience")
   — that game, straight away
-- "help with files", "clean up a folder" — Mote tells you to drag a folder
-  or videos onto them (that's how the file help starts)
 - "a video", "something to watch", "my links" — one of your saved links
   (or how to save one, if there are none)
 - "settings", "dark mode" — opens Settings
@@ -254,7 +230,9 @@ board.
 ## Chess
 
 Double-click Mote and say "chess". Same board, same
-record-keeping and saving as checkers. You're white and go first: click a
+record-keeping and saving as checkers. You're white (the cream pieces) and
+go first, and Mote is black (ink pieces with little cream eyes), in light
+and dark mode: click a
 piece and the dots show where it can go (rings mean a capture). All the rules
 are there: castling (move the king two squares), en passant, promotion (you
 pick what the pawn becomes), check (the king glows red), checkmate,
@@ -282,11 +260,13 @@ to win at once.
 
 Double-click Mote and say "solitaire" (or "cards"). It's Klondike, turning
 one card at a time, and Mote is on your side: they watch, cheer the good bits
-(an ace going home, a hidden card turning over, a column cleared), and help.
+(an ace, a two or a finished suit going home, a hidden card turning over, a
+column cleared), and help.
 
-- Click a card to pick it up (a face-up card in a column picks up the cards
-  on it too), then click where it goes: onto a column, a foundation, or an
-  empty spot. Double-click a card to send it home.
+- Drag a card where it goes: onto a column, a foundation, or an empty spot
+  (a face-up card in a column takes the cards on it along). Somewhere it
+  can't go, it slides back. Or click a card to pick it up, then click where
+  it goes. Double-click a card to send it home.
 - Click the deck to turn a card; when it's empty, click it to turn the pile
   back over, as often as you like.
 - **Ask Mote** for a move: they say it ("Try the 7 of clubs on the 8 of
@@ -313,10 +293,10 @@ Mote eyes.
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. It's kept
-short: the **Appearance** (Light, Dark, or System to follow the Mac), whether
-Mote opens when you log in, and whether the window floats above others.
-Everything else (Friendly mode, Energy, Mode, the file helper's Pace, saved
-links) is in Debug. Mote's eyes
+short: **Your name** (what Mote calls you), the **Appearance** (Light, Dark,
+or System to follow the Mac), whether Mote opens when you log in, and
+whether the window floats above others. Everything else (Friendly mode,
+Energy, Mode, saved links) is in Debug. Mote's eyes
 always follow your pointer, and Mote always naps when left alone.
 
 **Dark mode** swaps Mote's colours, like a photo negative: a dark face with
@@ -324,7 +304,8 @@ cream eyes (and cream eyebrows and mouth, if they're on), on a dark window.
 Everything around Mote goes dark and warm too: speech bubbles, buttons, the
 game cards and Settings. The game boards go a deep walnut, and the pieces
 swap like Mote does: Mote's pieces (and tic-tac-toe marks) are dark with
-cream eyes, yours cream. The playing cards stay paper.
+cream eyes, yours cream. Chess is the exception: you're white and Mote is
+black in both modes. The playing cards stay paper.
 
 **Mode** (in Debug's Features tab, with the Looks) gives Mote a special look for a vibe or a season. **Neutral** is just
 Mote. **Jack-o'-lantern** (for Halloween) turns Mote's cream a soft pumpkin
@@ -388,11 +369,6 @@ open. A tab about a feature that's switched off (Links) isn't shown.
   - **Saved links**: saving links dragged onto Mote, and Mote suggesting
     them. Off, a dropped link gets a polite "not right now", no link is
     brought up, and Debug hides the Links tab (saved ones are kept).
-  - **Helping with files**: the cleanup jobs for folders and videos dragged
-    onto Mote. Off, they get the same "not right now". A job already running
-    finishes first.
-  - **Pace** (a setting): how hard the Mac works on file jobs (Gentle,
-    Normal or Turbo).
   - **Reacting to apps**: playing games and reacting to the Mac's own apps
     dragged onto Mote. Off, apps get the same "not right now".
   - **Games**: the games, and Mote asking for or suggesting a game. Off, an
@@ -509,8 +485,6 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 - `src/components/companion/speech.ts` — everything Mote can say, and when
 - `src/components/companion/SpeechBubble.tsx` — how the bubbles look
 - `desktop/senses/main.swift` — the helper that notices sound, the pointer and typing
-- `src/components/companion/Helper.tsx` — the conversation when you give Mote something
-- `src/components/companion/assistant.ts` — what Mote says while helping, and the jobs on offer
 - `src/components/companion/Checkers.tsx` and `checkers.css` — the checkers board
 - `src/components/companion/checkers-lines.ts` — what Mote says over a game
 - `src/lib/checkers/rules.ts` — the rules; `ai.ts` — how Mote picks a move
@@ -523,5 +497,5 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 - `src/components/companion/board-ui.tsx` and `board.css` — what both games share (level picker, header, end panel, the board's look)
 - `src/components/companion/links.ts` — saved links, their history, and how Mote picks one to suggest
 - `src-tauri/src/links.rs` — reading a dragged link, and opening one in your browser
-- `src-tauri/src/tidy/` — the jobs themselves, one file per step (rebuilt from the `clean.sh` cleaner)
+- `src-tauri/src/apps.rs` — reading an app dropped on Mote: its name, and whether it's a game
 - `src-tauri/` — the Mac app wrapper itself

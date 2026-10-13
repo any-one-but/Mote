@@ -104,11 +104,6 @@ export type Mood =
   | "chess"
   | "minecraft"
   | "gaming"
-  // Helping you: looking up at the options, busy with a job, and how it went.
-  | "present"
-  | "work"
-  | "tada"
-  | "uhoh"
   // Pleased, and worried.
   | "beam"
   | "worry"
@@ -245,6 +240,8 @@ export type EngineOptions = {
   /** A special look (Settings' Mode): triangle eyes and a carved grin, or
    * coal eyes, a coal smile and a carrot nose. */
   look: Look;
+  /** What Mote calls you (empty until you've told them). */
+  name: string;
 };
 
 /** An app dropped on Mote: its name, its ID (com.apple.safari…), and
@@ -300,8 +297,6 @@ export type EngineSnapshot = {
   /** The speech bubble showing now, and the need Mote is about to ask about. */
   speech: Bubble | null;
   need: { line: string; in: number } | null;
-  /** Helping you with something: busy with a job, or talking it over. */
-  helping: "busy" | "talking" | null;
   placement: { x: number; y: number } | null;
 };
 
@@ -355,16 +350,11 @@ export type FaceEngine = {
   typingAt: (dx: number, dy: number) => void;
   /** Something is being dragged over Mote's window (or not, with false). */
   dragHover: (over: boolean) => void;
-  /**
-   * Helping you with files: "talking" while the options are up (Mote looks
-   * at them and keeps their own chatter to themself), "busy" while a job
-   * runs, null when done. Finishing a job well or badly shows on the face.
-   */
-  setHelping: (state: "busy" | "talking" | null) => void;
-  /** A job just finished: well (a happy hop) or with problems (a worried look). */
-  jobDone: (ok: boolean) => void;
   /** An app dropped on Mote: a game gets played, anything else gets a reaction. */
   offerApp: (app: AppOffer) => void;
+  /** A file or folder dropped on Mote: not their kind of thing, and they say
+   * so, nicely. */
+  notForMe: () => void;
   /** Something dropped on Mote that they don't take (its feature is off):
    * a polite little "no thanks". */
   declined: () => void;
@@ -407,10 +397,6 @@ export const MOOD_LIST: Mood[] = [
   "chess",
   "minecraft",
   "gaming",
-  "present",
-  "work",
-  "tada",
-  "uhoh",
   "beam",
   "worry",
   "care",
@@ -495,11 +481,9 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   sulk: { dur: 3200, tempo: 0.8 },
   hum: { dur: 3000, tempo: 0.9 },
   checkin: { dur: 1500, tempo: 0.9 },
-  tada: { dur: 1800, tempo: 1.1 },
   chess: { dur: 5600, tempo: 0.95 },
   minecraft: { dur: 5400, tempo: 1 },
   gaming: { dur: 5600, tempo: 1.2 },
-  uhoh: { dur: 2400, tempo: 1 },
   beam: { dur: 8400, tempo: 1 },
   worry: { dur: 8400, tempo: 0.85 },
   care: { dur: 7000, tempo: 0.8 },
@@ -512,11 +496,8 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   "ch-check": { dur: 2200, tempo: 1 },
   "ch-checked": { dur: 2400, tempo: 1.1 },
   decline: { dur: 2100, tempo: 1.05 },
-  // Purring lasts as long as the petting does; see `PURR_AFTER`. Looking at
-  // the options and working last as long as they do (see `setHelping`).
+  // Purring lasts as long as the petting does; see `PURR_AFTER`.
   purr: { dur: Number.POSITIVE_INFINITY, tempo: 0.8 },
-  present: { dur: Number.POSITIVE_INFINITY, tempo: 1 },
-  work: { dur: Number.POSITIVE_INFINITY, tempo: 1 },
   // Held for as long as it's your turn, or Mote's (see `setBoardGame`).
   "ck-watch": { dur: Number.POSITIVE_INFINITY, tempo: 1 },
   "ck-think": { dur: Number.POSITIVE_INFINITY, tempo: 0.85 },
@@ -534,10 +515,6 @@ const BUSY: Mood[] = [
   "dizzy",
   "purr",
   "delight",
-  "present",
-  "work",
-  "tada",
-  "uhoh",
   "beam",
   "worry",
   "care",
@@ -609,10 +586,6 @@ const LABELS: Partial<Record<Mood, string>> = {
   chess: "Mote is playing chess.",
   minecraft: "Mote is playing Minecraft.",
   gaming: "Mote is gaming.",
-  present: "Mote is asking what to do.",
-  work: "Mote is working on it.",
-  tada: "Mote is done!",
-  uhoh: "Mote ran into a problem.",
   purr: "Mote is enjoying the pets.",
 };
 
@@ -1045,53 +1018,6 @@ export function poseFor(
     // Button mashing.
     const mash = t > 600 && t < 3000 ? 0.9 : t >= 3000 && t < 3750 ? 1.6 : 0;
     if (mash) shakeX = Math.sin((t / 1000) * Math.PI * 2 * 13) * mash;
-  } else if (mood === "present") {
-    // Looking up at the options, friendly and attentive, with a slow tilt
-    // one way and then the other while you decide.
-    const up: Partial<Pose> = {
-      lookY: -0.8,
-      lookMix: 1,
-      open: 1.06,
-      cheek: 0.24,
-      cheekCurve: 0.1,
-      y: -1,
-    };
-    const tilt = (Math.floor(t / 2600) % 2 ? 1 : -1) * dir;
-    keys = [
-      [0, { ...up, open: 1.12, y: -3 }],
-      [350, { ...up, rot: tilt * 3, x: tilt }],
-    ];
-  } else if (mood === "work") {
-    // Busy: focused eyes reading down a list, a little nod as each thing
-    // gets done.
-    keys = [[0, { lid: 0.2, lidCurve: -0.1, lidTilt: 0.06, cheek: 0.1, lookY: 0.35, lookMix: 1 }]];
-    const w = t / 1000;
-    wobble = {
-      lookX: Math.sin(w * 1.9) * 0.4,
-      y: Math.abs(Math.sin(w * 3.4)) * 1.4,
-      rot: Math.sin(w * 1.9) * 1.5,
-    };
-  } else if (mood === "tada") {
-    // All done: a big happy hop, then a pleased little sway.
-    const glad: Partial<Pose> = { cheek: 0.72, cheekCurve: 0.26, open: 1.04, wide: 1.06 };
-    keys = [
-      [0, { ...glad, sy: 0.9, sx: 1.08, y: 3 }],
-      [120, { ...glad, y: -15, sy: 1.08, sx: 0.94 }],
-      [400, { ...glad, y: 1.5, sy: 0.93, sx: 1.06 }],
-      [560, { ...glad, rot: dir * 4, x: dir * 1.5 }],
-      [900, { ...glad, rot: -dir * 4, x: -dir * 1.5 }],
-      [1250, { ...glad, cheek: 0.6 }],
-      [1600, {}],
-    ];
-  } else if (mood === "uhoh") {
-    // Something went wrong: a start, a worried look down, then a sheepish
-    // little shrug.
-    keys = [
-      [0, { open: 1.26, wide: 0.92, y: -4, sy: 1.04 }],
-      [380, { lidTilt: -0.5, lid: 0.08, open: 1.08, lookY: 0.5, lookMix: 1, sy: 0.97, y: 2 }],
-      [1400, { lidTilt: -0.3, cheek: 0.3, cheekCurve: 0.08, rot: dir * 4, y: -3, lookMix: 0 }],
-      [2100, {}],
-    ];
   } else if (mood === "checkin") {
     // Turns from what they're watching to look out at you for a moment.
     keys = [
@@ -2029,6 +1955,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     glint: false,
     moodShape: true,
     look: "neutral",
+    name: "",
   };
   const debug = {
     timeScale: 1,
@@ -2175,8 +2102,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   let wanting: { need: string; line: string; at: number } | null = null;
   // You, coming and going: the last time you did anything Mote could notice.
   let lastYou = Number.NEGATIVE_INFINITY;
-  // Helping you with files: talking it over, or busy with a job.
-  let helping: "busy" | "talking" | null = null;
   let playing: BoardGameState = null;
   let recentGameLines: string[] = [];
   // The app just dropped on Mote, and the game being played (and how it went).
@@ -2244,7 +2169,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (next === "dizzy") blinkAt(now + 2680, true);
     if (next === "checkin") blinkAt(now + 40);
     if (next === "soothe") blinkAt(now + 900);
-    if (next === "tada") blinkAt(now + 1300);
     if (prev === "dizzy") dizzyReadyAt = now + 4000;
     if (prev === "dizzy" && next !== "dizzy") mention("dizzy-over", 0.7);
     if (prev === "purr" && next !== "purr") mention("petted", 0.6);
@@ -2269,6 +2193,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     media: interest === "media",
     typing: clock < typingUntil,
     games: options.games,
+    name: options.name,
     offering: offered,
     game: game?.name ?? null,
     gameKind: game ? (game.mood === "gaming" ? "game" : game.mood) : null,
@@ -2372,7 +2297,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
    * game, or a pet). Needs make Mote speak up on their own.
    */
   const currentNeed = (): string | null => {
-    if (helping || playing || mood === "sleep" || mood === "doze") return null;
+    if (playing || mood === "sleep" || mood === "doze") return null;
     if (feel.peace <= -4) return feel.joy >= -2 && options.games ? "play-with-me" : "pet-me";
     return null;
   };
@@ -2397,8 +2322,8 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       else if (age > bubble.ttl) resolve(bubble.kind === "flavor" ? "done" : "ignored", now);
       return;
     }
-    // Helping you, Mote keeps their own chatter to themself.
-    if (debug.manual || helping || playing || BUSY.includes(mood)) return;
+    // Mid-game, Mote keeps their own chatter to themself.
+    if (debug.manual || playing || BUSY.includes(mood)) return;
     // Remarks switched off: nothing gets mentioned (bar asking to play an
     // app's game again, which is the apps' own).
     if (pendingEvent && !options.remarks && pendingEvent.event !== "played") pendingEvent = null;
@@ -2489,8 +2414,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
   };
 
-  const aroundNow = () => clock - lastYou < 2 * 60_000;
-
   /**
    * Checkers and chess. While a game is on, Mote's face follows it: watching
    * your move, thinking over theirs. Their usual chatter waits until the
@@ -2579,28 +2502,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     noteSuggested(link.url);
   };
 
-  /**
-   * Helping you with files. Talking it over, Mote looks up at the options;
-   * busy, they get on with the job. Either way their own chatter waits, and
-   * any bubble of theirs goes away so it doesn't cover the conversation.
-   */
-  const setHelping = (state: "busy" | "talking" | null) => {
-    if (state) rouse();
-    if (state === helping) return;
-    helping = state;
-    engage();
-    if (state && bubble) showBubble(null);
-    pendingEvent = null;
-    wanting = null;
-    if (state === "talking" && mood !== "tada" && mood !== "uhoh") start("present", clock);
-    else if (state === "busy") start("work", clock);
-    else if (mood === "present" || mood === "work") start("settle", clock);
-    log(state ? `helping: ${state}` : "done helping");
-  };
-
   /** What Mote would like right now, for a glow on the matching button. */
   const wants = (): Want | null => {
-    if (mood === "sleep" || mood === "doze" || helping || playing) return null;
+    if (mood === "sleep" || mood === "doze" || playing) return null;
     if (options.games && feel.peace <= -2) return "play";
     return null;
   };
@@ -2683,7 +2587,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     engage();
     offered = { name: app.name, bundle: app.bundle };
     log(`given the app “${app.name}”`);
-    if (helping === "busy" || GAME_MOODS.includes(mood) || mood === "dizzy") {
+    if (GAME_MOODS.includes(mood) || mood === "dizzy") {
       sayNow("busy");
       return;
     }
@@ -2707,11 +2611,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     sayNow("not-a-game");
   };
 
-  /** A job just finished: a happy hop, or a worried look if things went wrong. */
-  const jobDone = (ok: boolean) => {
-    react(ok ? "job-done" : "job-trouble");
-    start(ok ? "tada" : "uhoh", clock);
-  };
 
   /** Which little idle moods are on the cards depends on how Mote feels. */
   const pick = (): Mood => {
@@ -2773,7 +2672,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     list.push({ t, d });
     while (list.length && t - list[0].t > 700) list.shift();
     const travelled = list.reduce((sum, s) => sum + s.d, 0);
-    const calm = mood !== "dizzy" && mood !== "purr" && mood !== "work";
+    const calm = mood !== "dizzy" && mood !== "purr";
     if (travelled > limit && calm && clock > dizzyReadyAt && !debug.manual) {
       list.length = 0;
       engage();
@@ -2857,10 +2756,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       react("wake-rested");
       if (mood === "sleep") mention("woke-rested", 0.8);
       start("wake", now);
-    } else if (helping === "busy") {
-      // Busy with a job: a quick happy look up, then back to work.
-      react("poke-busy");
-      return;
     } else if (pokes.length >= 4 && mood !== "frustrate") {
       pokes.length = 0;
       // Too many pokes: a moment of annoyance (it passes straight away).
@@ -2893,7 +2788,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         asleep,
         sinceAttention: (clock - attendedAt) / 60_000,
         youAround: clock - lastYou < 2 * 60_000,
-        busyTogether: helping !== null || (playing !== null && playing !== "idle"),
+        busyTogether: playing !== null && playing !== "idle",
         friendly: options.friendly,
       });
       mindTick = 0;
@@ -2996,7 +2891,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     // Left be for a while, with nothing going on that's intriguing, Mote
     // yawns and nods off. Only a poke (or something starting to play, or
     // something dropped on them) wakes them.
-    const quiet = !interest && !helping && !playing && !typing && !pointerOutThere && !bubble;
+    const quiet = !interest && !playing && !typing && !pointerOutThere && !bubble;
     if (debug.autoMoods && mood === "settle" && quiet && now - touchedAt > napAfter) {
       react("doze");
       dozeNext = true;
@@ -3026,9 +2921,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         // Caught themself nodding off.
         start("settle", now);
         nextAct = now + actGap(watchingMedia, you || typing);
-      } else if (helping) {
-        // Back to looking at the options, or to the job.
-        start(helping === "busy" ? "work" : "present", now);
       } else if (playing) {
         // Back to the game.
         start(playing === "mote" ? "ck-think" : "ck-watch", now);
@@ -3094,7 +2986,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     const tempo = mood === "sleep" ? 0.12 : mood === "settle" ? 1 : MOODS[mood].tempo;
 
     // Something dragged over the window: eyes wide, leaning in, curious.
-    if (hovering && ["settle", "glance", "think", "present"].includes(mood)) {
+    if (hovering && ["settle", "glance", "think"].includes(mood)) {
       target.open += 0.14;
       target.wide += 0.03;
       target.lookY = 0.45;
@@ -3244,7 +3136,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
 
     // Natural blinks.
-    const blinkFree = !["sleep", "wake", "delight", "cute", "dizzy", "purr", "tada"].includes(mood);
+    const blinkFree = !["sleep", "wake", "delight", "cute", "dizzy", "purr"].includes(mood);
     const fb = feelings(feel);
     if (blinkFree && now >= nextBlink) {
       blinkAt(now, Math.random() < 0.16);
@@ -3675,11 +3567,16 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       start("decline", clock);
       sayNow("drop-declined");
     },
-    dragHover: (over) => {
-      hovering = over && helping !== "busy";
+    notForMe: () => {
+      rouse();
+      engage();
+      react("drop-file");
+      start("decline", clock);
+      sayNow("drop-file");
     },
-    setHelping,
-    jobDone,
+    dragHover: (over) => {
+      hovering = over;
+    },
     offerApp,
     saveLink,
     suggestLink: (url) => {
@@ -3725,7 +3622,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       focus,
       speech: bubble,
       need: wanting ? { line: wanting.line, in: Math.max(0, wanting.at - clock) } : null,
-      helping,
       placement: options.placement,
       mind: { ...feel },
       quadrant: quadrant(feel),

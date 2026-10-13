@@ -1,9 +1,9 @@
 // Mote for Mac: native windows around the pages in ../desktop.
+mod apps;
 mod audio;
 mod links;
 mod login;
 mod senses;
-mod tidy;
 
 /// Tests that change or read HOME take turns, so one never sees another's.
 #[cfg(test)]
@@ -101,18 +101,18 @@ fn set_float_on_top(app: AppHandle, on: bool) -> Result<(), String> {
     }
 }
 
-/// The window's size (and how far it was nudged up) before Mote grew it to
-/// help with something, to put back afterwards.
-static BEFORE_HELPING: std::sync::Mutex<Option<(f64, f64, f64)>> = std::sync::Mutex::new(None);
+/// The window's size (and how far it was nudged up) before Mote grew it for
+/// a game, to put back afterwards.
+static BEFORE_GROWN: std::sync::Mutex<Option<(f64, f64, f64)>> = std::sync::Mutex::new(None);
 
-/// While Mote helps with files the window grows to fit the options (to at
-/// least 380 × 600 points, or the size asked for, like the checkers board's),
-/// moving up if it would go off the bottom of the screen. Afterwards it goes
-/// back to how it was.
+/// While a game is out the window grows to fit it (to at least 380 × 600
+/// points, or the size asked for, like the checkers board's), moving up if it
+/// would go off the bottom of the screen. Afterwards it goes back to how it
+/// was.
 #[tauri::command]
-fn set_helping_size(
+fn grow_window(
     app: AppHandle,
-    helping: bool,
+    grown: bool,
     width: Option<f64>,
     height: Option<f64>,
 ) -> Result<(), String> {
@@ -121,8 +121,8 @@ fn set_helping_size(
     let scale = window.scale_factor().map_err(|e| e.to_string())?;
     let size = window.inner_size().map_err(|e| e.to_string())?.to_logical::<f64>(scale);
     let pos = window.outer_position().map_err(|e| e.to_string())?.to_logical::<f64>(scale);
-    let mut before = BEFORE_HELPING.lock().unwrap();
-    if helping {
+    let mut before = BEFORE_GROWN.lock().unwrap();
+    if grown {
         let (w, h) = (size.width.max(width.unwrap_or(380.0)), size.height.max(height.unwrap_or(600.0)));
         if (w, h) == (size.width, size.height) {
             return Ok(());
@@ -211,7 +211,6 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
 
 fn main() {
     tauri::Builder::default()
-        .manage(std::sync::Arc::new(tidy::WorkState::default()))
         .setup(|app| {
             let handle = app.handle();
             handle.set_menu(build_menu(handle)?)?;
@@ -239,17 +238,12 @@ fn main() {
             open_settings,
             widen_settings,
             set_float_on_top,
-            set_helping_size,
+            grow_window,
             login::login_item_enabled,
             login::set_login_item,
             links::read_dropped_link,
             links::open_link,
-            tidy::work_inspect,
-            tidy::work_start,
-            tidy::work_cancel,
-            tidy::work_preview_delete,
-            tidy::work_missing,
-            tidy::work_install
+            apps::app_dropped
         ])
         .run(tauri::generate_context!())
         .expect("Mote could not start");

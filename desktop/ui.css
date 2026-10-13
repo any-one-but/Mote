@@ -826,6 +826,21 @@ input:focus-visible {
   outline-offset: 1px;
 }
 
+/* Your name, in Settings: a warmer tone while you type, no ring. */
+.name-input {
+  width: 100%;
+  min-height: 42px;
+  font-size: 16px;
+  font-weight: 500;
+  user-select: text;
+  transition: background-color 200ms var(--soft);
+}
+
+.name-input:focus-visible {
+  outline: none;
+  background: var(--accent-wash);
+}
+
 /* Saved links (Debug) */
 
 .link-add {

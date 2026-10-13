@@ -15,7 +15,7 @@ import { listenBus, send } from "@/lib/companion/bus";
 //
 // Only a fingerprint of the key (its SHA-256) lives in the app, never the key.
 // A few of Mote's settings live in the Features tab too (Friendly mode,
-// Energy, Mode, the file helper's Pace): they're kept with the rest of the
+// Energy, Mode): they're kept with the rest of the
 // settings (see settings.ts), just shown there.
 
 /** Features that need a key. */
@@ -32,7 +32,6 @@ export type FeatureId =
   | "talk"
   | "games"
   | "links"
-  | "files"
   | "apps"
   | "noticing"
   | "dizzy"
@@ -149,13 +148,6 @@ export const FEATURES: Array<{
     section: "together",
     name: "Saved links",
     about: "Links dragged onto Mote are saved, and now and then Mote suggests one. Off, Mote doesn’t take links or bring them up (the ones already saved are kept), and Settings hides the list.",
-    usual: true,
-  },
-  {
-    id: "files",
-    section: "together",
-    name: "Helping with files",
-    about: "Folders and videos dragged onto Mote get the cleanup jobs (opening archives, clearing clutter, tidying names, converting, compressing…). Off, Mote doesn’t take them, and Settings hides the Pace.",
     usual: true,
   },
   {

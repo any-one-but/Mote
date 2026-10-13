@@ -86,6 +86,18 @@ button.sol-spot:active {
   }
 }
 
+/* Cards can be dragged: a dragged card is lifted, on a bigger shadow. */
+.sol-table .deck-card.is-up {
+  touch-action: none;
+}
+
+.sol-table .deck-card.is-dragging {
+  cursor: grabbing;
+  box-shadow:
+    0 2px 0 var(--deck-rim),
+    0 14px 22px -8px rgb(35 28 24 / 0.4);
+}
+
 .sol-foot {
   margin-top: 10px;
 }

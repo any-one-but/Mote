@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { FaceEngine } from "@/components/companion/engine";
 import type { SolitaireEvent } from "@/components/companion/solitaire-lines";
 import {
@@ -27,8 +27,9 @@ import "./solitaire.css";
 
 // Solitaire in Mote's window, with Mote on your side: they watch, cheer the
 // good bits, and point out a move when you ask (or when you've been looking a
-// while). Click a card to pick it up (a face-up card in a column picks up the
-// cards on it too), then click where it goes. Double-click sends a card home.
+// while). Drag a card where it goes, or click it to pick it up and click
+// where it goes (a face-up card in a column takes the cards on it along).
+// Double-click sends a card home.
 // Click the deck to turn a card; when it's empty, click it to turn the pile
 // back over. Like every game here, it's saved as you go.
 
@@ -64,6 +65,25 @@ type Before = {
   /** A fresh deal: every card comes off the deck, one after another. */
   dealing: boolean;
 };
+
+/** A card being dragged: where from, which cards, and where the pointer
+ * started. It only counts as a drag once the pointer has moved a little. */
+type Drag = {
+  from: Place;
+  count: number;
+  ids: string[];
+  x: number;
+  y: number;
+  els: HTMLElement[];
+  moving: boolean;
+};
+
+/** A spot cards can be dropped on, from its `data-drop`. */
+function dropPlace(name: string | undefined): Place | null {
+  const [pile, i] = (name ?? "").split("-");
+  if (pile === "tableau" || pile === "foundation") return { pile, i: Number(i) };
+  return null;
+}
 
 const samePlace = (a: Place, b: Place) =>
   a.pile === b.pile && ("i" in a ? a.i : -1) === ("i" in b ? b.i : -1);
@@ -158,6 +178,109 @@ export function Solitaire({ engine, onClose }: Props) {
 
   const tell = useCallback((event: SolitaireEvent, move?: string) => engine()?.solitaire(event, move), [engine]);
 
+  // Dragging cards. A drag that ends somewhere a card can go plays the move
+  // (the cards land from where they were dropped); anywhere else, they slide
+  // back. The click that ends a drag doesn't also pick the card up.
+  const drag = useRef<Drag | null>(null);
+  const justDragged = useRef(false);
+  const playRef = useRef<(m: Move) => boolean>(() => false);
+  /** Where a card is, and how many cards would come with it. */
+  const whereIs = (id: string): { from: Place; count: number; ids: string[] } | null => {
+    const g = gameRef.current;
+    const w = g.waste[g.waste.length - 1];
+    if (w && idOf(w) === id) return { from: { pile: "waste" }, count: 1, ids: [id] };
+    for (let i = 0; i < 4; i++) {
+      const f = g.foundations[i];
+      const t = f[f.length - 1];
+      if (t && idOf(t) === id) return { from: { pile: "foundation", i }, count: 1, ids: [id] };
+    }
+    for (let i = 0; i < 7; i++) {
+      const col = g.tableau[i];
+      const k = col.findIndex((c) => idOf(c) === id);
+      if (k >= 0 && col[k].up) return { from: { pile: "tableau", i }, count: col.length - k, ids: col.slice(k).map(idOf) };
+    }
+    return null;
+  };
+  const grab = (e: ReactPointerEvent) => {
+    if (e.button !== 0 || done || finishing) return;
+    const id = (e.target as Element).closest<HTMLElement>("[data-card]")?.dataset.card;
+    if (!id || id === "stock") return;
+    const at = whereIs(id);
+    if (!at || !canPick(at.from, at.count)) return;
+    drag.current = { ...at, x: e.clientX, y: e.clientY, els: [], moving: false };
+  };
+  useEffect(() => {
+    const letGo = (d: Drag) =>
+      d.els.forEach((el) => {
+        el.style.transform = "";
+        el.style.transition = "";
+        el.style.zIndex = "";
+        el.style.pointerEvents = "";
+        el.classList.remove("is-dragging");
+      });
+    const move = (e: PointerEvent) => {
+      const d = drag.current;
+      if (!d) return;
+      const dx = e.clientX - d.x;
+      const dy = e.clientY - d.y;
+      if (!d.moving) {
+        if (Math.hypot(dx, dy) < 6) return;
+        d.moving = true;
+        d.els = d.ids
+          .map((id) => table.current?.querySelector<HTMLElement>(`[data-card="${id}"]`))
+          .filter((el): el is HTMLElement => !!el);
+        d.els.forEach((el) => {
+          el.style.transition = "none";
+          el.style.zIndex = "30";
+          el.style.pointerEvents = "none";
+          el.classList.add("is-dragging");
+        });
+        setHeld(null);
+        setHinted(null);
+        setNote(null);
+      }
+      d.els.forEach((el) => {
+        el.style.transform = `translate(${dx}px, ${dy}px)`;
+      });
+    };
+    const up = (e: PointerEvent) => {
+      const d = drag.current;
+      drag.current = null;
+      if (!d?.moving) return;
+      justDragged.current = true;
+      window.setTimeout(() => (justDragged.current = false), 0);
+      const over = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>("[data-drop]");
+      const to = dropPlace(over?.dataset.drop);
+      // Playing it first notes where the cards were dropped, so they land
+      // from there.
+      const played = !!to && !samePlace(to, d.from) && playRef.current({ type: "move", from: d.from, to, count: d.count });
+      letGo(d);
+      if (played) return;
+      const dx = e.clientX - d.x;
+      const dy = e.clientY - d.y;
+      d.els.forEach((el) =>
+        el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "translate(0, 0)" }], {
+          duration: 240,
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+        }),
+      );
+      if (to && !samePlace(to, d.from)) setNote("That doesn’t go there.");
+    };
+    const cancel = () => {
+      const d = drag.current;
+      drag.current = null;
+      if (d?.moving) letGo(d);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", cancel);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", cancel);
+    };
+  }, []);
+
   useEffect(() => {
     alive.current = true;
     tell(resumed.current ? "resume" : "start");
@@ -230,13 +353,18 @@ export function Solitaire({ engine, onClose }: Props) {
       const before = m.from.pile === "tableau" ? g.tableau[m.from.i] : null;
       const revealed = !!col?.length && !!before && before.length - m.count > 0 && !before[before.length - m.count - 1].up;
       const card = movingCard(g, m);
-      if (m.to.pile === "foundation" && card.rank <= 2) tell("home-low");
+      const home = m.to.pile === "foundation";
+      if (home && card.rank === 1) tell("home-ace");
+      else if (home && card.rank === 13) tell("home-king");
       else if (col && col.length === 0 && card.rank !== 13) tell("cleared");
       else if (revealed) tell("reveal");
-      else if (m.to.pile === "foundation") tell("home");
+      else if (home && card.rank === 2) tell("home-two");
+      else if (home) tell("home");
     }
     return true;
   };
+
+  playRef.current = play;
 
   const canPick = (from: Place, count: number) =>
     // Picking up is allowed if it could go somewhere at all; anything that
@@ -245,7 +373,7 @@ export function Solitaire({ engine, onClose }: Props) {
 
   /** Clicking a card or an empty spot. */
   const clickAt = (place: Place, count: number) => {
-    if (done || finishing) return;
+    if (done || finishing || justDragged.current) return;
     const g = gameRef.current;
     if (held) {
       if (samePlace(held.from, place) && held.count === count) return setHeld(null);
@@ -386,7 +514,7 @@ export function Solitaire({ engine, onClose }: Props) {
         <CloseButton onClick={close} />
       </div>
 
-      <div className="sol-table" ref={table}>
+      <div className="sol-table" ref={table} onPointerDown={grab}>
         <div className="sol-row">
           <button
             ref={stockSpot}
@@ -418,6 +546,7 @@ export function Solitaire({ engine, onClose }: Props) {
               <div
                 key={i}
                 className={`sol-spot is-empty${isHintTarget(place) ? " is-hint-target" : ""}`}
+                data-drop={`foundation-${i}`}
                 onClick={c ? undefined : () => clickAt(place, 0)}
                 aria-label={c ? undefined : "Empty foundation"}
               >
@@ -456,6 +585,7 @@ export function Solitaire({ engine, onClose }: Props) {
               <div
                 key={i}
                 className={`sol-col${col.length ? "" : " is-empty"}${isHintTarget(place) && !col.length ? " is-hint-target" : ""}`}
+                data-drop={`tableau-${i}`}
                 style={{ height: `calc(var(--cw) * ${height.toFixed(3)})` } as CSSProperties}
                 onClick={col.length ? undefined : () => clickAt(place, 0)}
                 aria-label={col.length ? undefined : "Empty column"}

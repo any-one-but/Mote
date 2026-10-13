@@ -126,8 +126,9 @@ Game boards go a deep walnut (`#6e5d4f` and `#54463b`), and pieces swap the
 way Mote does: Mote's pieces are drawn in Mote's own colours (`--mote-face`
 and `--mote-eyes`, so they're dark with cream eyes in dark mode, and follow
 any special look too), and yours are cream. Playing cards are paper in both
-modes. If an object would vanish on the dark card, give it a lighter tone in
-dark mode, not an outline.
+modes. Chess is the exception: you're always white (cream) and Mote black
+(ink, with little cream eyes), as chess goes. If an object would vanish on the
+dark card, give it a lighter tone in dark mode, not an outline.
 
 ## 3. Shape
 
