@@ -232,12 +232,13 @@ export function Companion() {
     moodShape,
     look,
     name: settings.name,
+    animations: settings.animations,
   };
   const optionsNow = useRef(engineOptions);
   optionsNow.current = engineOptions;
   useEffect(() => {
     engineRef.current?.configure(optionsNow.current);
-  }, [energy, friendly, mindOn, remarks, chat, needs, memories, gameTalk, dizzy, antics, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape, look, settings.name]);
+  }, [energy, friendly, mindOn, remarks, chat, needs, memories, gameTalk, dizzy, antics, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape, look, settings.name, settings.animations]);
   // Noticing the screen switched on or off: sound elsewhere counts, or doesn't.
   useEffect(() => {
     applyAudio();

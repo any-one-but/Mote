@@ -102,8 +102,6 @@ export type Mood =
   // Looking out at you while watching something.
   | "checkin"
   // Playing a game dropped on Mote.
-  | "chess"
-  | "minecraft"
   | "gaming"
   // Pleased, and worried.
   | "beam"
@@ -123,7 +121,82 @@ export type Mood =
   | "ch-check"
   | "ch-checked"
   // A sorry-but-no shake of the head (something Mote won't take).
-  | "decline";
+  | "decline"
+  // The simple set (see SIMPLE): a few general moods, each standing in for
+  // several of the classic ones above.
+  | "happy"
+  | "cheer"
+  | "proud"
+  | "content"
+  | "gentle"
+  | "grumpy"
+  | "sad"
+  | "worried"
+  | "no"
+  | "watch"
+  | "concentrate"
+  | "play";
+
+/** The simple set's own moods. */
+export type SimpleMood = "happy" | "cheer" | "proud" | "content" | "gentle" | "grumpy" | "sad" | "worried" | "no" | "watch" | "concentrate" | "play";
+
+/**
+ * Two sets of animations, switched in Debug's Moods tab. The classic set has
+ * a mood for nearly every moment; the simple set has fewer, more general
+ * ones, each standing in for several classic moods (all the grumpy ones are
+ * just "grumpy", every pleased look after a good move is "proud"). Mote
+ * behaves the same either way, and everything asks for classic moods: with
+ * the simple set on, they're shown as the simple mood that stands in for
+ * them (moods without one are the same in both).
+ */
+export type AnimationSet = "classic" | "simple";
+
+export const SIMPLE: Partial<Record<Mood, SimpleMood | Mood>> = {
+  startle: "surprise",
+  delight: "happy",
+  "ck-win": "cheer",
+  "ck-smug": "proud",
+  "ck-crown": "proud",
+  "ch-check": "proud",
+  beam: "content",
+  hum: "content",
+  soothe: "gentle",
+  checkin: "gentle",
+  frustrate: "grumpy",
+  huff: "grumpy",
+  sulk: "grumpy",
+  "ck-lose": "sad",
+  "ck-ouch": "sad",
+  worry: "worried",
+  care: "worried",
+  "ch-checked": "worried",
+  decline: "no",
+  "ck-watch": "watch",
+  "ck-think": "concentrate",
+  gaming: "play",
+};
+
+/** Each simple mood's animation: the classic one that suits it best (made to
+ * be general: nothing in them is about one particular moment). */
+const SIMPLE_POSE: Record<SimpleMood, Mood> = {
+  happy: "delight",
+  cheer: "ck-win",
+  proud: "ck-smug",
+  content: "beam",
+  gentle: "soothe",
+  grumpy: "frustrate",
+  sad: "ck-ouch",
+  worried: "worry",
+  no: "decline",
+  watch: "ck-watch",
+  concentrate: "ck-think",
+  play: "gaming",
+};
+
+const isSimple = (m: Mood): m is SimpleMood => m in SIMPLE_POSE;
+
+/** The mood an animation set shows for a mood something asked for. */
+export const shownAs = (set: AnimationSet, m: Mood): Mood => (set === "simple" ? (SIMPLE[m] ?? m) : m);
 
 /**
  * Everything Mote can do with their face. The eyes are pills; expression comes
@@ -243,6 +316,8 @@ export type EngineOptions = {
   look: Look;
   /** What Mote calls you (empty until you've told them). */
   name: string;
+  /** Which set of animations plays (see AnimationSet). */
+  animations: AnimationSet;
 };
 
 /** An app dropped on Mote: its name, its ID (com.apple.safari…), and
@@ -395,8 +470,6 @@ export const MOOD_LIST: Mood[] = [
   "sulk",
   "hum",
   "checkin",
-  "chess",
-  "minecraft",
   "gaming",
   "beam",
   "worry",
@@ -412,6 +485,33 @@ export const MOOD_LIST: Mood[] = [
   "ch-check",
   "ch-checked",
   "decline",
+];
+
+/** The simple set, in the same order (see SIMPLE). */
+export const SIMPLE_LIST: Mood[] = [
+  "settle",
+  "glance",
+  "think",
+  "cute",
+  "surprise",
+  "happy",
+  "cheer",
+  "proud",
+  "content",
+  "gentle",
+  "grumpy",
+  "sad",
+  "worried",
+  "no",
+  "watch",
+  "concentrate",
+  "play",
+  "dizzy",
+  "purr",
+  "yawn",
+  "doze",
+  "sleep",
+  "wake",
 ];
 
 export const REST: Pose = {
@@ -466,7 +566,9 @@ const SPRING: Record<keyof Pose, [number, number]> = {
 };
 
 /** Mood length (ms) and how fast springs move while it plays (1 = normal). */
-const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: number }> = {
+type Timing = { dur: number; tempo: number };
+
+const CLASSIC_MOODS: Record<Exclude<Mood, "settle" | "sleep" | SimpleMood>, Timing> = {
   doze: { dur: 4200, tempo: 0.18 },
   wake: { dur: 1100, tempo: 1 },
   yawn: { dur: 2600, tempo: 0.7 },
@@ -482,8 +584,6 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   sulk: { dur: 3200, tempo: 0.8 },
   hum: { dur: 3000, tempo: 0.9 },
   checkin: { dur: 1500, tempo: 0.9 },
-  chess: { dur: 5600, tempo: 0.95 },
-  minecraft: { dur: 5400, tempo: 1 },
   gaming: { dur: 5600, tempo: 1.2 },
   beam: { dur: 8400, tempo: 1 },
   worry: { dur: 8400, tempo: 0.85 },
@@ -504,6 +604,15 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   "ck-think": { dur: Number.POSITIVE_INFINITY, tempo: 0.85 },
 };
 
+/** How long each mood lasts, and how fast it moves (a simple mood, like the
+ * classic one its animation is). */
+const MOODS: Record<Exclude<Mood, "settle" | "sleep">, Timing> = {
+  ...CLASSIC_MOODS,
+  ...(Object.fromEntries(
+    (Object.keys(SIMPLE_POSE) as SimpleMood[]).map((m) => [m, CLASSIC_MOODS[SIMPLE_POSE[m] as keyof typeof CLASSIC_MOODS]]),
+  ) as Record<SimpleMood, Timing>),
+};
+
 /** How long a purr keeps going after the petting stops (ms). */
 const PURR_AFTER = 1300;
 
@@ -520,8 +629,6 @@ const BUSY: Mood[] = [
   "worry",
   "care",
   "soothe",
-  "chess",
-  "minecraft",
   "gaming",
   "ck-think",
   "ck-smug",
@@ -534,12 +641,10 @@ const BUSY: Mood[] = [
   "decline",
 ];
 
-type GameMood = "chess" | "minecraft" | "gaming";
-const GAME_MOODS: Mood[] = ["chess", "minecraft", "gaming"];
+const GAME_MOODS: Mood[] = ["gaming"];
 
 /** Whether this game goes Mote's way. */
-const gameWon = (m: GameMood, seed: number) =>
-  m === "chess" ? chessWin(seed) : m === "minecraft" ? minecraftWin(seed) : gamingWin(seed);
+const gameWon = (seed: number) => gamingWin(seed);
 
 /** How long you have to be away before Mote is glad to see you back (ms). */
 const AWAY = 10 * 60_000;
@@ -558,6 +663,18 @@ const BAG: Mood[] = [
 ];
 
 const LABELS: Partial<Record<Mood, string>> = {
+  happy: "Mote is happy.",
+  cheer: "Mote is cheering!",
+  proud: "Mote looks proud.",
+  content: "Mote looks content.",
+  gentle: "Mote gives you a gentle look.",
+  grumpy: "Mote is grumpy.",
+  sad: "Mote is sad.",
+  worried: "Mote is worried.",
+  no: "Mote shakes their head.",
+  watch: "Mote is watching.",
+  concentrate: "Mote is concentrating.",
+  play: "Mote is playing a game.",
   sleep: "Mote is sleeping. Click to wake.",
   yawn: "Mote yawns.",
   startle: "Mote jolts awake!",
@@ -584,8 +701,6 @@ const LABELS: Partial<Record<Mood, string>> = {
   "ch-check": "Mote puts your king in check.",
   "ch-checked": "Mote's king is in check!",
   decline: "Mote shakes their head: no thanks.",
-  chess: "Mote is playing chess.",
-  minecraft: "Mote is playing Minecraft.",
   gaming: "Mote is gaming.",
   purr: "Mote is enjoying the pets.",
 };
@@ -623,6 +738,7 @@ export function poseFor(
   seed: number,
   extras: PoseExtras = {},
 ): { pose: Pose; shakeX: number; shakeRot: number; swirl: number; purr: number } {
+  if (isSimple(mood)) return poseFor(SIMPLE_POSE[mood], t, seed, extras);
   const dir = seed > 0.5 ? 1 : -1;
   let swirl = 0;
   let purr = 0;
@@ -857,114 +973,6 @@ export function poseFor(
       keys.push([150 + i * 380, { ...glad, rot: s * 4, x: s * 1.5, y: -1.5, sy: 1.02 }]);
     }
     keys.push([2600, {}]);
-  } else if (mood === "chess") {
-    // Chess with the little pawn: a long think, then either a clever move and
-    // a smug look before checkmate, or a blunder, a worried look and a laugh.
-    const atPawn: Partial<Pose> = { lookX: dir * 0.45, lookY: 0.75, lookMix: 1 };
-    const pondering: Partial<Pose> = {
-      ...atPawn,
-      lid: 0.12,
-      lidTilt: 0.22,
-      lidBias: dir * 0.08,
-      openBias: dir * 0.12,
-      rot: dir * 4,
-      y: -1,
-    };
-    if (chessWin(seed)) {
-      keys = [
-        [0, { ...atPawn, open: 1.05 }],
-        [500, pondering],
-        [1200, { ...pondering, rot: dir * 6, lookX: dir * 0.3 }],
-        [1900, { ...atPawn, open: 1.25, wide: 1.04, y: -8, sy: 1.06, sx: 0.96 }],
-        [2250, { ...atPawn, open: 1.1, y: 0 }],
-        // Smug: a sideways look at you, one brow up, cheeks up.
-        [
-          2700,
-          {
-            lid: 0.24,
-            lidCurve: -0.06,
-            lidBias: -dir * 0.06,
-            cheek: 0.42,
-            cheekCurve: 0.12,
-            rot: -dir * 3,
-            lookX: -dir * 0.3,
-            lookY: 0.05,
-            lookMix: 1,
-          },
-        ],
-        // Checkmate!
-        [3900, { y: -11, sy: 1.06, sx: 0.95, cheek: 0.7, cheekCurve: 0.26, open: 1.02 }],
-        [4200, { y: 1, sy: 0.95, sx: 1.04, cheek: 0.7, cheekCurve: 0.26 }],
-        [4450, { cheek: 0.62, cheekCurve: 0.2, rot: dir * 3 }],
-        [5100, {}],
-      ];
-    } else {
-      keys = [
-        [0, { ...atPawn, open: 1.05 }],
-        [500, pondering],
-        // A confident move…
-        [1450, { ...atPawn, open: 1.08, cheek: 0.32, cheekCurve: 0.1, y: -2 }],
-        // …and the pawn gets knocked flat.
-        [2500, { ...atPawn, open: 1.36, wide: 0.9, y: -7, sy: 1.06, sx: 0.95 }],
-        [3000, { ...atPawn, lookY: 0.85, lidTilt: -0.45, lid: 0.1, open: 1.1, y: 1 }],
-        // Oh well: a laugh about it.
-        [3900, { cheek: 0.7, cheekCurve: 0.2, open: 0.92, lookY: -0.05, lookMix: 1 }],
-        [5100, {}],
-      ];
-      if (t > 3900 && t < 4900) {
-        const fade = 1 - (t - 3900) / 1000;
-        const giggle = Math.sin(((t - 3900) / 1000) * Math.PI * 2 * 6);
-        wobble = { y: -Math.abs(giggle) * 2.5 * fade, rot: giggle * 1.5 * fade };
-      }
-    }
-  } else if (mood === "minecraft") {
-    // Minecraft: either bonks a block until it pops, and is delighted with
-    // the little block they get; or a creeper turns up, hisses… and BOOM.
-    const atBlock: Partial<Pose> = { lookX: dir * 0.45, lookY: 0.7, lookMix: 1 };
-    if (minecraftWin(seed)) {
-      keys = [[0, { ...atBlock, open: 1.1 }]];
-      for (const at of BONKS) {
-        keys.push(
-          [at, { ...atBlock, x: dir * 5, rot: dir * 7, y: 2, sy: 0.94, sx: 1.05, lid: 0.15 }],
-          [at + 160, { ...atBlock, x: dir, lid: 0.1 }],
-        );
-      }
-      keys.push(
-        [2350, { ...atBlock, open: 1.2, y: -4 }],
-        [2700, { y: -12, sy: 1.07, sx: 0.95, cheek: 0.7, cheekCurve: 0.26, open: 1.05 }],
-        [3000, { y: 1, sy: 0.95, sx: 1.04, cheek: 0.7, cheekCurve: 0.26 }],
-        [3300, { cheek: 0.62, cheekCurve: 0.2, lookX: dir * 0.3, lookY: 0.4, lookMix: 1 }],
-        [4900, {}],
-      );
-    } else {
-      keys = [
-        [0, { ...atBlock, open: 1.05, rot: dir * 3 }],
-        // Is that… a creeper?
-        [900, { ...atBlock, open: 1.25, lidTilt: -0.45, lid: 0.05, x: -dir * 3, y: -1 }],
-        // BOOM.
-        [2300, { open: 1.4, wide: 0.88, y: -14, sy: 1.1, sx: 0.9, lookY: -0.1, lookMix: 1 }],
-        [2650, { open: 0.9, wide: 0.95, lookMix: 1 }],
-        [4200, { open: 1.02 }],
-        [4600, {}],
-      ];
-      if (t > 900 && t < 2300) shakeX = Math.sin((t / 1000) * Math.PI * 2 * 16) * 0.6;
-      // Dazed, eyes swirling, then shakes it off.
-      const up = Math.min(1, Math.max(0, (t - 2650) / 300));
-      const down = Math.min(1, Math.max(0, (4200 - t) / 400));
-      swirl = up * down;
-      const w = t / 1000;
-      wobble = {
-        x: Math.sin(w * 9) * 3 * swirl,
-        rot: Math.sin(w * 9 + 1) * 6 * swirl,
-        openBias: Math.sin(w * 11) * 0.15 * swirl,
-      };
-      if (t > 4200 && t < 4650) {
-        const decay = 1 - (t - 4200) / 450;
-        const shake = Math.sin(((t - 4200) / 1000) * Math.PI * 2 * 10);
-        shakeX = shake * 3 * decay;
-        shakeRot = shake * 2 * decay;
-      }
-    }
   } else if (mood === "gaming") {
     // Gaming: locks in, mashes buttons with darting eyes, a clutch moment,
     // then a victory hop or a deflated head shake.
@@ -1327,97 +1335,11 @@ export function poseFor(
   return { pose, shakeX, shakeRot, swirl, purr };
 }
 
-/** Whether this game of chess (or other game) goes Mote's way. */
-export const chessWin = (seed: number) => (seed * 7.31) % 1 < 0.6;
+/** Whether this game goes Mote's way. */
 export const gamingWin = (seed: number) => (seed * 7.31) % 1 < 0.65;
-export const minecraftWin = (seed: number) => (seed * 7.31) % 1 < 0.6;
 
-/** When Mote bonks the block while mining it (ms). */
-const BONKS = [600, 1100, 1600, 2100];
-
-/** The puff of pixel smoke when the creeper goes off: one square per puff. */
-export function boomAt(t: number, seed: number) {
-  const dir = seed > 0.5 ? 1 : -1;
-  const u = (t - 2300) / 700;
-  return Array.from({ length: 10 }, (_, i) => {
-    if (minecraftWin(seed) || u < 0 || u > 1) return null;
-    const angle = (i / 10) * Math.PI * 2 + (i % 2) * 0.3;
-    const reach = (28 + (i % 3) * 10) * (1 - (1 - u) ** 3);
-    return {
-      x: GEO.cx + dir * 46 + Math.cos(angle) * reach,
-      y: 226 + Math.sin(angle) * reach * 0.8 - 10 * u,
-      s: 1 + (i % 3) * 0.4 - 0.5 * u,
-      o: 1 - u * u,
-    };
-  });
-}
-
-/**
- * The block (or the creeper), `t` ms into a game of Minecraft: where, how
- * big, how see-through, and how cracked (0–3).
- */
-export function blockAt(t: number, seed: number) {
-  const dir = seed > 0.5 ? 1 : -1;
-  const s = popIn(t, MOODS.minecraft.dur);
-  if (minecraftWin(seed)) {
-    const cracks = BONKS.filter((b) => t >= b + 60).length;
-    if (cracks < 4) {
-      return { creeper: false, x: GEO.cx + dir * 44, y: 226, rot: 0, s, o: 1, cracks };
-    }
-    // Popped: a little block that bobs in the air, ready to pick up.
-    const u = Math.min(1, (t - BONKS[3] - 60) / 300);
-    const bob = Math.sin((t / 1000) * Math.PI * 2 * 0.9) * 3;
-    return {
-      creeper: false,
-      x: GEO.cx + dir * (44 - 10 * u),
-      y: 226 - 14 * u + bob,
-      rot: Math.sin((t / 1000) * 3) * 12,
-      s: s * (1 - 0.4 * u),
-      o: 1,
-      cracks: 0,
-    };
-  }
-  // A creeper: swells and shudders while it hisses, then explodes.
-  const hiss = clamp((t - 900) / 1400, 0, 1);
-  const pulse = hiss * (0.06 + 0.06 * Math.sin((t / 1000) * Math.PI * 2 * (3 + 6 * hiss)));
-  const boom = clamp((t - 2300) / 260, 0, 1);
-  return {
-    creeper: true,
-    x: GEO.cx + dir * 46 + Math.sin(t / 25) * 1.2 * hiss * (1 - boom),
-    y: 226,
-    rot: 0,
-    s: s * (1 + pulse + boom * 1.2),
-    o: 1 - boom,
-    cracks: 0,
-  };
-}
-
-/** Pops a prop in at the start of a mood and out at the end (0..1). */
 const popIn = (t: number, dur: number) =>
   Math.min(1, t / 220) * Math.min(1, Math.max(0, (dur - t) / 260));
-
-/** The pawn on the chess board, `t` ms into a game. */
-export function pawnAt(t: number, seed: number) {
-  const dir = seed > 0.5 ? 1 : -1;
-  const s = popIn(t, MOODS.chess.dur);
-  const hop = (a: number, b: number) => {
-    const u = clamp((t - a) / (b - a), 0, 1);
-    return { u: u * u * (3 - 2 * u), lift: Math.sin(Math.PI * u) * 14 };
-  };
-  if (chessWin(seed)) {
-    const m = hop(2000, 2400);
-    return { x: GEO.cx + dir * (46 - 18 * m.u), y: 238 - 8 * m.u - m.lift, rot: 0, s };
-  }
-  const m = hop(1450, 1850);
-  // Knocked over: it tips onto its side.
-  const fall = clamp((t - 2450) / 220, 0, 1);
-  return {
-    x: GEO.cx + dir * (46 - 18 * m.u + 6 * fall),
-    y: 238 - 8 * m.u - m.lift,
-    rot: dir * 90 * fall * fall,
-    s,
-  };
-}
 
 /** The game controller, `t` ms into a game: jiggling while buttons are mashed. */
 export function padAt(t: number, seed: number) {
@@ -1991,12 +1913,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     gLidR: q<SVGPathElement>(svg, "guide-lid-r"),
     gCheekL: q<SVGPathElement>(svg, "guide-cheek-l"),
     gCheekR: q<SVGPathElement>(svg, "guide-cheek-r"),
-    pawn: q<SVGGElement>(svg, "pawn"),
     pad: q<SVGGElement>(svg, "pad"),
-    block: q<SVGGElement>(svg, "block"),
-    creeper: q<SVGGElement>(svg, "creeper"),
-    puffs: Array.from(svg.querySelectorAll<SVGRectElement>('[data-part="boom"] rect')),
-    cracks: Array.from(svg.querySelectorAll<SVGPathElement>('[data-part="block"] .crack')),
   };
 
   const options: EngineOptions = {
@@ -2024,6 +1941,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     moodShape: true,
     look: "neutral",
     name: "",
+    animations: "simple",
   };
   const debug = {
     timeScale: 1,
@@ -2179,7 +2097,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   let talkingLink: SavedLink | null = null;
   let nextLinkCheck = 3 * 60_000;
   let lastLinkAt = Number.NEGATIVE_INFINITY;
-  let game: { name: string; mood: GameMood; won: boolean } | null = null;
+  // A game dropped on Mote: its name, what sort (Apple's Chess and Minecraft
+  // get lines of their own), and how it went.
+  let game: { name: string; kind: "chess" | "minecraft" | "game"; won: boolean } | null = null;
 
   const log = (text: string) => hooks.onEvent?.(text);
 
@@ -2223,14 +2143,18 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     }
   };
 
+  /** The mood whose animation is playing: the one asked for, as the
+   * animation set shows it (see SIMPLE). */
+  const shown = () => shownAs(options.animations, mood);
+
   const start = (next: Mood, now: number) => {
     const prev = mood;
     mood = next;
     moodStart = now;
     moodSeed = Math.random();
     if (next !== "settle") lastAct = next;
-    svg.dataset.mood = next;
-    announce(LABELS[next] ?? null);
+    svg.dataset.mood = shownAs(options.animations, next);
+    announce(LABELS[shownAs(options.animations, next)] ?? null);
     log(`mood → ${next}`);
     nextBlink = Math.max(nextBlink, now + 900);
     if (next === "glance" && Math.random() < 0.4) blinkAt(now + 20);
@@ -2240,7 +2164,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (prev === "dizzy") dizzyReadyAt = now + 4000;
     if (prev === "dizzy" && next !== "dizzy") mention("dizzy-over", 0.7);
     if (prev === "purr" && next !== "purr") mention("petted", 0.6);
-    if (game && next === game.mood) game.won = gameWon(game.mood, moodSeed);
+    if (game && next === "gaming") game.won = gameWon(moodSeed);
     if (GAME_MOODS.includes(prev) && !GAME_MOODS.includes(next)) mention("played", 0.7);
   };
 
@@ -2264,7 +2188,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     name: options.name,
     offering: offered,
     game: game?.name ?? null,
-    gameKind: game ? (game.mood === "gaming" ? "game" : game.mood) : null,
+    gameKind: game?.kind ?? null,
     gameWon: game?.won ?? false,
     link: talkingLink
       ? {
@@ -2320,7 +2244,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (line.then?.[outcome] === "suggest-play") hooks.onSuggestPlay?.();
     if (line.then?.[outcome] === "play-again" && game) {
       react("play");
-      start(game.mood, now);
+      start("gaming", now);
     }
     if (line.then?.[outcome] === "open-link" && talkingLink) {
       react("link-opened");
@@ -2665,11 +2589,10 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       return;
     }
     if (app.game) {
-      const next: GameMood = app.game === "game" ? "gaming" : app.game;
-      game = { name: app.name, mood: next, won: false };
+      game = { name: app.name, kind: app.game, won: false };
       react("play");
-      sayNow(next === "gaming" ? "game-start" : `${next}-start`);
-      start(next, clock);
+      sayNow(app.game === "game" ? "game-start" : `${app.game}-start`);
+      start("gaming", clock);
       return;
     }
     // One of the apps that came with the Mac: Mote has something to say.
@@ -2975,7 +2898,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         ? false
         : mood === "purr"
           ? sincePet > PURR_AFTER
-          : now >= moodStart + MOODS[mood].dur;
+          : now >= moodStart + MOODS[shown() as keyof typeof MOODS].dur;
     if (over) {
       // Nodding off: a doze becomes real sleep, unless something happened in
       // the meantime and they catch themself.
@@ -3029,7 +2952,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       shakeRot,
       swirl,
       purr,
-    } = poseFor(mood, t, moodSeed, {
+    } = poseFor(shown(), t, moodSeed, {
       sincePet: sincePet < 350 ? -1 : sincePet - 350,
     });
     swirlNow = swirl;
@@ -3056,7 +2979,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         target.lookMix = Math.max(target.lookMix, 0.35 * fl.depressed * tone);
       }
     }
-    const tempo = mood === "sleep" ? 0.12 : mood === "settle" ? 1 : MOODS[mood].tempo;
+    const tempo = mood === "sleep" ? 0.12 : mood === "settle" ? 1 : MOODS[shown() as keyof typeof MOODS].tempo;
 
     // Something dragged over the window: eyes wide, leaning in, curious.
     if (hovering && ["settle", "glance", "think"].includes(mood)) {
@@ -3414,24 +3337,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
           `translate(${f(p.x)} ${f(p.y)}) rotate(${f(p.rot ?? 0)}) scale(${f(p.s)})`,
         );
     };
-    place(parts.pawn, mood === "chess" ? pawnAt(at, moodSeed) : null);
     place(parts.pad, mood === "gaming" ? padAt(at, moodSeed) : null);
-    const block = mood === "minecraft" ? blockAt(at, moodSeed) : null;
-    place(parts.block, block && !block.creeper ? block : null);
-    place(parts.creeper, block?.creeper ? block : null);
-    if (block && parts.creeper) parts.creeper.style.opacity = f(block.o);
-    const puffs = mood === "minecraft" ? boomAt(at, moodSeed) : [];
-    parts.puffs.forEach((el, i) => {
-      const b = puffs[i];
-      el.style.display = b ? "" : "none";
-      if (b) {
-        el.setAttribute("transform", `translate(${f(b.x)} ${f(b.y)}) scale(${f(b.s)})`);
-        el.style.opacity = f(b.o);
-      }
-    });
-    parts.cracks.forEach((el, i) => {
-      el.style.display = block && block.cracks > i ? "" : "none";
-    });
 
     if (debug.guides) {
       parts.guides?.setAttribute("transform", eyeShift);
@@ -3731,7 +3637,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       debug.manual = face;
     },
     snapshot: () => ({
-      mood,
+      mood: shown(),
       moodMs: clock - moodStart,
       fps,
       gazeX: gaze.x,

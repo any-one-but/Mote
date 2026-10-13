@@ -606,6 +606,23 @@ input:focus-visible {
   padding: calc(var(--unit) * 1.5) 0;
 }
 
+/* Under the simple set's moods: what each stands in for. */
+.stands-in {
+  margin: 0;
+  padding: 0 0 calc(var(--unit) * 1.5);
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.stands-in strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
 .button-row {
   display: flex;
   flex-wrap: wrap;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Energy } from "@/components/companion/engine";
+import type { AnimationSet, Energy } from "@/components/companion/engine";
 import { listenBus, send } from "@/lib/companion/bus";
 
 export type Settings = {
@@ -7,9 +7,8 @@ export type Settings = {
   name: string;
   /** Light, dark, or whatever the Mac is set to. */
   theme: Theme;
-  /** Mote Appearance, in Settings: plain Mote, the jack-o'-lantern (which
-   * always has its carved grin), or a ghost (no mouth: ghosts don't have
-   * one). */
+  /** Mote Appearance, in Settings: plain Mote, or the jack-o'-lantern (which
+   * always has its carved grin). (The ghost is only in Debug's Mode for now.) */
   moteAppearance: MoteAppearance;
   /** Debug's Mode: a special look for Mote, for testing (the mouth follows
    * its own switch here). Mote Appearance wins when it isn't plain. */
@@ -17,6 +16,8 @@ export type Settings = {
   /** Mote never gets too upset: hurt counts for less, no sulking or sharp words. */
   friendly: boolean;
   energy: Energy;
+  /** Which set of animations Mote uses (Debug's Moods tab). */
+  animations: AnimationSet;
   floatOnTop: boolean;
 };
 
@@ -24,7 +25,7 @@ export type Theme = "light" | "dark" | "system";
 // (The engine also has a snowman look, switched off for now: it isn't
 // offered, and a saved "snow" reads as neutral.)
 export type Mode = "neutral" | "jack" | "ghost";
-export type MoteAppearance = "normal" | "jack" | "ghost";
+export type MoteAppearance = "normal" | "jack";
 
 /** The look Mote has right now: Mote Appearance's, or else Debug's Mode. */
 export const lookOf = (s: Settings): Mode => (s.moteAppearance === "normal" ? s.mode : s.moteAppearance);
@@ -40,6 +41,7 @@ export const DEFAULT_SETTINGS: Settings = {
   mode: "neutral",
   friendly: false,
   energy: "normal",
+  animations: "simple",
   floatOnTop: false,
 };
 
@@ -66,10 +68,11 @@ export function readSettings(): Settings {
   return {
     name: nameOf(raw.name),
     theme: pick(raw.theme, ["light", "dark", "system"] as const, d.theme),
-    moteAppearance: pick(raw.moteAppearance, ["normal", "jack", "ghost"] as const, d.moteAppearance),
+    moteAppearance: pick(raw.moteAppearance, ["normal", "jack"] as const, d.moteAppearance),
     mode: pick(raw.mode, ["neutral", "jack", "ghost"] as const, d.mode),
     friendly: bool(raw.friendly, d.friendly),
     energy: pick(raw.energy, ["calm", "normal", "lively"] as const, d.energy),
+    animations: pick(raw.animations, ["classic", "simple"] as const, d.animations),
     floatOnTop: bool(raw.floatOnTop, d.floatOnTop),
   };
 }

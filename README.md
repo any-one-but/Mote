@@ -26,11 +26,9 @@ Drag something onto Mote's window:
 
 **Apps** are fun:
 
-- **Games** get played. Apple's **Chess** has its own animations (a long
-  think, then a clever move, a smug look and checkmate, or a blunder and a
-  laugh), and so does **Minecraft** (mining a block, or a creeper… BOOM).
-  Any other game gets gamer moves: locking in, button mashing, a clutch
-  moment, then a victory hop or a deflated head shake. Afterwards Mote
+- **Games** get played, with gamer moves and a little controller: locking
+  in, button mashing, a clutch moment, then a victory hop or a deflated head
+  shake (Apple's **Chess** and **Minecraft** get lines of their own). Afterwards Mote
   sometimes asks to go again. Mote knows something is a game if the app
   says so, if it's a game store or launcher (Steam, GOG, Epic, Battle.net…)
   or lives in one's folder, if it's one of Steam's little shortcut apps
@@ -295,8 +293,8 @@ Mote eyes.
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. It's kept
-short: **Your name** (what Mote calls you), **Mote Appearance** (Normal, the
-Jack-o'-lantern or the Ghost, see below), **Light or dark** (Light, Dark, or System to
+short: **Your name** (what Mote calls you), **Mote Appearance** (Normal or the
+Jack-o'-lantern, see below), **Light or dark** (Light, Dark, or System to
 follow the Mac), whether Mote opens when you log in, and whether the window
 floats above others. Everything else (Friendly mode, Energy, Debug's own
 Mode, saved links) is in Debug. Mote's eyes
@@ -310,12 +308,13 @@ swap like Mote does: Mote's pieces (and tic-tac-toe marks) are dark with
 cream eyes, yours cream. Chess is the exception: you're white and Mote is
 black in both modes. The playing cards stay paper.
 
-**Mote Appearance** (in Settings) gives Mote a special look: **Normal**, the
+**Mote Appearance** (in Settings) gives Mote a special look: **Normal**, or the
 **Jack-o'-lantern**, which always has its carved grin there (the mouth is
 otherwise an experimental switch, and plain Mote never gets one from
-Settings), or the **Ghost**, which has no mouth. Debug's own **Mode** (in the
-Features tab, with the Looks) does the same for testing, but leaves the mouth
-to its switch; Mote Appearance wins when it isn't Normal. **Neutral** is just
+Settings). Debug's own **Mode** (in the Features tab, with the Looks) does the
+same for testing, but leaves the mouth to its switch, and also has the
+**Ghost**, which isn't ready for Settings yet; Mote Appearance wins when it
+isn't Normal. **Neutral** is just
 Mote. **Jack-o'-lantern** (for Halloween) turns Mote's cream a soft pumpkin
 orange, makes the eyes triangles like a carved pumpkin's (they still scowl,
 smile, blink and look around), and turns the mouth, if it's on, into a
@@ -326,7 +325,7 @@ works its jaw while Mote talks. In dark mode it's inverted like everything
 else: a dark pumpkin with glowing orange eyes and grin. The expression sheet
 shows it with ?jack=1.
 
-**Ghost** puts Mote under a sheet: Mote's own round top, falling to the
+**Ghost** (Debug's Mode only, for now) puts Mote under a sheet: Mote's own round top, falling to the
 classic wavy ghost hem, and round eye holes, perfectly round at rest (they
 still squint, scowl, widen and blink, cut by the same brows and cheeks). The
 ghost hovers, bobbing gently over a smaller, fainter shadow, and the sheet is
@@ -439,7 +438,16 @@ open. A tab about a feature that's switched off (Links) isn't shown.
     the mood: Mote's own cream when all's well, a hint of red when
     frustrated, a hint of blue when low, a little purple when both. In dark
     mode it's inverted with everything else, so it's dark.
-- **Moods**: play any mood on demand, blink, poke, turn off automatic moods, loop a mood
+- **Moods**: the **Animation set**, Simple (new) or Classic (old), then play
+  any mood on demand, blink, poke, turn off automatic moods, loop a mood.
+  Classic has a mood for nearly every moment (33 of them). Simple has 23
+  general ones, each standing in for several classic moods: Happy, Cheer,
+  Proud (any good move, a crown, a check), Content, Gentle look, Grumpy (every
+  grumpy mood), Sad, Worried, No, Watching, Concentrating and Playing a game,
+  plus the ones that were already general (glance, think, cute, surprise,
+  dizzy, purr, yawn, doze, sleep, wake). Mote behaves the same with either:
+  everything still asks for its classic mood, and the simple set shows the
+  one standing in for it. The tab lists what each simple mood stands in for.
 - **Mind**: the mood chart (with buttons to nudge it), the
   games Mote remembers, and every reaction with what it does to the mood
 - **Speech**: everything Mote can say, and a button to say any of it now

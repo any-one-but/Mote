@@ -2,6 +2,8 @@ import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   MOOD_LIST,
   POSE_KEYS,
+  SIMPLE,
+  SIMPLE_LIST,
   REST,
   type Energy,
   type EngineSnapshot,
@@ -89,6 +91,18 @@ const TABS: Tab[] = [
 ];
 
 const MOOD_NAMES: Record<Mood, string> = {
+  happy: "Happy",
+  cheer: "Cheer",
+  proud: "Proud",
+  content: "Content",
+  gentle: "Gentle look",
+  grumpy: "Grumpy",
+  sad: "Sad",
+  worried: "Worried",
+  no: "No",
+  watch: "Watching",
+  concentrate: "Concentrating",
+  play: "Playing a game",
   settle: "Resting",
   glance: "Glance",
   think: "Think",
@@ -107,8 +121,6 @@ const MOOD_NAMES: Record<Mood, string> = {
   sulk: "Sulk",
   hum: "Hum",
   checkin: "Check in",
-  chess: "Chess",
-  minecraft: "Minecraft",
   gaming: "Gaming",
   beam: "Pleased",
   worry: "Worried",
@@ -308,12 +320,40 @@ export function DebugPanel({ settingsTab }: { settingsTab: ReactNode }) {
 
 /* Moods */
 
-function MoodsTab({ snap, debug, command }: Ctx) {
+/** What each simple mood stands in for, for the hint under its button. */
+const STANDS_IN: Partial<Record<Mood, Mood[]>> = {};
+for (const [classic, simple] of Object.entries(SIMPLE) as Array<[Mood, Mood]>) {
+  (STANDS_IN[simple] ??= []).push(classic);
+}
+
+function MoodsTab({ snap, debug, command, settings, updateSettings }: Ctx) {
+  const simple = settings.animations === "simple";
   return (
     <>
+      <Section title="Animations">
+        <Row
+          label="Animation set"
+          hint={
+            simple
+              ? `Simple: ${SIMPLE_LIST.length} general moods, each standing in for several classic ones. Mote behaves the same; only the animations change.`
+              : `Classic: all ${MOOD_LIST.length} moods, nearly one for every moment.`
+          }
+          stacked
+        >
+          <Segmented
+            label="Animation set"
+            options={[
+              { value: "simple", label: "Simple (new)" },
+              { value: "classic", label: "Classic (old)" },
+            ]}
+            value={settings.animations}
+            onChange={(animations) => updateSettings({ animations })}
+          />
+        </Row>
+      </Section>
       <Section title="Play a mood">
         <div className="mood-grid">
-          {MOOD_LIST.map((m) => (
+          {(simple ? SIMPLE_LIST : MOOD_LIST).map((m) => (
             <Button
               key={m}
               active={snap?.mood === m}
@@ -323,6 +363,16 @@ function MoodsTab({ snap, debug, command }: Ctx) {
             </Button>
           ))}
         </div>
+        {simple ? (
+          <ul className="stands-in">
+            {SIMPLE_LIST.filter((m) => STANDS_IN[m]).map((m) => (
+              <li key={m}>
+                <strong>{MOOD_NAMES[m]}</strong> stands in for{" "}
+                {STANDS_IN[m]!.map((c) => MOOD_NAMES[c].toLowerCase()).join(", ")}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </Section>
       <Section title="Quick actions">
         <div className="button-row">

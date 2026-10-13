@@ -285,7 +285,7 @@ export const REACTIONS: Reaction[] = [
     group: "Things you give Mote",
     name: "Playing a game",
     when: "You drop a game on Mote: Chess, Minecraft, any app marked as a game or built with a game engine, Steam/GOG/Epic/Battle.net and their games (including Steam’s little shortcut apps)",
-    then: "Chess: a long think, then a clever move and a smug look, or a blunder and a laugh. Minecraft: mines a block, or a creeper… BOOM. Other games: locks in, mashes buttons, wins or loses. May ask to go again",
+    then: "Gamer moves with a little controller: locks in, mashes buttons, a clutch moment, then wins or loses (Chess and Minecraft get lines of their own). May ask to go again",
     effects: { joy: 0.5, peace: 0.5 },
     status: "live",
   },
