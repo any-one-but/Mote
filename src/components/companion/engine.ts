@@ -177,13 +177,13 @@ export const SIMPLE: Partial<Record<Mood, SimpleMood | Mood>> = {
 };
 
 /** Each simple mood's animation: the classic one that suits it best (made to
- * be general: nothing in them is about one particular moment). */
-const SIMPLE_POSE: Record<SimpleMood, Mood> = {
+ * be general: nothing in them is about one particular moment). Gentle has
+ * an animation of its own (see `poseFor`). */
+const SIMPLE_POSE: Record<Exclude<SimpleMood, "gentle">, Mood> = {
   happy: "delight",
   cheer: "ck-win",
   proud: "ck-smug",
   content: "beam",
-  gentle: "soothe",
   grumpy: "frustrate",
   sad: "ck-ouch",
   worried: "worry",
@@ -193,7 +193,8 @@ const SIMPLE_POSE: Record<SimpleMood, Mood> = {
   play: "gaming",
 };
 
-const isSimple = (m: Mood): m is SimpleMood => m in SIMPLE_POSE;
+/** A simple mood that borrows a classic one's animation. */
+const borrows = (m: Mood): m is Exclude<SimpleMood, "gentle"> => m in SIMPLE_POSE;
 
 /** The mood an animation set shows for a mood something asked for. */
 export const shownAs = (set: AnimationSet, m: Mood): Mood => (set === "simple" ? (SIMPLE[m] ?? m) : m);
@@ -609,8 +610,12 @@ const CLASSIC_MOODS: Record<Exclude<Mood, "settle" | "sleep" | SimpleMood>, Timi
 const MOODS: Record<Exclude<Mood, "settle" | "sleep">, Timing> = {
   ...CLASSIC_MOODS,
   ...(Object.fromEntries(
-    (Object.keys(SIMPLE_POSE) as SimpleMood[]).map((m) => [m, CLASSIC_MOODS[SIMPLE_POSE[m] as keyof typeof CLASSIC_MOODS]]),
-  ) as Record<SimpleMood, Timing>),
+    (Object.keys(SIMPLE_POSE) as Array<keyof typeof SIMPLE_POSE>).map((m) => [
+      m,
+      CLASSIC_MOODS[SIMPLE_POSE[m] as keyof typeof CLASSIC_MOODS],
+    ]),
+  ) as Record<Exclude<SimpleMood, "gentle">, Timing>),
+  gentle: { dur: 3800, tempo: 0.8 },
 };
 
 /** How long a purr keeps going after the petting stops (ms). */
@@ -738,7 +743,7 @@ export function poseFor(
   seed: number,
   extras: PoseExtras = {},
 ): { pose: Pose; shakeX: number; shakeRot: number; swirl: number; purr: number } {
-  if (isSimple(mood)) return poseFor(SIMPLE_POSE[mood], t, seed, extras);
+  if (borrows(mood)) return poseFor(SIMPLE_POSE[mood], t, seed, extras);
   const dir = seed > 0.5 ? 1 : -1;
   let swirl = 0;
   let purr = 0;
@@ -1121,6 +1126,28 @@ export function poseFor(
     ];
     const w = t / 1000;
     wobble = { rot: Math.sin(w * 0.9) * 1.5, y: Math.sin(w * 0.9) * 0.6 };
+  } else if (mood === "gentle") {
+    // A warm, attentive look at you: like watching, but at you. Eyes open
+    // and bright, a soft smile in the cheeks, a slow easy lean and a small
+    // nod, then back to resting.
+    const face: Partial<Pose> = {
+      lookX: 0,
+      lookY: -0.04,
+      lookMix: 0.85,
+      open: 1.04,
+      cheek: 0.2,
+      cheekCurve: 0.07,
+      y: 0.5,
+    };
+    keys = [
+      [0, { lookMix: 0.4 }],
+      [500, face],
+      [3100, face],
+      [3800, {}],
+    ];
+    const w = t / 1000;
+    const nod = Math.max(0, Math.sin(Math.min(1, Math.max(0, (t - 1400) / 1000)) * Math.PI));
+    wobble = { rot: Math.sin(w * 0.9) * 2.2 * dir, x: Math.sin(w * 0.9) * 0.8 * dir, y: nod * 1.8 };
   } else if (mood === "soothe") {
     // No words, just a soft look: a slow blink, eyes smiling a little, a
     // gentle tilt and a slow nod.
