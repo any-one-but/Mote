@@ -72,10 +72,18 @@ in a row is too many, and Mote gets annoyed.
 - **Eyes on you:** Mote's eyes follow your pointer anywhere on the screen,
   even while you're busy in other windows.
 - **Watching along:** in the Mac app, if another visible window is playing
-  sound, Mote keeps glancing toward it. Mote only knows *that* something is
-  playing and where, never what. Moving the pointer a lot catches Mote's eye,
-  and so does typing in another app (Mote only notices *that* keys are
-  pressed, never which).
+  sound, Mote keeps glancing toward it. Typing in another app catches Mote's
+  eye too (Mote only notices *that* keys are pressed, never which).
+- **Taking turns:** with more than one thing going on (something playing,
+  the pointer moving out on the screen, typing), Mote looks at each in turn.
+  What's playing comes first: Mote watches it and only glances at the pointer
+  or your typing now and then, the way they check in on you.
+- **Dancing:** music playing in a window you can see gets danced to, on the
+  beat, harder the louder and livelier it is. To hear it, Mote's helper
+  listens to just that app (macOS asks once whether Mote may hear audio from
+  other apps); each moment of sound is boiled down to a loudness number and
+  thrown away, nothing is recorded. Without that permission, music apps still
+  get a gentle sway.
 
 ## Mood
 
@@ -437,6 +445,8 @@ open. A tab about a feature that's switched off (Links) isn't shown.
   - **Noticing the screen**: turning to look at sound in another window or
     typing in another app. Off, Mote notices neither (the eyes still follow
     the pointer).
+  - **Dancing to music**: listening to what's playing and dancing along. Off,
+    Mote doesn't listen at all.
   - **Getting dizzy**: whipping the pointer or shaking the window. Off, Mote
     rides it out.
   - **Little moods**: the glances, thoughts, cute moments, hums, huffs and
@@ -486,7 +496,7 @@ open. A tab about a feature that's switched off (Links) isn't shown.
 - **Speech**: everything Mote can say, and a button to say any of it now
 - **Pose**: shape Mote's face by hand with sliders, then "Copy values" to share the numbers
 - **Motion**: slow time down, freeze Mote, show outlines of the eye cuts, pretend
-  another window is playing sound, give Mote a folder or video by typing its path
+  another window is playing sound (or music, slow or fast, to dance to), give Mote a folder or video by typing its path
   (or pretend ones, in a browser), live numbers
 - **Links**: every saved link with its history (when it was saved, how often
   Mote has suggested it and you've opened it), its weight and its chance of

@@ -1150,7 +1150,7 @@ function MotionTab({ snap, debug, command }: Ctx) {
       <Section title="Pretend">
         <Row
           label="Sound in another window"
-          hint={`Acts as if a window over there is playing sound: Mote stays awake and watches it.`}
+          hint={`Acts as if a window over there is playing sound: Mote stays awake and watches it. The music ones (on the right) are music Mote can hear, to dance to: slow and quiet at 84 beats a minute, or fast and loud at 128.`}
           stacked
         >
           <Segmented
@@ -1159,6 +1159,8 @@ function MotionTab({ snap, debug, command }: Ctx) {
               { value: "off", label: "Off" },
               { value: "left", label: "On the left" },
               { value: "right", label: "On the right" },
+              { value: "music-slow", label: "Slow music" },
+              { value: "music-fast", label: "Fast music" },
             ]}
             value={debug.fakeAudio ?? "off"}
             onChange={(v) => command({ do: "fakeAudio", value: v === "off" ? null : v })}

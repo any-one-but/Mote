@@ -243,7 +243,8 @@ fn main() {
             login::set_login_item,
             links::read_dropped_link,
             links::open_link,
-            apps::app_dropped
+            apps::app_dropped,
+            senses::set_listening
         ])
         .run(tauri::generate_context!())
         .expect("Mote could not start");

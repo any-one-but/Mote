@@ -86,18 +86,34 @@ type SensedMedia = {
   dy: number;
   playing: boolean;
   app?: string | null;
+  /** Listening to it (allowed, and the helper could). */
+  listening?: boolean;
+  music?: boolean;
+  bpm?: number;
+  beatAgo?: number;
+  intensity?: number;
 };
+
+/** Lets the helper listen to music that's playing (so Mote can dance to it), or not. */
+export function setListening(on: boolean) {
+  if (isDesktopApp()) void invoke("set_listening", { on }).catch(() => {});
+}
 
 /** Sound coming from a window you can see (null when there's none), and where it is. */
 export function onMediaElsewhere(cb: (media: Media | null) => void) {
   const fromSenses = onAppEvent<{ media: SensedMedia | null }>("senses", (p) => {
     const m = p.media;
-    cb(m && m.playing ? { dx: m.dx, dy: m.dy, app: m.app ?? null } : null);
+    if (!m || !m.playing) return cb(null);
+    const music =
+      m.music && m.bpm && m.beatAgo !== undefined
+        ? { bpm: m.bpm, beatAgo: m.beatAgo, intensity: m.intensity ?? 0.5 }
+        : null;
+    cb({ dx: m.dx, dy: m.dy, app: m.app ?? null, heard: !!m.listening, music });
   });
   // The simpler check the app falls back to if the helper can't run.
   const fallback = onAppEvent<{ playing: boolean; dx: number; dy: number }>(
     "audio-elsewhere",
-    (p) => cb(p.playing ? { dx: p.dx, dy: p.dy, app: null } : null),
+    (p) => cb(p.playing ? { dx: p.dx, dy: p.dy, app: null, heard: false, music: null } : null),
   );
   return () => {
     fromSenses();

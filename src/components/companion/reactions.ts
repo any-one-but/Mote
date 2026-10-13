@@ -198,6 +198,14 @@ export const REACTIONS: Reaction[] = [
     status: "live",
   },
   {
+    id: "dance",
+    group: "Sound",
+    name: "Dancing to music",
+    when: "Music Mote can hear plays in a window you can see (or a music app plays, if Mote isn’t allowed to listen)",
+    then: "Bounces on the beat and sways, harder the louder and livelier it is, with happy eyes; sometimes says they like it",
+    status: "live",
+  },
+  {
     id: "sound-ongoing",
     group: "Sound",
     name: "Watching along",
@@ -235,8 +243,8 @@ export const REACTIONS: Reaction[] = [
     id: "pointer-elsewhere",
     group: "Interest",
     name: "Pointer out on the screen",
-    when: "You move the pointer a lot anywhere on the screen",
-    then: "Glances at it for a moment",
+    when: "You move the pointer anywhere on the screen",
+    then: "Follows it on its turn; while something’s playing, only a glance now and then",
     status: "live",
   },
   {

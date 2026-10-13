@@ -2,8 +2,10 @@
 //! visible media and the pointer, and passes what it reports on to Mote's
 //! window, measured from the centre of that window.
 
-use std::io::{BufRead, BufReader};
-use std::process::{Command, Stdio};
+use std::io::{BufRead, BufReader, Write};
+use std::process::{ChildStdin, Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
@@ -14,6 +16,29 @@ fn mote_frame(main: &WebviewWindow) -> Option<(f64, f64, f64, f64)> {
     let pos = main.outer_position().ok()?.to_logical::<f64>(scale);
     let size = main.outer_size().ok()?.to_logical::<f64>(scale);
     Some((pos.x + size.width / 2.0, pos.y + size.height / 2.0, size.width, size.height))
+}
+
+/// The helper's input: what Mote tells it. It quits when this closes, which
+/// happens when Mote quits.
+static INPUT: Mutex<Option<ChildStdin>> = Mutex::new(None);
+/// Whether Mote may listen to what's playing (kept in case the helper starts
+/// after Mote's window says so).
+static LISTEN: AtomicBool = AtomicBool::new(false);
+
+fn tell(line: &str) {
+    if let Ok(mut input) = INPUT.lock() {
+        if let Some(stdin) = input.as_mut() {
+            let _ = writeln!(stdin, "{line}").and_then(|_| stdin.flush());
+        }
+    }
+}
+
+/// Lets the helper listen to the music playing, or stops it. The first time
+/// it listens, macOS asks whether Mote may hear audio from other apps.
+#[tauri::command]
+pub fn set_listening(on: bool) {
+    LISTEN.store(on, Ordering::Relaxed);
+    tell(if on { "listen 1" } else { "listen 0" });
 }
 
 /// Starts the helper. Returns false if it can't (then the simpler sound check
@@ -37,11 +62,12 @@ pub fn start(app: AppHandle) -> bool {
     let Some(stdout) = child.stdout.take() else {
         return false;
     };
-    // The helper quits when its input closes, which happens when Mote quits.
-    let stdin = child.stdin.take();
+    if let Ok(mut input) = INPUT.lock() {
+        *input = child.stdin.take();
+    }
+    set_listening(LISTEN.load(Ordering::Relaxed));
 
     std::thread::spawn(move || {
-        let _keep_open = stdin;
         let mut child = child;
         for line in BufReader::new(stdout).lines() {
             let Ok(line) = line else { break };
@@ -88,6 +114,9 @@ pub fn start(app: AppHandle) -> bool {
         }
         // The helper stopped (or was never allowed to run properly): fall back.
         let _ = child.kill();
+        if let Ok(mut input) = INPUT.lock() {
+            *input = None;
+        }
         crate::watch_audio(app);
     });
     true

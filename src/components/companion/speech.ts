@@ -31,6 +31,8 @@ export type SpeechEvent =
   | "petted"
   | "dizzy-over"
   | "media-start"
+  /** Music came on and Mote started dancing to it. */
+  | "dancing"
   | "welcome-back"
   | "played"
   | "woke-rested"
@@ -155,6 +157,13 @@ export const LINES: Line[] = [
     kind: "flavor",
     when: (c) => c.event === "media-start",
     say: ["Ooh, something’s on!", "Oh! Are we watching something?"],
+  },
+  {
+    id: "dancing",
+    group: "After something happens",
+    kind: "flavor",
+    when: (c) => c.event === "dancing",
+    say: ["Ooh, I like this one!", "This one’s got a good beat.", "Dance with me, {name}!", "I can’t help it. My body just moves."],
   },
   {
     id: "woke-rested",
