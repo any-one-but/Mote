@@ -7,7 +7,7 @@ import type { Effects } from "./mind.ts";
 // or unremarkable games are left alone, and nothing gets brought up over
 // and over.
 
-export type GameName = "checkers" | "chess" | "tictactoe";
+export type GameName = "checkers" | "chess" | "tictactoe" | "uno";
 export type Margin = "crushing" | "clear" | "close";
 export type GameWinner = "mote" | "you" | "draw";
 
@@ -45,7 +45,7 @@ export type GameResult = {
 const KEY = "mote.memories.games";
 const KEEP = 60;
 
-export const GAME_NAME: Record<GameName, string> = { checkers: "checkers", chess: "chess", tictactoe: "tic-tac-toe" };
+export const GAME_NAME: Record<GameName, string> = { checkers: "checkers", chess: "chess", tictactoe: "tic-tac-toe", uno: "Uno" };
 
 export function loadMemories(): GameMemory[] {
   try {
@@ -70,7 +70,8 @@ export function clearMemories() {
 
 /** How decisive a result was. */
 export function marginOf(game: GameName, lead: number): Margin {
-  const [crushing, clear] = game === "checkers" ? [6, 3] : game === "chess" ? [12, 5] : [4, 2];
+  // (Uno: cards the loser was left holding.)
+  const [crushing, clear] = game === "checkers" ? [6, 3] : game === "chess" ? [12, 5] : game === "uno" ? [8, 4] : [4, 2];
   if (lead >= crushing) return "crushing";
   if (lead >= clear) return "clear";
   return "close";

@@ -1,0 +1,366 @@
+/* Uno in Mote's window, on the same card as the board games. The cards
+   follow STYLE.md: no borders or outlines, only tone. Each is its colour,
+   with a deeper rim below for its thickness, a cream oval, and its number or
+   symbol in the deeper tone; wilds are ink with a four-colour wheel; the
+   backs are Mote's warm accent with a little pair of Mote eyes. They're
+   objects, so they keep their colours in dark mode. */
+
+.uno {
+  --uno-cream: #fff8ef;
+}
+
+/* Card sizes follow the window both ways, like Solitaire's: wide enough for
+   a fanned hand, short enough that everything fits under Mote. */
+.uno-table {
+  position: relative;
+  container-type: inline-size;
+  --cardw: min(calc(100cqw / 5.4), calc((100dvh - 390px) / 4.1));
+  --uw: var(--cardw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.uno-card {
+  --uc: #2e2520;
+  --uc-deep: #140f0c;
+  position: relative;
+  flex: none;
+  display: block;
+  width: var(--uw);
+  height: calc(var(--uw) * 1.4);
+  padding: 0;
+  border: 0;
+  border-radius: calc(var(--uw) * 0.13);
+  background: var(--uc);
+  color: var(--uc-deep);
+  box-shadow:
+    0 calc(var(--uw) * 0.04) 0 var(--uc-deep),
+    0 6px 14px -8px rgb(var(--shade-rgb) / 0.35);
+  font: inherit;
+  overflow: hidden;
+  transition:
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.2s ease;
+}
+
+.uno-card.is-red {
+  --uc: #d9644a;
+  --uc-deep: #b24a34;
+}
+
+.uno-card.is-yellow {
+  --uc: #e7b545;
+  --uc-deep: #b88a24;
+}
+
+.uno-card.is-green {
+  --uc: #68a15f;
+  --uc-deep: #4b8045;
+}
+
+.uno-card.is-blue {
+  --uc: #5689bd;
+  --uc-deep: #3f6c9b;
+}
+
+/* The cream oval, tilted, with the number or symbol on it. */
+.uno-oval {
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  top: 17%;
+  bottom: 17%;
+  border-radius: 50%;
+  background: var(--uno-cream);
+  transform: rotate(-24deg) scaleX(1.18);
+}
+
+.uno-mark {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.uno-number {
+  font-size: calc(var(--uw) * 0.5);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.uno-number.is-small {
+  font-size: calc(var(--uw) * 0.4);
+}
+
+.uno-glyph {
+  width: 58%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.uno-corner {
+  position: absolute;
+  left: 9%;
+  top: 4%;
+  font-size: calc(var(--uw) * 0.19);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--uno-cream);
+}
+
+/* A wild's four-colour wheel. */
+.uno-wheel {
+  position: relative;
+  display: grid;
+  grid-template: 1fr 1fr / 1fr 1fr;
+  width: 50%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  transform: rotate(45deg);
+}
+
+.uno-wheel .is-red {
+  background: #d9644a;
+}
+
+.uno-wheel .is-yellow {
+  background: #e7b545;
+}
+
+.uno-wheel .is-green {
+  background: #68a15f;
+}
+
+.uno-wheel .is-blue {
+  background: #5689bd;
+}
+
+/* Face down. */
+.uno-card.is-back {
+  --uc: #e3997a;
+  --uc-deep: #b96f53;
+}
+
+.uno-card.is-back::before {
+  content: "";
+  position: absolute;
+  inset: 9%;
+  border-radius: calc(var(--uw) * 0.08);
+  background: #d5866a;
+}
+
+.uno-back-eyes {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: #fff1e4;
+}
+
+/* Hands fan out: overlapping more the more cards there are. */
+.uno-hand {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-height: calc(var(--uw) * 1.4);
+  --step: min(calc(var(--uw) * 0.66), calc((100cqw - var(--uw)) / max(1, calc(var(--n) - 1))));
+}
+
+.uno-hand .uno-card + .uno-card {
+  margin-left: calc(var(--step) - var(--uw));
+}
+
+.uno-hand.is-mote {
+  --uw: calc(var(--cardw) * 0.7);
+}
+
+.uno-hand.is-you {
+  padding-top: calc(var(--uw) * 0.16);
+}
+
+/* Your cards that fit lift up on your turn; the rest step back a little. */
+.uno-hand.is-you .uno-card {
+  cursor: pointer;
+}
+
+.uno-card.is-fits {
+  transform: translateY(-12%);
+}
+
+.uno-card.is-fits:hover {
+  transform: translateY(-18%);
+}
+
+.uno-card.is-fits:active {
+  transform: translateY(-14%) scale(0.97);
+}
+
+/* Faded towards paper (not see-through: the fan overlaps). */
+.uno-card.is-dim {
+  filter: saturate(0.4) brightness(1.12);
+}
+
+.uno-card.is-chosen {
+  transform: translateY(-20%);
+  box-shadow:
+    0 calc(var(--uw) * 0.04) 0 var(--ck-accent),
+    0 10px 18px -8px rgb(var(--shade-rgb) / 0.4);
+}
+
+/* The draw pile and the discards. */
+.uno-middle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--uw) * 0.45);
+}
+
+.uno-deck {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: calc(var(--uw) * 0.13);
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.uno-deck:hover:not(:disabled) {
+  transform: translateY(-3px);
+}
+
+.uno-deck:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.uno-deck:disabled {
+  cursor: default;
+}
+
+/* Nothing fits: the draw pile breathes. */
+.uno-deck.is-hint .uno-card {
+  animation: uno-hint 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes uno-hint {
+  to {
+    transform: translateY(-6%);
+  }
+}
+
+.uno-pile {
+  position: relative;
+  display: grid;
+}
+
+.uno-pile > .uno-card {
+  grid-area: 1 / 1;
+}
+
+/* The colour a wild named, beside the pile. */
+.uno-named {
+  position: absolute;
+  top: 50%;
+  right: calc(var(--uw) * -0.32);
+  width: calc(var(--uw) * 0.2);
+  height: calc(var(--uw) * 0.2);
+  margin-top: calc(var(--uw) * -0.1);
+  border-radius: 999px;
+  animation: uno-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.uno-named.is-red,
+.uno-color.is-red {
+  background: #d9644a;
+}
+
+.uno-named.is-yellow,
+.uno-color.is-yellow {
+  background: #e7b545;
+}
+
+.uno-named.is-green,
+.uno-color.is-green {
+  background: #68a15f;
+}
+
+.uno-named.is-blue,
+.uno-color.is-blue {
+  background: #5689bd;
+}
+
+@keyframes uno-pop {
+  from {
+    transform: scale(0);
+  }
+}
+
+/* Picking a colour for a wild, laid over the table. */
+.uno-colors {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--ck-card) 72%, transparent);
+  backdrop-filter: blur(2px);
+  animation: uno-fade 0.2s ease;
+}
+
+.uno-color {
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 8px 18px -10px rgb(var(--shade-rgb) / 0.45);
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: uno-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.uno-color:hover {
+  transform: scale(1.1);
+}
+
+.uno-color:active {
+  transform: scale(0.95);
+}
+
+@keyframes uno-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.uno-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 46px;
+  margin-top: 6px;
+}
+
+.uno-bar .ck-status {
+  margin: 0;
+}
+
+.uno-say {
+  animation: uno-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .uno-deck.is-hint .uno-card {
+    animation: none;
+  }
+}

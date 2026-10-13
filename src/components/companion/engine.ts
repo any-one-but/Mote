@@ -67,6 +67,7 @@ import {
   TICTACTOE_FACE,
   type TicTacToeEvent,
 } from "@/components/companion/tictactoe-lines";
+import { pickUnoLine, UNO_CHANCE, UNO_FACE, type UnoEvent } from "@/components/companion/uno-lines";
 import {
   SOLITAIRE_CHANCE,
   SOLITAIRE_FACE,
@@ -446,6 +447,8 @@ export type FaceEngine = {
   checkers: (event: CheckersEvent) => void;
   chess: (event: ChessEvent, words?: { piece?: string; yours?: string }) => void;
   tictactoe: (event: TicTacToeEvent) => void;
+  /** Uno: its moments. `color` is a colour a wild of Mote's named. */
+  uno: (event: UnoEvent, words?: { color?: string }) => void;
   /** Solitaire, with Mote helping: its moments. `move` is Mote's advice in
    * words, for them to say. */
   solitaire: (event: SolitaireEvent, move?: string) => void;
@@ -2521,6 +2524,17 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     );
   };
 
+  // Mote's "Uno!" and catching you out are part of the game, so they're
+  // said even with talking during games switched off.
+  const unoEvent = (event: UnoEvent, words?: { color?: string }) =>
+    gameMoment(
+      `uno-${event}`,
+      UNO_FACE[event],
+      UNO_CHANCE[event],
+      () => pickUnoLine(event, recentGameLines, words),
+      event === "mote-uno" || event === "caught" || event === "mote-wild" || event === "mote-wild4",
+    );
+
   const ticTacToeEvent = (event: TicTacToeEvent) =>
     gameMoment(`tictactoe-${event}`, TICTACTOE_FACE[event], TICTACTOE_CHANCE[event], () =>
       pickTicTacToeLine(event, recentGameLines),
@@ -2557,6 +2571,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (!memo) {
       if (game === "checkers") checkersEvent("start");
       else if (game === "chess") chessEvent("start");
+      else if (game === "uno") unoEvent((opener as UnoEvent | undefined) ?? "start");
       else ticTacToeEvent((opener as TicTacToeEvent | undefined) ?? "start");
       return;
     }
@@ -2575,6 +2590,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       gameMoment(`${result.game}-${event}`, face, 1, () => ({ id: `streak-${Date.now()}`, text: streakSaid }), true);
     } else if (result.game === "checkers") checkersEvent(event as CheckersEvent);
     else if (result.game === "chess") chessEvent(event as ChessEvent);
+    else if (result.game === "uno") unoEvent(event as UnoEvent);
     else ticTacToeEvent(event as TicTacToeEvent);
   };
 
@@ -3663,6 +3679,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     checkers: checkersEvent,
     chess: chessEvent,
     tictactoe: ticTacToeEvent,
+    uno: unoEvent,
     solitaire: solitaireEvent,
     say: (lineId) => {
       if (bubble) showBubble(null);

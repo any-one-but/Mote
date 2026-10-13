@@ -146,7 +146,7 @@ however you like, and press Return:
 - "I want to play a game", "game", "I'm bored" — the games, as a list to
   pick from (click one, type its name, or type "2")
 - "chess", "I want to play chess", "checkers", "tic tac toe",
-  "solitaire" (or "cards", "patience")
+  "solitaire" (or "cards", "patience"), "uno"
   — that game, straight away
 - "a video", "something to watch", "my links" — one of your saved links
   (or how to save one, if there are none)
@@ -295,6 +295,33 @@ bigger and shrink again when it's smaller, always leaving room for Mote.
 The cards follow the style guide (see `STYLE.md`): warm paper faces with a
 deeper rim and no outlines, Mote's colour on the back with a little pair of
 Mote eyes.
+
+## Uno
+
+Double-click Mote and say "uno" (or pick it from the games). It's Uno for
+two, with the usual 108 cards: seven each, match the top card's colour,
+number or symbol, or play a Wild and pick the colour. Skips and Reverses
+(with two players a Reverse is just a Skip) mean going again; a Draw Two or a
+Wild Draw Four makes the other draw and lose their turn. A Wild Draw Four
+only goes down when you have nothing of the colour asked for, so it's always
+fair. You and Mote take turns going first.
+
+- Your hand is along the bottom, sorted by colour; on your turn the cards
+  that fit lift up, and the rest fade back. Click one to play it.
+- Nothing fits (or you'd rather not)? Click the draw pile. If the card you
+  draw fits, play it or press **Keep it**.
+- Down to two cards, press **Uno!** before you play one (or quickly after).
+  Forget, and Mote will usually catch you: two cards.
+- Mote's cards are face down along the top. Mote always says "Uno!", gloats
+  a little over a Draw Two, sulks a little at yours, and says which colour
+  they pick with a wild.
+- Cards fly to the pile and off the deck, and Mote's turn over as they go.
+
+Like every game with Mote, they keep it close: well ahead of you (and not in
+one of the games they may win), they hold back, drawing instead of playing
+and going easy on Draw Twos, so the win stays within your reach. Games are
+saved as you go, the header keeps your record, and Mote remembers how each
+game went.
 
 ## Settings and debug mode
 
@@ -531,6 +558,7 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 - `src/lib/close-game.ts` — how Mote keeps games close (the usual way they play)
 - `src/components/companion/TicTacToe.tsx` and `tictactoe-lines.ts`, and `src/lib/tictactoe/game.ts` — tic-tac-toe
 - `src/components/companion/Solitaire.tsx`, `solitaire.css` and `solitaire-lines.ts`, and `src/lib/solitaire/game.ts` — Solitaire (the rules and Mote's advice)
+- `src/components/companion/Uno.tsx`, `uno.css` and `uno-lines.ts`, and `src/lib/uno/game.ts` — Uno (the rules and how Mote plays)
 - `src/components/companion/cards.tsx` and `cards.css`, and `src/lib/cards.ts` — the playing cards the card games share
 - `src/components/companion/MoteMark.tsx` — Mote in miniature for game pieces and marks, in Mote's whole look
 - `src/components/companion/board-ui.tsx` and `board.css` — what both games share (level picker, header, end panel, the board's look)

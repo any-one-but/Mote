@@ -142,7 +142,7 @@ export const FEATURES: Array<{
     id: "games",
     section: "together",
     name: "Games",
-    about: "Games with Mote (checkers, chess, tic-tac-toe, Solitaire: ask Mote for one), and Mote asking for or suggesting a game. Off, a game that’s open is put away, Mote says the games are put away if you ask, and never brings them up (games you’ve played are still remembered).",
+    about: "Games with Mote (checkers, chess, tic-tac-toe, Solitaire, Uno: ask Mote for one), and Mote asking for or suggesting a game. Off, a game that’s open is put away, Mote says the games are put away if you ask, and never brings them up (games you’ve played are still remembered).",
     usual: true,
   },
   {

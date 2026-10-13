@@ -17,6 +17,7 @@ export type ReactionGroup =
   | "Chess"
   | "Tic-tac-toe"
   | "Solitaire"
+  | "Uno"
   | "Time"
   | "Lasting moods"
   | "Memories"
@@ -773,6 +774,152 @@ export const REACTIONS: Reaction[] = [
     status: "live",
   },
 
+  // Uno
+  {
+    id: "uno-start",
+    group: "Uno",
+    name: "A game of Uno",
+    when: "You start a game of Uno",
+    then: "Delighted, and says it's your go (or nods to the last game)",
+    status: "live",
+  },
+  {
+    id: "uno-mote-first",
+    group: "Uno",
+    name: "Mote goes first",
+    when: "A game where it's Mote's turn to start",
+    then: "A cute look: \u201cMe first this time!\u201d",
+    status: "live",
+  },
+  {
+    id: "uno-resume",
+    group: "Uno",
+    name: "Picking a game back up",
+    when: "You open Uno with a game still going",
+    then: "Back to the cards, just as they were",
+    status: "live",
+  },
+  {
+    id: "uno-you-skip",
+    group: "Uno",
+    name: "Skipped",
+    when: "You play a Skip or a Reverse",
+    then: "A wince, and sometimes a \u201cRude!\u201d",
+    status: "live",
+  },
+  {
+    id: "uno-mote-skip",
+    group: "Uno",
+    name: "Skipping you",
+    when: "Mote plays a Skip or a Reverse",
+    then: "A pleased look, and going again",
+    status: "live",
+  },
+  {
+    id: "uno-you-draw2",
+    group: "Uno",
+    name: "Made to draw two",
+    when: "You play a Draw Two on Mote",
+    then: "A wince, and often a grumble",
+    status: "live",
+  },
+  {
+    id: "uno-you-wild4",
+    group: "Uno",
+    name: "Made to draw four",
+    when: "You play a Wild Draw Four on Mote",
+    then: "Wide-eyed alarm: \u201cFour?! You\u2019re ruthless.\u201d",
+    status: "live",
+  },
+  {
+    id: "uno-mote-draw2",
+    group: "Uno",
+    name: "Making you draw two",
+    when: "Mote plays a Draw Two",
+    then: "A smug little look",
+    status: "live",
+  },
+  {
+    id: "uno-mote-wild4",
+    group: "Uno",
+    name: "Making you draw four",
+    when: "Mote plays a Wild Draw Four",
+    then: "A sly look, and names the new colour",
+    status: "live",
+  },
+  {
+    id: "uno-you-wild",
+    group: "Uno",
+    name: "Your wild",
+    when: "You play a Wild",
+    then: "Now and then, a word about the new colour",
+    status: "live",
+  },
+  {
+    id: "uno-mote-wild",
+    group: "Uno",
+    name: "Mote's wild",
+    when: "Mote plays a Wild",
+    then: "Thinks, and says the colour they pick",
+    status: "live",
+  },
+  {
+    id: "uno-mote-draws",
+    group: "Uno",
+    name: "Nothing to play",
+    when: "Mote draws a card",
+    then: "Now and then says so",
+    status: "live",
+  },
+  {
+    id: "uno-mote-uno",
+    group: "Uno",
+    name: "Mote's Uno!",
+    when: "Mote plays down to one card",
+    then: "Always says \u201cUno!\u201d, standing tall",
+    status: "live",
+  },
+  {
+    id: "uno-you-uno",
+    group: "Uno",
+    name: "Your Uno!",
+    when: "You press Uno! with two cards (or one)",
+    then: "Surprised, and often says so",
+    status: "live",
+  },
+  {
+    id: "uno-caught",
+    group: "Uno",
+    name: "Caught you",
+    when: "You're down to one card without saying Uno, and Mote notices in time (most of the time)",
+    then: "\u201cYou didn\u2019t say Uno!\u201d You draw two",
+    status: "live",
+  },
+  {
+    id: "uno-missed",
+    group: "Uno",
+    name: "Didn't notice",
+    when: "You forgot to say Uno, and Mote didn't catch it",
+    then: "Sometimes a puzzled \u201cWait, did you say Uno?\u201d",
+    status: "live",
+  },
+  {
+    id: "uno-mote-win",
+    group: "Uno",
+    name: "Mote wins",
+    when: "Mote plays their last card",
+    then: "Celebrates (Mote remembers the game)",
+    status: "live",
+  },
+  {
+    id: "uno-you-win",
+    group: "Uno",
+    name: "You win",
+    when: "You play your last card",
+    then: "A good-sport droop and a smile (Mote remembers the game)",
+    status: "live",
+  },
+
   // Solitaire
   {
     id: "solitaire-start",
@@ -1203,6 +1350,7 @@ export const REACTION_GROUPS: ReactionGroup[] = [
   "Chess",
   "Tic-tac-toe",
   "Solitaire",
+  "Uno",
   "Speech",
   "Talking",
   "Time",
