@@ -25,7 +25,6 @@ export type IntentId =
   | "tictactoe"
   | "liarsdice"
   | "solitaire"
-  | "war"
   // The diet tracker: logging what you ate, and the Days window.
   | "diet"
   | "dietDays"
@@ -52,7 +51,7 @@ export type IntentId =
 /** A keyword: a word or phrase, and how strongly it points to its intent. */
 type Word = string | [string, number];
 
-const GAMES = ["chess", "checkers", "tictactoe", "liarsdice", "solitaire", "war"] as const;
+const GAMES = ["chess", "checkers", "tictactoe", "liarsdice", "solitaire"] as const;
 export type GameIntent = (typeof GAMES)[number];
 export const isGame = (id: IntentId): id is GameIntent => (GAMES as readonly string[]).includes(id);
 const SNACK_IDS = ["cookie", "berries", "meal"] as const;
@@ -170,13 +169,6 @@ const INTENTS: Record<IntentId, Word[]> = {
     ["on my own", 0.9],
     ["help me play", 1],
     ["together", 0.6],
-  ],
-  war: [
-    ["war", 1.35],
-    ["card war", 1.35],
-    ["battle", 0.8],
-    ["highest card", 1.2],
-    ["high card", 1.1],
   ],
   diet: [
     ["calorie", 1.2],
@@ -914,7 +906,6 @@ const CHECK: Record<IntentId, string[]> = {
   tictactoe: ["Tic-tac-toe? Want to play?", "You mean tic-tac-toe?"],
   liarsdice: ["Liar’s Dice? Want to play?", "You mean Liar’s Dice?"],
   solitaire: ["Solitaire? I’ll help.", "You mean solitaire?"],
-  war: ["War? The card game?", "You mean War?"],
   diet: ["You want to log some calories?", "Calories? Want to log something?"],
   dietDays: ["You want to see your days?", "Your calorie days? Want to look?"],
   gallery: ["You want to open Local Gallery?", "The gallery? Shall I open it?"],

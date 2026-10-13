@@ -204,7 +204,7 @@ mode, not an outline.
 - **Every piece, die and card has a rim** in a deeper tone of its own colour.
 - **Marks are washes**: a legal capture is an accent disc; a move worth
   making is a green wash on the square; danger is a red wash.
-- **Playing cards** (Solitaire, War; shared in `cards.tsx`): warm paper faces (`#fff8ef`) with a deeper
+- **Playing cards** (shared by the card games, in `cards.tsx`): warm paper faces (`#fff8ef`) with a deeper
   rim and a soft shadow at the top edge where they overlap. Rank in the
   corner with a small suit under it, and a big suit (or the letter, for a
   face card) in the middle. Red suits are a warm red (`#c4523c`), black

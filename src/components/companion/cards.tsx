@@ -2,9 +2,9 @@ import type { CSSProperties, ReactNode } from "react";
 import { cardWords, isRed, RANK_NAME, type Card, type Suit } from "@/lib/cards";
 import "./cards.css";
 
-// Playing cards, for the card games (Solitaire, War). They follow STYLE.md:
-// no outlines, only tone. Their size comes from `--cw` (a card's width) on
-// whatever holds them.
+// Playing cards, for the card games. They follow STYLE.md: no outlines,
+// only tone. Their size comes from `--cw` (a card's width) on whatever holds
+// them.
 
 /** A card, face up: its rank and suit in the corner, and a big one in the middle. */
 export function CardFace({

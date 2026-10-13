@@ -81,7 +81,6 @@ import {
   pickLiarsDiceLine,
   type LiarsDiceEvent,
 } from "@/components/companion/liarsdice-lines";
-import { WAR_CHANCE, WAR_FACE, pickWarLine, type WarEvent } from "@/components/companion/war-lines";
 import {
   SOLITAIRE_CHANCE,
   SOLITAIRE_FACE,
@@ -458,8 +457,6 @@ export type FaceEngine = {
   /** Solitaire, with Mote helping: its moments. `move` is Mote's advice in
    * words, for them to say. */
   solitaire: (event: SolitaireEvent, move?: string) => void;
-  /** War: its moments. */
-  war: (event: WarEvent) => void;
   snapshot: () => EngineSnapshot;
 };
 
@@ -2941,11 +2938,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     );
   };
 
-  const warEvent = (event: WarEvent) => {
-    if (event === "start" || event === "resume") react("game-start");
-    gameMoment(`war-${event}`, WAR_FACE[event], WAR_CHANCE[event], () => pickWarLine(event, recentGameLines));
-  };
-
   const ticTacToeEvent = (event: TicTacToeEvent) =>
     gameMoment(`tictactoe-${event}`, TICTACTOE_FACE[event], TICTACTOE_CHANCE[event], () =>
       pickTicTacToeLine(event, recentGameLines),
@@ -4187,7 +4179,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     tictactoe: ticTacToeEvent,
     liarsDice: liarsDiceEvent,
     solitaire: solitaireEvent,
-    war: warEvent,
     say: (lineId) => {
       if (bubble) showBubble(null);
       const line = lineId ? lineById.get(lineId) : chooseLine(speechContext(), new Map(), clock);

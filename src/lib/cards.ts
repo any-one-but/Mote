@@ -1,4 +1,4 @@
-// A deck of playing cards, shared by the card games (Solitaire, War).
+// A deck of playing cards, shared by the card games.
 
 export type Suit = "spades" | "hearts" | "diamonds" | "clubs";
 export const SUITS: Suit[] = ["spades", "hearts", "diamonds", "clubs"];

@@ -9,7 +9,6 @@ const ALL = new Set<IntentId>([
   "tictactoe",
   "liarsdice",
   "solitaire",
-  "war",
   "diet",
   "dietDays",
   "gallery",
@@ -63,9 +62,6 @@ test("plain requests do the thing straight away", () => {
     ["cards", "do:solitaire"],
     ["play cards", "do:solitaire"],
     ["patience", "do:solitaire"],
-    ["war", "do:war"],
-    ["let's play war", "do:war"],
-    ["card war", "do:war"],
     ["calories", "do:diet"],
     ["log calories", "do:diet"],
     ["I want to track my food", "do:diet"],
@@ -150,10 +146,10 @@ test("two games by name is the games menu", () => {
 });
 
 test("menus can be picked from by number", () => {
-  const games: IntentId[] = ["checkers", "chess", "tictactoe", "liarsdice", "solitaire", "war"];
+  const games: IntentId[] = ["checkers", "chess", "tictactoe", "liarsdice", "solitaire"];
   assert.equal(heard("2", ALL, games), "do:chess");
   assert.equal(heard("the first one", ALL, games), "do:checkers");
-  assert.equal(heard("last", ALL, games), "do:war");
+  assert.equal(heard("last", ALL, games), "do:solitaire");
 });
 
 test("anything locked away is as if Mote never heard of it", () => {

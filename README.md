@@ -178,7 +178,7 @@ however you like, and press Return:
 - "I want to play a game", "game", "I'm bored" — the games, as a list to
   pick from (click one, type its name, or type "2")
 - "chess", "I want to play chess", "checkers", "tic tac toe", "liar's dice",
-  "solitaire" (or "cards", "patience"), "war"
+  "solitaire" (or "cards", "patience")
   — that game, straight away
 - "calories", "log my lunch", "track my food", "diet" — the calorie card;
   "my week", "calorie history" — the Days window (with the diet tracker
@@ -370,26 +370,6 @@ one card at a time, and Mote is on your side: they watch, cheer the good bits
 The cards follow the style guide (see `STYLE.md`): warm paper faces with a
 deeper rim and no outlines, Mote's colour on the back with a little pair of
 Mote eyes.
-
-## War
-
-Double-click Mote and say "war". The deck is dealt in half; click your pile
-(or **Flip**) and you and Mote each turn over your top card. The higher card
-(aces high) takes both. A tie is a war: three cards face down each, one face
-up, and the higher of those takes the lot (another tie, another war).
-Whoever runs out of cards loses. **Keep flipping** turns the cards for you,
-round after round, until you stop it or the game's over.
-
-Mote is all feelings about it: gleeful when they take a round, sulky when
-you do, very dramatic about wars, smug when they pull ahead, worried when
-their pile gets thin. Games are saved as you go; your record against Mote
-sits at the top.
-
-War has no choices to make, so Mote keeps it close the only way there is:
-before dealing, they try shuffles, play each one out in their head, and deal
-one that's close (Mote ahead for a while, you edging back, nobody running
-away with it, about a hundred rounds) and that you win, or, in the games
-Mote may win, that they win. Nothing changes once the cards are dealt.
 
 ## Local Gallery
 
@@ -640,7 +620,6 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 - `src/components/companion/TicTacToe.tsx` and `tictactoe-lines.ts`, and `src/lib/tictactoe/game.ts` — tic-tac-toe
 - `src/components/companion/LiarsDice.tsx`, `liarsdice.css` and `liarsdice-lines.ts`, and `src/lib/liarsdice/game.ts` — Liar's Dice (the rules and how Mote bids)
 - `src/components/companion/Solitaire.tsx`, `solitaire.css` and `solitaire-lines.ts`, and `src/lib/solitaire/game.ts` — Solitaire (the rules and Mote's advice)
-- `src/components/companion/War.tsx`, `war.css` and `war-lines.ts`, and `src/lib/war/game.ts` — War (the rules, and how Mote picks a close shuffle)
 - `src/components/companion/cards.tsx` and `cards.css`, and `src/lib/cards.ts` — the playing cards the card games share
 - `src/components/companion/board-ui.tsx` and `board.css` — what both games share (level picker, header, end panel, the board's look)
 - `src/components/companion/links.ts` — saved links, their history, and how Mote picks one to suggest
