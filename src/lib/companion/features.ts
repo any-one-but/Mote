@@ -3,10 +3,9 @@ import { listenBus, send } from "@/lib/companion/bus";
 
 // Features kept in the app for testing but out of everyone else's reach.
 //
-// Three things are locked behind a Feature Key each: Debug, the diet
-// tracker and Local Gallery. Keys are typed in at the bottom of Settings, and
-// unlocking is remembered for good (resetting settings doesn't undo it); each
-// unlocked one gets a switch there. With Debug unlocked and on, Settings
+// Debug is locked behind a Feature Key, typed in at the bottom of Settings;
+// unlocking is remembered for good (resetting settings doesn't undo it), and
+// once unlocked it gets a switch there. With Debug unlocked and on, Settings
 // grows the Debug tabs, and the Features tab switches everything else Mote
 // does on and off, sorted by kind (their mind, each kind of thing they say,
 // what you do together, what they notice, how they look): the usual ones are
@@ -16,7 +15,7 @@ import { listenBus, send } from "@/lib/companion/bus";
 // Only a fingerprint of the key (its SHA-256) lives in the app, never the key.
 
 /** Features that need a key. */
-export type KeyedId = "debug" | "diet" | "gallery";
+export type KeyedId = "debug";
 /** Features switched on and off in the Features tab (with Debug on). */
 export type FeatureId =
   | "mind"
@@ -59,18 +58,6 @@ export const KEYED: Array<{ id: KeyedId; name: string; about: string; fingerprin
     name: "Debug",
     about: "Debug tabs alongside Settings: testing tools, and switches for Mote’s skills and experimental features.",
     fingerprint: "5338425b70e71202639415bbc64b4ca2b70d2d436f292fb7cc5415ba27eaafa9",
-  },
-  {
-    id: "diet",
-    name: "Diet tracker",
-    about: "Calorie logging (ask Mote for “calories”), the Days window, and everything Mote says about food you eat.",
-    fingerprint: "529ae584fe8563a4e8ec4701330d2de99ea399aa3f58ddcb22cdf72c0aca4e98",
-  },
-  {
-    id: "gallery",
-    name: "Local Gallery",
-    about: "Opening Local Gallery by asking Mote for it. Mote carries it with them (the same app, with the same library and settings).",
-    fingerprint: "58410d02ab9bdb3c0ed5d08fdcc5557f27ef308e10489e982b964ad60205305c",
   },
 ];
 

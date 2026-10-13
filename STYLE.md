@@ -41,7 +41,6 @@ How to get each kind of separation without a line:
 | Overlapping objects (cards in a column) | a line on the top card | a soft shadow at the top card's edge, cast onto the one below |
 | Picked up / selected | an accent outline | lift it a little, warm its tone, and turn its rim to the accent |
 | A highlighted square or spot | an inset ring | a wash of colour over its own tone (accent, green for good, red for danger) |
-| An empty dot (a passcode dot) | a ring | a sunk-tone dot; filled is ink |
 | A focused text box | a ring | a warmer tone in the box (it's always focused while it's there) |
 
 **Soft shadows are a tone, lines are not.** A blurred shadow under a card or
@@ -69,8 +68,8 @@ keep it chunky) isn't an outline: it adds no second colour.
 ## 2. Colour
 
 Every colour is a token. Use the token, never a hex value, in anything new.
-They live in `src/styles.css` (Mote's window) and `desktop/ui.css` (Settings,
-Debug, Days).
+They live in `src/styles.css` (Mote's window) and `desktop/ui.css` (Settings
+and Debug).
 
 ### Mote
 
@@ -106,7 +105,7 @@ mode, the eyes in dark mode).
 | `--warn` / `--warn-wash` | `#b5553b` / `#f6dccf` | `#ef9474` / `#4d2f25` | something's wrong |
 | `--good` / `--good-wash` | `#4f7a35` / `#e3ecd4` | `#a9cf8e` / `#2f3b27` | something's right |
 
-Settings, Debug and Days use the same family under their own names
+Settings and Debug use the same family under their own names
 (`--paper`, `--card`, `--sunk`, `--ink`, `--ink-soft`, `--accent`…).
 
 **Tones step.** Window → surface → sunk is the whole ladder. Something on a

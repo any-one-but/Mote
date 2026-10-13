@@ -50,15 +50,11 @@ const ALL: Shot[] = [
   ["huff", "huff", 600, 0.9],
   ["sulk", "sulk", 600, 0.9],
   ["worried", "worry", 1200, 0.9],
-  ["upset", "plead", 1500, 0.9],
   ["concerned", "care", 1400, 0.9],
   ["gentle look", "soothe", 1900, 0.9],
   ["lost a piece", "ck-ouch", 1300, 0.9],
   ["sly check", "ch-check", 1000, 0.9],
-  ["not peeking", "pc-away", 2000, 0.9],
-  ["passcode right", "pc-right", 1200, 0.9],
-  ["passcode wrong", "pc-wrong", 700, 0.9],
-  ["refusing", "pc-refuse", 1500, 0.9],
+  ["no thanks", "decline", 700, 0.9],
 ];
 
 const params = new URLSearchParams(location.search);

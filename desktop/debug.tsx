@@ -40,13 +40,6 @@ import {
 } from "@/components/companion/links";
 import { openLink } from "@/lib/companion/desktop";
 import {
-  galleryStatus,
-  readGalleryLibrary,
-  type GalleryStatus,
-  type LibraryReport,
-  type LogFile,
-} from "@/lib/companion/gallery";
-import {
   FEATURE_SECTIONS,
   FEATURES,
   featureOn,
@@ -61,7 +54,7 @@ import { Button, Page, Row, Section, Segmented, Slider, Toggle } from "./ui";
 // Settings with Debug unlocked and on: Settings first, then the Debug tabs.
 // Each tab is one entry in TABS, so new tools slot in as their own tab
 // without touching the others. A tab about a feature that's switched off
-// (saved links, Local Gallery) isn't shown.
+// (saved links) isn't shown.
 
 type LogEntry = { id: number; at: number; text: string };
 
@@ -90,7 +83,6 @@ const TABS: Tab[] = [
   { id: "pose", label: "Pose", render: (ctx) => <PoseTab {...ctx} /> },
   { id: "motion", label: "Motion", render: (ctx) => <MotionTab {...ctx} /> },
   { id: "links", label: "Links", render: (ctx) => <LinksTab {...ctx} />, needs: "links" },
-  { id: "gallery", label: "Gallery", render: () => <GalleryTab />, needs: "gallery" },
   { id: "log", label: "Log", render: (ctx) => <LogTab {...ctx} /> },
   { id: "data", label: "Data", render: (ctx) => <DataTab {...ctx} /> },
 ];
@@ -123,9 +115,7 @@ const MOOD_NAMES: Record<Mood, string> = {
   tada: "Job done",
   uhoh: "Job trouble",
   beam: "Pleased",
-  reckon: "Thinking it over",
   worry: "Worried",
-  plead: "Upset",
   care: "Check-in: concerned",
   soothe: "Check-in: gentle look",
   "ck-watch": "Board game: your turn",
@@ -138,10 +128,7 @@ const MOOD_NAMES: Record<Mood, string> = {
   "ch-check": "Chess: check!",
   "ch-checked": "Chess: in check",
   munch: "Eating",
-  "pc-away": "Passcode: not peeking",
-  "pc-right": "Passcode: right",
-  "pc-wrong": "Passcode: wrong",
-  "pc-refuse": "Passcode: refusing",
+  decline: "No thanks",
 };
 
 /**
@@ -447,25 +434,21 @@ function MoodChart({ joy, peace, friendly }: { joy: number; peace: number; frien
 function MindTab({ snap, command, settings }: Ctx) {
   const [show, setShow] = useState<"all" | "live" | "idea">("all");
   const [features] = useFeatures();
-  const diet = featureOn(features, "diet");
   const hunger = featureOn(features, "hunger");
   const sleepNeed = featureOn(features, "sleep");
-  const gallery = featureOn(features, "gallery");
   const [memories, setMemories] = useState(loadMemories);
   useEffect(() => {
     const t = window.setInterval(() => setMemories(loadMemories()), 3000);
     return () => window.clearInterval(t);
   }, []);
   if (!snap) return <p className="empty">Nothing yet. Is Mote’s window open?</p>;
-  // The calorie reactions only show while the diet tracker is on, and the
-  // hunger ones while Mote eats too.
+  // The hunger reactions only show while Mote eats too, and the sleep ones
+  // with Goodnight Mote.
   const list = REACTIONS.filter(
     (r) =>
       (show === "all" || r.status === show) &&
-      (diet || r.group !== "Eating") &&
       (hunger || !HUNGER_REACTIONS.has(r.id)) &&
-      (sleepNeed || !SLEEP_REACTIONS.has(r.id)) &&
-      (gallery || !r.group.startsWith("Local Gallery")),
+      (sleepNeed || !SLEEP_REACTIONS.has(r.id)),
   );
   const { joy, peace } = snap.mind;
   const set = (attr: "joy" | "peace" | "fullness" | "rest", value: number) =>
@@ -1349,126 +1332,6 @@ function FeaturesTab() {
           })}
         </Section>
       ))}
-    </>
-  );
-}
-
-/* Gallery: what Mote reads from Local Gallery's log folder (only each file's
-   shape: sizes, dates and how many entries, never what's in them), and the
-   passcode Mote keeps. */
-
-const sizeWords = (bytes: number) =>
-  bytes < 1024 ? `${bytes} B` : bytes < 1024 ** 2 ? `${(bytes / 1024).toFixed(0)} KB` : `${(bytes / 1024 ** 2).toFixed(1)} MB`;
-
-function agoWords(ms: number | null, now: number) {
-  if (!ms) return "never";
-  const s = Math.max(0, (now - ms) / 1000);
-  if (s < 90) return "just now";
-  if (s < 90 * 60) return `${Math.round(s / 60)} minutes ago`;
-  if (s < 36 * 3600) return `${Math.round(s / 3600)} hours ago`;
-  return `${Math.round(s / 86400)} days ago`;
-}
-
-const STATE_WORDS: Record<LogFile["state"], string> = {
-  ok: "",
-  empty: "Empty",
-  broken: "Can’t be read",
-  ignored: "Ignored",
-};
-
-function GalleryTab() {
-  const [status, setStatus] = useState<GalleryStatus | null>(null);
-  const [report, setReport] = useState<LibraryReport | null>(null);
-  const [reading, setReading] = useState(false);
-  const now = Date.now();
-  const read = async () => {
-    setReading(true);
-    const [st, rep] = await Promise.all([galleryStatus(), readGalleryLibrary()]);
-    setStatus(st);
-    setReport(rep);
-    setReading(false);
-  };
-  useEffect(() => {
-    void read();
-  }, []);
-  if (!status && !reading) return <p className="empty">Local Gallery is only in the Mac app.</p>;
-  const t = report?.totals;
-  const n = (v: number | null | undefined) => (v == null ? "–" : v.toLocaleString());
-  return (
-    <>
-      <Section title="The app">
-        <Row label="Carried" hint="Local Gallery is inside this copy of Mote.">
-          <span className="mono">{status?.carried ? "yes" : "no"}</span>
-        </Row>
-        <Row label="Open now">
-          <span className="mono">{status?.open ? "yes" : "no"}</span>
-        </Row>
-        <Row
-          label="Passcode"
-          hint={
-            status?.wait
-              ? `Not taking tries for ${status.wait} more seconds.`
-              : `${status?.triesLeft ?? 0} tries before Mote stops taking them for a while.`
-          }
-        >
-          <span className="mono">{status?.passcode ? "set" : "off"}</span>
-        </Row>
-      </Section>
-      <Section title="The library">
-        {report?.found ? (
-          <>
-            <Row label="Folder" hint={report.both ? "There’s a hidden and a visible one; the hidden one is used." : undefined}>
-              <span className="mono">{report.library}</span>
-            </Row>
-            <Row label="Hidden from Finder">
-              <span className="mono">{report.hidden ? "yes" : "no"}</span>
-            </Row>
-            <Row label="Last saved" hint="When the gallery last wrote any of its logs.">
-              <span className="mono">{agoWords(t?.lastSaved ?? null, now)}</span>
-            </Row>
-            <Row label="Folders tagged">
-              <span className="mono">{n(t?.taggedFolders)}</span>
-            </Row>
-            <Row label="Folders scored">
-              <span className="mono">{n(t?.scoredFolders)}</span>
-            </Row>
-            <Row label="Journal days">
-              <span className="mono">{n(t?.journalDays)}</span>
-            </Row>
-            <Row label="In the trash">
-              <span className="mono">{n(t?.inTrash)}</span>
-            </Row>
-            <Row label="Thumbnails">
-              <span className="mono">{n(t?.thumbnails)}</span>
-            </Row>
-          </>
-        ) : (
-          <p className="empty">{reading ? "Looking…" : "No Local Gallery folder in Documents yet."}</p>
-        )}
-      </Section>
-      {report?.logs_found ? (
-        <Section title={`Log folder (${report.logs.length} files)`}>
-          {report.logs.map((f) => (
-            <Row
-              key={f.name}
-              label={f.name}
-              hint={[
-                f.about,
-                STATE_WORDS[f.state],
-                f.counts.length ? f.counts.map(([k, c]) => `${k}: ${c.toLocaleString()}`).join(", ") : null,
-                `saved ${agoWords(f.modified, now)}`,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            >
-              <span className="mono">{sizeWords(f.size)}</span>
-            </Row>
-          ))}
-        </Section>
-      ) : null}
-      <div className="button-row">
-        <Button onClick={() => void read()}>{reading ? "Reading…" : "Read again"}</Button>
-      </div>
     </>
   );
 }

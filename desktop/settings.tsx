@@ -3,13 +3,11 @@ import { createRoot } from "react-dom/client";
 import type { Energy } from "@/components/companion/engine";
 import {
   isDesktopApp,
-  openCaloriesWindow,
   openLink,
   opensAtLogin,
   setOpensAtLogin,
   widenSettingsWindow,
 } from "@/lib/companion/desktop";
-import { markCalorieCare } from "@/lib/companion/calorie-store";
 import { featureOn, KEYED, useFeatures } from "@/lib/companion/features";
 import {
   useDark,
@@ -28,7 +26,6 @@ import {
   type SavedLink,
 } from "@/components/companion/links";
 import { DebugPanel } from "./debug";
-import { LocalGallerySection } from "./passcode-settings";
 import { MiniMote, Page, Row, Section, Segmented, Toggle } from "./ui";
 
 const ENERGY: Array<{ value: Energy; label: string }> = [
@@ -91,8 +88,6 @@ function SettingsWindow() {
 function SettingsPanel() {
   const [settings, update] = useSettings();
   const [features] = useFeatures();
-  const diet = featureOn(features, "diet");
-  const gallery = featureOn(features, "gallery");
   const links = featureOn(features, "links");
   const files = featureOn(features, "files");
   const [hop, setHop] = useState(0);
@@ -149,34 +144,6 @@ function SettingsPanel() {
           />
         </Row>
       </Section>
-
-      {diet ? (
-        <Section title="Calories">
-          <Row label="Daily goal" hint="Set it to 0 to stop tracking.">
-            <GoalField
-              value={settings.calorieGoal}
-              onChange={(calorieGoal) => {
-                set({ calorieGoal });
-                markCalorieCare();
-              }}
-            />
-          </Row>
-          <div className="button-row">
-            <button
-              type="button"
-              className="btn"
-              onClick={() => {
-                markCalorieCare();
-                openCaloriesWindow();
-              }}
-            >
-              Show the days
-            </button>
-          </div>
-        </Section>
-      ) : null}
-
-      {gallery ? <LocalGallerySection onChange={() => setHop((n) => n + 1)} /> : null}
 
       {files ? (
         <Section title="Helping with files">
@@ -365,29 +332,6 @@ function FeatureKey() {
         </Row>
       ))}
     </Section>
-  );
-}
-
-function GoalField({ value, onChange }: { value: number; onChange: (next: number) => void }) {
-  const [text, setText] = useState(String(value));
-  useEffect(() => setText(String(value)), [value]);
-  const commit = () => {
-    const n = Math.max(0, Math.min(20000, Math.round(Number(text) || 0)));
-    setText(String(n));
-    if (n !== value) onChange(n);
-  };
-  return (
-    <input
-      className="num-input"
-      inputMode="numeric"
-      aria-label="Daily calorie goal"
-      value={text}
-      onChange={(e) => setText(e.target.value.replace(/[^\d]/g, ""))}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur();
-      }}
-    />
   );
 }
 

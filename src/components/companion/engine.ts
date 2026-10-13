@@ -51,14 +51,6 @@ import {
 } from "@/components/companion/speech";
 import { GEO } from "@/lib/companion/theme";
 import {
-  pickCalorieAside,
-  pickCalorieReaction,
-  type CalorieMood,
-  type CaloriePick,
-  type DaySnap,
-} from "@/components/companion/calorie-lines";
-import { commitBook } from "@/lib/companion/calorie-store";
-import {
   CHECKERS_CHANCE,
   CHECKERS_FACE,
   pickCheckersLine,
@@ -91,54 +83,8 @@ import {
 
 export type BoardGameState = "you" | "mote" | "idle" | null;
 
-/** Local Gallery's passcode: Mote asking for it (and each digit you type),
- * how it went, and what Settings did with it. */
-export type PasscodeEvent =
-  | "ask"
-  | "digit"
-  | "right"
-  | "wrong"
-  | "refuse"
-  | "waiting"
-  | "cancel"
-  | "already-open"
-  | "set"
-  | "changed"
-  | "off"
-  | "locked"
-  | "was-locked"
-  | "hidden"
-  | "shown";
-
-export type PasscodeInfo = { triesLeft?: number; wait?: number; quiet?: boolean };
-
-/** The face for each passcode moment (none: Mote just settles). */
-const PASSCODE_FACE: Partial<Record<PasscodeEvent, Mood>> = {
-  ask: "pc-away",
-  right: "pc-right",
-  wrong: "pc-wrong",
-  refuse: "pc-refuse",
-  waiting: "pc-refuse",
-  "already-open": "delight",
-  set: "cute",
-  changed: "delight",
-  off: "surprise",
-  locked: "ck-smug",
-  "was-locked": "glance",
-  hidden: "cute",
-  shown: "glance",
-};
-
 /** What Mote would like, shown as a glow on the matching button. */
 export type Want = "food" | "sleep" | "play";
-import {
-  addDays,
-  dateKey,
-  partOf,
-  readBook,
-  streakUnder,
-  type CalorieMoment,
-} from "@/lib/companion/calories";
 
 export type Mood =
   | "settle"
@@ -172,11 +118,9 @@ export type Mood =
   | "work"
   | "tada"
   | "uhoh"
-  // Eating: pleased, thinking it over, worried near the line, sad once over.
+  // Pleased, and worried.
   | "beam"
-  | "reckon"
   | "worry"
-  | "plead"
   // Check-ins on how you're doing: concerned for you, or a soft, wordless look.
   | "care"
   | "soothe"
@@ -193,12 +137,8 @@ export type Mood =
   | "ch-checked"
   // Eating something you gave them.
   | "munch"
-  // Local Gallery's passcode: not peeking while you type it, then right,
-  // wrong, or refusing outright.
-  | "pc-away"
-  | "pc-right"
-  | "pc-wrong"
-  | "pc-refuse";
+  // A sorry-but-no shake of the head (something Mote won't take).
+  | "decline";
 
 /**
  * Everything Mote can do with their face. The eyes are pills; expression comes
@@ -277,8 +217,6 @@ export type EngineOptions = {
   placement: { x: number; y: number } | null;
   /** Friendly mode: Mote never gets cross or hurt. */
   friendly: boolean;
-  /** Daily calorie goal. 0 means Mote isn't keeping track. */
-  calorieGoal: number;
   /** The mind (on unless switched off): how Mote feels, and everything that
    * moves it. Off, they stay even, and how they felt is kept aside. */
   mind: boolean;
@@ -410,11 +348,6 @@ export type FaceEngine = {
   feed: (snack: string) => void;
   /** Put Mote to bed: they go to sleep if they're tired enough. */
   tuckIn: () => void;
-  /** You opened Local Gallery from Mote (or tried to). */
-  openedGallery: (ok: boolean) => void;
-  /** Local Gallery's passcode (see PasscodeEvent): `triesLeft` after a wrong
-   * one, `wait` (seconds) when Mote stops taking tries; `quiet`, no line. */
-  passcode: (event: PasscodeEvent, info?: PasscodeInfo) => void;
   /** A board game starts (Mote may remember the last one) and ends (Mote
    * remembers this one, and it moves their mood). `event` is the game's own
    * end line to use if there's nothing more personal to say. */
@@ -459,8 +392,6 @@ export type FaceEngine = {
   saveLink: (url: string, title: string | null) => void;
   /** Debug: suggest a saved link right now (this one, or Mote's pick). */
   suggestLink: (url?: string) => void;
-  /** You just changed today's calories. Mote says something that fits. */
-  noteCalories: (moment: CalorieMoment) => void;
   /** A game of checkers or chess: whose turn it is ("idle" between games,
    * null when the board is put away). */
   setBoardGame: (state: BoardGameState) => void;
@@ -505,9 +436,7 @@ export const MOOD_LIST: Mood[] = [
   "tada",
   "uhoh",
   "beam",
-  "reckon",
   "worry",
-  "plead",
   "care",
   "soothe",
   "ck-watch",
@@ -520,10 +449,7 @@ export const MOOD_LIST: Mood[] = [
   "ch-check",
   "ch-checked",
   "munch",
-  "pc-away",
-  "pc-right",
-  "pc-wrong",
-  "pc-refuse",
+  "decline",
 ];
 
 export const REST: Pose = {
@@ -601,9 +527,7 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   gaming: { dur: 5600, tempo: 1.2 },
   uhoh: { dur: 2400, tempo: 1 },
   beam: { dur: 8400, tempo: 1 },
-  reckon: { dur: 8400, tempo: 0.85 },
   worry: { dur: 8400, tempo: 0.85 },
-  plead: { dur: 9000, tempo: 0.75 },
   care: { dur: 7000, tempo: 0.8 },
   soothe: { dur: 3800, tempo: 0.75 },
   "ck-smug": { dur: 2600, tempo: 1 },
@@ -614,11 +538,7 @@ const MOODS: Record<Exclude<Mood, "settle" | "sleep">, { dur: number; tempo: num
   "ch-check": { dur: 2200, tempo: 1 },
   "ch-checked": { dur: 2400, tempo: 1.1 },
   munch: { dur: 2600, tempo: 1.1 },
-  "pc-right": { dur: 1900, tempo: 1.1 },
-  "pc-wrong": { dur: 2100, tempo: 1.05 },
-  "pc-refuse": { dur: 3400, tempo: 0.95 },
-  // Held while the passcode pad is up (see `passcode`).
-  "pc-away": { dur: Number.POSITIVE_INFINITY, tempo: 0.8 },
+  decline: { dur: 2100, tempo: 1.05 },
   // Purring lasts as long as the petting does; see `PURR_AFTER`. Looking at
   // the options and working last as long as they do (see `setHelping`).
   purr: { dur: Number.POSITIVE_INFINITY, tempo: 0.8 },
@@ -646,9 +566,7 @@ const BUSY: Mood[] = [
   "tada",
   "uhoh",
   "beam",
-  "reckon",
   "worry",
-  "plead",
   "care",
   "soothe",
   "chess",
@@ -663,10 +581,7 @@ const BUSY: Mood[] = [
   "ch-check",
   "ch-checked",
   "munch",
-  "pc-away",
-  "pc-right",
-  "pc-wrong",
-  "pc-refuse",
+  "decline",
 ];
 
 type GameMood = "chess" | "minecraft" | "gaming";
@@ -707,9 +622,7 @@ const LABELS: Partial<Record<Mood, string>> = {
   hum: "Mote is humming happily.",
   checkin: "Mote checks in on you.",
   beam: "Mote is pleased.",
-  reckon: "Mote is thinking it over.",
   worry: "Mote is worried.",
-  plead: "Mote is upset.",
   care: "Mote looks at you with concern.",
   soothe: "Mote gives you a gentle look.",
   "ck-watch": "Mote is watching your move.",
@@ -722,10 +635,7 @@ const LABELS: Partial<Record<Mood, string>> = {
   "ch-check": "Mote puts your king in check.",
   "ch-checked": "Mote's king is in check!",
   munch: "Mote is eating.",
-  "pc-away": "Mote isn’t looking while you type the passcode.",
-  "pc-right": "Mote: that’s the passcode!",
-  "pc-wrong": "Mote: that’s not the passcode.",
-  "pc-refuse": "Mote refuses to open the gallery.",
+  decline: "Mote shakes their head: no thanks.",
   chess: "Mote is playing chess.",
   minecraft: "Mote is playing Minecraft.",
   gaming: "Mote is gaming.",
@@ -757,8 +667,6 @@ function keyed(t: number, keys: Keys): Partial<Pose> {
 export type PoseExtras = {
   /** ms since the last petting stroke (negative while still petting). */
   sincePet?: number;
-  /** ms since the last digit of a passcode was typed. */
-  sinceTap?: number;
 };
 
 /**
@@ -1264,7 +1172,7 @@ export function poseFor(
       shakeRot = shake * 2 * decay;
     }
   } else if (mood === "beam") {
-    // Pleased about a careful day: a little hop, then a held, bashful smile.
+    // Pleased: a little hop, then a held, bashful smile.
     const glad: Partial<Pose> = {
       cheek: 0.64,
       cheekCurve: 0.2,
@@ -1280,29 +1188,8 @@ export function poseFor(
     ];
     const w = t / 1000;
     wobble = { rot: Math.sin(w * 2.1) * 3, x: Math.sin(w * 2.1) * 1.2 };
-  } else if (mood === "reckon") {
-    // Thinking the day through. Calm, not a celebration.
-    const face: Partial<Pose> = {
-      lookY: -0.55,
-      lookX: dir * 0.32,
-      lookMix: 1,
-      lid: 0.1,
-      lidTilt: 0.2,
-      lidBias: dir * 0.08,
-      openBias: dir * 0.1,
-      open: 1.02,
-      rot: dir * 5,
-      y: -1,
-      cheek: 0.14,
-      cheekCurve: 0.04,
-    };
-    keys = [
-      [0, { ...face, open: 1.08 }],
-      [360, face],
-    ];
-    wobble = { lookX: Math.sin((t / 1000) * 0.8) * 0.1 };
   } else if (mood === "worry") {
-    // Near the line: worried brows, a small shrink, eyes that won't settle.
+    // Worried: worried brows, a small shrink, eyes that won't settle.
     const face: Partial<Pose> = {
       lid: 0.14,
       lidTilt: -0.5,
@@ -1370,38 +1257,6 @@ export function poseFor(
     ];
     const nod = Math.max(0, Math.sin(Math.min(1, Math.max(0, (t - 1300) / 1200)) * Math.PI));
     wobble = { y: nod * 2.5 };
-  } else if (mood === "plead") {
-    // Over the line. Either a look up and a little whine, or a sad turn away.
-    const droop: Partial<Pose> = {
-      sy: 0.9,
-      sx: 1.06,
-      y: 6,
-      lid: 0.34,
-      lidTilt: -0.42,
-      lidCurve: 0.12,
-      cheek: 0.06,
-      cheekCurve: -0.04,
-      open: 0.92,
-      lookY: -0.55,
-      lookMix: 1,
-    };
-    const away: Partial<Pose> = {
-      ...droop,
-      lookX: dir * 0.85,
-      lookY: 0.4,
-      rot: dir * 8,
-      x: dir * 3,
-    };
-    const face = variant < 0.55 ? droop : away;
-    keys = [
-      [0, { open: 1.04, y: -1 }],
-      [280, face],
-    ];
-    if (variant < 0.55 && t > 400) {
-      const whimper = Math.sin((t / 1000) * Math.PI * 2 * 2.2);
-      shakeRot = whimper * 1.1;
-      wobble = { y: Math.abs(whimper) * 0.5 };
-    }
   } else if (mood === "ck-watch") {
     // Your turn: an attentive look down at the board (the eyes still follow
     // your pointer across it), with a slow, curious lean now and then.
@@ -1551,50 +1406,9 @@ export function poseFor(
       const chew = Math.sin(((t - 300) / 1000) * Math.PI * 2 * 3.2);
       wobble = { sy: chew * 0.035, sx: -chew * 0.025, y: Math.abs(chew) * 1.2 };
     }
-  } else if (mood === "pc-away") {
-    // Not peeking: eyes shut tight in two little arcs, head turned away,
-    // swaying gently. Each digit typed gets a tiny flinch, eyes still
-    // firmly shut.
-    const shut: Partial<Pose> = {
-      open: 0.96,
-      wide: 1.08,
-      lid: 0.06,
-      cheek: 0.7,
-      cheekCurve: 0.2,
-      rot: dir * 9,
-      x: dir * 3,
-      sy: 1.01,
-    };
-    keys = [
-      [0, { open: 1.08, y: -2 }],
-      [160, { ...shut, y: 1 }],
-      [420, shut],
-    ];
-    const w = t / 1000;
-    const tap = extras.sinceTap ?? Infinity;
-    const flinch = tap < 260 ? Math.sin((tap / 260) * Math.PI) : 0;
-    wobble = {
-      rot: Math.sin(w * 0.9) * 1.6 + dir * flinch * 2,
-      y: Math.sin(w * 1.8) * 0.5 - flinch * 1.5,
-      sy: flinch * 0.025,
-      lid: flinch * 0.05,
-    };
-  } else if (mood === "pc-right") {
-    // That's it: eyes pop open, a happy hop, a firm nod, and a wink.
-    const glad: Partial<Pose> = { cheek: 0.7, cheekCurve: 0.26, open: 1.04, wide: 1.06 };
-    keys = [
-      [0, { open: 1.2, wide: 0.95, y: -3, sy: 1.04 }],
-      [140, { ...glad, sy: 0.92, sx: 1.06, y: 3 }],
-      [260, { ...glad, y: -13, sy: 1.07, sx: 0.95 }],
-      [540, { ...glad, y: 1.5, sy: 0.95, sx: 1.04 }],
-      [720, { ...glad, y: 4, lookY: 0.2, lookMix: 1 }],
-      [900, { ...glad, y: -1 }],
-      [1080, { ...glad, cheek: 0.62, winkL: dir > 0 ? 1 : 0, winkR: dir > 0 ? 0 : 1, lookX: 0, lookY: 0, lookMix: 1 }],
-      [1600, {}],
-    ];
-  } else if (mood === "pc-wrong") {
-    // Not it: eyes open, a little wince, then a slow, sorry-but-no shake of
-    // the head, looking right at you.
+  } else if (mood === "decline") {
+    // No thanks: eyes open, a little wince, then a slow, sorry-but-no shake
+    // of the head, looking right at you.
     const no: Partial<Pose> = {
       lid: 0.16,
       lidTilt: 0.18,
@@ -1615,27 +1429,6 @@ export function poseFor(
       const u = (t - 400) / 1150;
       const shake = Math.sin(u * Math.PI * 2 * 2.5) * (1 - u * 0.6);
       wobble = { rot: shake * 7, x: shake * 2.5 };
-    }
-  } else if (mood === "pc-refuse") {
-    // No more tries: a cross breath out, then chin up and turned right away,
-    // eyes narrowed, not budging.
-    const firm: Partial<Pose> = {
-      lid: 0.32,
-      lidTilt: 0.5,
-      lidCurve: -0.04,
-      open: 0.92,
-      wide: 1.04,
-    };
-    keys = [
-      [0, { open: 1.12, y: -2, sy: 1.04 }],
-      [220, { ...firm, sy: 0.93, sx: 1.06, y: 3 }],
-      [600, { ...firm, rot: dir * 11, x: dir * 3.5, y: -3, sy: 1.03, sx: 0.98, lookX: -dir * 0.7, lookY: -0.25, lookMix: 1 }],
-      [2900, { ...firm, lid: 0.24, lidTilt: 0.4 }],
-      [3200, {}],
-    ];
-    if (t > 220 && t < 520) {
-      const decay = 1 - (t - 220) / 300;
-      shakeX = Math.sin(((t - 220) / 1000) * Math.PI * 2 * 12) * 1.4 * decay;
     }
   } else if (mood === "purr") {
     // Melts into the petting: blissful arcs, sinking and leaning in, a soft rumble.
@@ -2270,7 +2063,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     placement: null,
     // Set from Settings (see Companion).
     friendly: false,
-    calorieGoal: 0,
     mind: true,
     remarks: true,
     chat: true,
@@ -2337,9 +2129,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   let swirlNow = 0;
   let purrNow = 0;
 
-  // Older versions kept a list of watched titles; that's gone, so clear it.
+  // Older versions kept a list of watched titles, and the diet tracker kept
+  // its days; both are gone, so clear them.
   try {
     localStorage.removeItem("mote.memory");
+    localStorage.removeItem("mote.calories");
   } catch {
     // Nothing to clear.
   }
@@ -2448,10 +2242,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   // Helping you with files: talking it over, or busy with a job.
   let helping: "busy" | "talking" | null = null;
   let playing: BoardGameState = null;
-  // The passcode pad is up: Mote keeps their eyes shut (see `passcode`).
-  let asking = false;
-  let passcodeInfo: SpeechContext["passcode"] = null;
-  let tapAt = -Infinity;
   let recentGameLines: string[] = [];
   // The app just dropped on Mote, and the game being played (and how it went).
   let offered: SpeechContext["offering"] = null;
@@ -2460,9 +2250,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
   let talkingLink: SavedLink | null = null;
   let nextLinkCheck = 3 * 60_000;
   let lastLinkAt = Number.NEGATIVE_INFINITY;
-  let nextCalorieCheck = 8_000;
-  let lastCalorieAt = Number.NEGATIVE_INFINITY;
-  let recentCalorie: string[] = [];
   let game: { name: string; mood: GameMood; won: boolean } | null = null;
 
   const log = (text: string) => hooks.onEvent?.(text);
@@ -2542,7 +2329,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     game: game?.name ?? null,
     gameKind: game ? (game.mood === "gaming" ? "game" : game.mood) : null,
     gameWon: game?.won ?? false,
-    passcode: passcodeInfo,
     link: talkingLink
       ? {
           name: linkName(talkingLink),
@@ -2670,7 +2456,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       return;
     }
     // Helping you, Mote keeps their own chatter to themself.
-    if (debug.manual || helping || playing || asking || BUSY.includes(mood)) return;
+    if (debug.manual || helping || playing || BUSY.includes(mood)) return;
     // Remarks switched off: nothing gets mentioned (bar asking to play an
     // app's game again, which is the apps' own).
     if (pendingEvent && !options.remarks && pendingEvent.event !== "played") pendingEvent = null;
@@ -2759,147 +2545,9 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         suggestLink(now);
       }
     }
-
-    if (now >= nextCalorieCheck) {
-      nextCalorieCheck = now + 60_000;
-      considerCalories(now);
-    }
   };
 
   const aroundNow = () => clock - lastYou < 2 * 60_000;
-
-  const calorieFace = (moodName: CalorieMood) => {
-    if (helping === "busy" || GAME_MOODS.includes(mood) || debug.manual) return;
-    start(moodName, clock);
-  };
-
-  /** A line about food: the words, then a face that holds while they're up. */
-  const sayCalorie = (pick: CaloriePick, reaction: string) => {
-    recentCalorie = [...recentCalorie, pick.id].slice(-8);
-    const book = readBook();
-    commitBook({ ...book, lastAsideAt: Date.now() });
-    showBubble({
-      id: ++bubbleSeq,
-      lineId: `cal:${pick.id}`,
-      kind: "flavor",
-      text: pick.text,
-      born: clock,
-      ttl: lifetime("flavor", pick.text),
-    });
-    react(reaction);
-    calorieFace(pick.mood);
-    log(`says “${pick.text}”`);
-  };
-
-  const reactionFor = (moodName: CalorieMood, saved = false) => {
-    if (saved) return "calorie-relief";
-    if (moodName === "plead") return "calorie-over";
-    if (moodName === "worry") return "calorie-worry";
-    if (moodName === "reckon") return "calorie-steady";
-    return "calorie-sweet";
-  };
-
-  /**
-   * Now and then, if you've started keeping track: where today stands, a
-   * nudge to log, and one real congratulations when a day stays under.
-   */
-  const considerCalories = (now: number) => {
-    const goal = options.calorieGoal;
-    if (!(goal > 0)) return;
-    const book = readBook();
-    if (!book.care) return;
-    if (helping || playing || debug.manual) return;
-    const around = aroundNow();
-    const today = dateKey();
-    const hour = new Date().getHours();
-    let next = book;
-    let dirty = false;
-
-    if (next.praisedMorning !== today) {
-      const yKey = addDays(today, -1);
-      const y = next.days[yKey];
-      // Yesterday already got its goodnight, so the morning doesn't repeat it.
-      if (y && y.total > 0 && next.praisedEvening !== yKey) {
-        if (!around) return;
-        const snap: DaySnap = {
-          kind: "morning",
-          goal,
-          eaten: y.total,
-          fill: y.total / goal,
-          hour,
-          part: partOf(hour),
-          streak: streakUnder(next, goal, today),
-          over: y.total > goal,
-        };
-        const line = pickCalorieAside(snap, recentCalorie);
-        next = { ...next, praisedMorning: today };
-        dirty = true;
-        if (line) {
-          commitBook(next);
-          sayCalorie(line, y.total > goal ? "calorie-worry" : "calorie-sweet");
-          return;
-        }
-      } else if (around) {
-        next = { ...next, praisedMorning: today };
-        dirty = true;
-      } else return;
-    }
-
-    if (hour >= 21 && next.praisedEvening !== today) {
-      const entry = next.days[today];
-      if (entry && entry.total > 0) {
-        if (!around) {
-          if (dirty) commitBook(next);
-          return;
-        }
-        const snap: DaySnap = {
-          kind: "evening",
-          goal,
-          eaten: entry.total,
-          fill: entry.total / goal,
-          hour,
-          part: partOf(hour),
-          streak: streakUnder(next, goal, today) + (entry.total <= goal ? 1 : 0),
-          over: entry.total > goal,
-        };
-        const line = pickCalorieAside(snap, recentCalorie);
-        next = { ...next, praisedEvening: today };
-        if (line) {
-          commitBook(next);
-          sayCalorie(line, entry.total > goal ? "calorie-over" : "calorie-sweet");
-          return;
-        }
-        dirty = true;
-      }
-    }
-
-    if (dirty) commitBook(next);
-    if (!around) return;
-    if (now - lastCalorieAt < 2 * 60_000) return;
-    if (Date.now() - (next.lastAsideAt ?? 0) < 40 * 60_000) return;
-    if (Math.random() > 0.12) return;
-
-    const entry = next.days[today];
-    const logged = !!entry && entry.total > 0;
-    // Asking you to log it happens once a day at most.
-    const kind = logged ? "status" : hour >= 11 && next.nudgedOn !== today ? "nudge" : null;
-    if (!kind) return;
-    if (kind === "nudge") commitBook({ ...next, nudgedOn: today });
-    const eaten = entry?.total ?? 0;
-    const snap: DaySnap = {
-      kind,
-      goal,
-      eaten,
-      fill: eaten / goal,
-      hour,
-      part: partOf(hour),
-      streak: streakUnder(next, goal, today),
-      over: eaten > goal,
-    };
-    const line = pickCalorieAside(snap, recentCalorie);
-    if (!line) return;
-    sayCalorie(line, kind === "nudge" ? "calorie-aside" : reactionFor(line.mood, false));
-  };
 
   /**
    * Checkers and chess. While a game is on, Mote's face follows it: watching
@@ -2982,16 +2630,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     gameMoment(`tictactoe-${event}`, TICTACTOE_FACE[event], TICTACTOE_CHANCE[event], () =>
       pickTicTacToeLine(event, recentGameLines),
     );
-
-  /** You changed today's calories. */
-  const noteCalories = (moment: CalorieMoment) => {
-    rouse();
-    pendingEvent = null;
-    wanting = null;
-    lastCalorieAt = clock;
-    const pick = pickCalorieReaction(moment, recentCalorie);
-    sayCalorie(pick, reactionFor(pick.mood, moment.saved));
-  };
 
   /** Brings up one of your saved links, asking if you'd like to go there. */
   const suggestLink = (now: number, url?: string) => {
@@ -3111,30 +2749,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     if (!line) return;
     if (bubble) showBubble(null);
     say(line, clock);
-  };
-
-  /**
-   * Local Gallery's passcode. While the pad is up (from "ask" until it's
-   * right, refused or put away) Mote keeps their eyes shut and their chatter
-   * to themself; everything else is a moment with a face and a line.
-   */
-  const passcode = (event: PasscodeEvent, info: PasscodeInfo = {}) => {
-    if (event === "digit") {
-      tapAt = clock;
-      touch();
-      return;
-    }
-    rouse();
-    engage();
-    passcodeInfo = { triesLeft: info.triesLeft ?? 0, wait: info.wait ?? 0 };
-    // A wrong try keeps the pad up; anything else puts it away.
-    if (event === "ask") asking = true;
-    else if (event !== "wrong") asking = false;
-    react(`passcode-${event}`);
-    const face = PASSCODE_FACE[event];
-    if (face && !debug.manual) start(face, clock);
-    else if (mood === "pc-away") start("settle", clock);
-    if (!info.quiet) sayNow(`passcode-${event}`);
   };
 
   /** An app dropped on Mote: play the game, or have a say about the app. */
@@ -3550,9 +3164,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         tucked = false;
         start("settle", now);
         nextAct = now + actGap(watchingMedia, you || typing);
-      } else if (asking) {
-        // Back to not peeking while you type.
-        start("pc-away", now);
       } else if (helping) {
         // Back to looking at the options, or to the job.
         start(helping === "busy" ? "work" : "present", now);
@@ -3593,7 +3204,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       purr,
     } = poseFor(mood, t, moodSeed, {
       sincePet: sincePet < 350 ? -1 : sincePet - 350,
-      sinceTap: now - tapAt,
     });
     swirlNow = swirl;
     // Petting a sleeping Mote gets a sleepy little purr without waking them.
@@ -4129,14 +3739,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     },
     feed: feedMote,
     tuckIn,
-    openedGallery: (ok) => {
-      rouse();
-      engage();
-      react(ok ? "gallery-opened" : "gallery-missing");
-      start(ok ? "delight" : "uhoh", clock);
-      if (!ok || Math.random() < 0.6) sayNow(ok ? "gallery-opened" : "gallery-missing");
-    },
-    passcode,
     gameStart,
     gameOver,
     answer: (yes) => {
@@ -4215,7 +3817,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       rouse();
       engage();
       react("drop-declined");
-      start("pc-wrong", clock);
+      start("decline", clock);
       sayNow("drop-declined");
     },
     dragHover: (over) => {
@@ -4229,7 +3831,6 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       if (bubble) showBubble(null);
       suggestLink(clock, url);
     },
-    noteCalories,
     setBoardGame,
     checkers: checkersEvent,
     chess: chessEvent,

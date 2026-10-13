@@ -13,14 +13,11 @@ export type ReactionGroup =
   | "Helping you"
   | "Speech"
   | "Talking"
-  | "Eating"
   | "Checkers"
   | "Chess"
   | "Tic-tac-toe"
   | "Liar’s Dice"
   | "Solitaire"
-  | "Local Gallery"
-  | "Local Gallery passcode"
   | "Time"
   | "Lasting moods"
   | "Looking after Mote"
@@ -101,7 +98,7 @@ export const REACTIONS: Reaction[] = [
     group: "Talking",
     name: "Understood",
     when: "What you typed clearly matches something Mote can do (the words, a plural, a word cut short, or near enough)",
-    then: "Does it straight away: opens the game, the calorie card, the gallery, puts themself to bed… Some things are a list (games, snacks, what Mote can do), shown as choices",
+    then: "Does it straight away: opens the game, the snack menu, puts themself to bed… Some things are a list (games, snacks, what Mote can do), shown as choices",
     status: "live",
   },
   {
@@ -382,56 +379,6 @@ export const REACTIONS: Reaction[] = [
     name: "Poked while busy",
     when: "You poke Mote while they’re working on a job",
     then: "Carries on working",
-    status: "live",
-  },
-
-  // Eating
-  {
-    id: "calorie-sweet",
-    group: "Eating",
-    name: "A careful bite",
-    when: "You log a small amount while the day is still well under the goal",
-    then: "Beams, and says something cheerful",
-    status: "live",
-  },
-  {
-    id: "calorie-steady",
-    group: "Eating",
-    name: "Halfway there",
-    when: "The day is about halfway to the goal, or one entry was a whole meal",
-    then: "Thinks it over, and says what's left",
-    status: "live",
-  },
-  {
-    id: "calorie-worry",
-    group: "Eating",
-    name: "Close to the line",
-    when: "You're near the goal",
-    then: "Looks worried, and asks you not to cross it",
-    status: "live",
-  },
-  {
-    id: "calorie-over",
-    group: "Eating",
-    name: "Over the goal",
-    when: "Today goes past the goal",
-    then: "Droops, and asks you to stop",
-    status: "live",
-  },
-  {
-    id: "calorie-relief",
-    group: "Eating",
-    name: "Back under",
-    when: "You take the day back under the goal",
-    then: "Lights up, relieved",
-    status: "live",
-  },
-  {
-    id: "calorie-aside",
-    group: "Eating",
-    name: "A reminder",
-    when: "Now and then, once you've started tracking: the count so far, or (once a day) a nudge to log it",
-    then: "Says where the day stands",
     status: "live",
   },
 
@@ -1102,148 +1049,12 @@ export const REACTIONS: Reaction[] = [
     status: "live",
   },
 
-  // Local Gallery
-  {
-    id: "gallery-opened",
-    group: "Local Gallery",
-    name: "Opening the gallery",
-    when: "You ask Mote for the gallery (Local Gallery unlocked and on)",
-    then: "A happy hop, often a word, and Local Gallery opens as its own app",
-    status: "live",
-  },
-  {
-    id: "gallery-missing",
-    group: "Local Gallery",
-    name: "No gallery",
-    when: "The gallery can’t be found or won’t open (a copy of Mote built without it, or a browser)",
-    then: "An uh-oh face, and says so",
-    status: "live",
-  },
-
-  {
-    id: "passcode-already-open",
-    group: "Local Gallery",
-    name: "Gallery already open",
-    when: "You press the picture frame while Local Gallery is open",
-    then: "A happy hop, and brings it to the front (no passcode needed: it was opened with one)",
-    status: "live",
-  },
-
-  // Local Gallery passcode
-  {
-    id: "passcode-ask",
-    group: "Local Gallery passcode",
-    name: "Asking for the passcode",
-    when: "You press the picture frame and a passcode is set",
-    then: "A passcode pad comes up; Mote squeezes their eyes shut and turns away (flinching a little at each digit) until it’s done",
-    status: "live",
-  },
-  {
-    id: "passcode-right",
-    group: "Local Gallery passcode",
-    name: "Right passcode",
-    when: "The passcode you typed is right",
-    then: "Eyes pop open, a hop, a nod and a wink, and the gallery opens",
-    effects: { joy: 0.2 },
-    status: "live",
-  },
-  {
-    id: "passcode-wrong",
-    group: "Local Gallery passcode",
-    name: "Wrong passcode",
-    when: "The passcode you typed (here or in Settings) isn’t right",
-    then: "A sorry-but-no shake of the head, and says how many tries are left when it’s getting close",
-    effects: { joy: -0.05 },
-    status: "live",
-  },
-  {
-    id: "passcode-refuse",
-    group: "Local Gallery passcode",
-    name: "Too many wrong tries",
-    when: "Five wrong passcodes in a row",
-    then: "Turns away, chin up, and refuses: no more tries for a while (30 seconds, then longer each time, up to 15 minutes), and the gallery stays shut",
-    effects: { joy: -0.2 },
-    status: "live",
-  },
-  {
-    id: "passcode-waiting",
-    group: "Local Gallery passcode",
-    name: "Still refusing",
-    when: "You ask for the gallery before Mote takes tries again",
-    then: "Refuses again, and says how long is left",
-    status: "live",
-  },
-  {
-    id: "passcode-cancel",
-    group: "Local Gallery passcode",
-    name: "Never mind",
-    when: "You close the passcode pad (or press Escape)",
-    then: "Opens their eyes; the gallery stays shut",
-    status: "live",
-  },
-  {
-    id: "passcode-set",
-    group: "Local Gallery passcode",
-    name: "Passcode set",
-    when: "You set a passcode in Settings",
-    then: "A pleased little wiggle",
-    status: "live",
-  },
-  {
-    id: "passcode-changed",
-    group: "Local Gallery passcode",
-    name: "Passcode changed",
-    when: "You change the passcode in Settings",
-    then: "A happy hop",
-    status: "live",
-  },
-  {
-    id: "passcode-off",
-    group: "Local Gallery passcode",
-    name: "Passcode off",
-    when: "You turn the passcode off in Settings",
-    then: "A surprised look",
-    status: "live",
-  },
-  {
-    id: "passcode-locked",
-    group: "Local Gallery passcode",
-    name: "Locked now",
-    when: "You press Lock now in Settings while the gallery is open",
-    then: "The gallery saves and closes; Mote looks pleased with themself",
-    status: "live",
-  },
-  {
-    id: "passcode-was-locked",
-    group: "Local Gallery passcode",
-    name: "Already locked",
-    when: "You press Lock now while the gallery isn’t open",
-    then: "A glance, and says it’s locked already",
-    status: "live",
-  },
-  {
-    id: "passcode-hidden",
-    group: "Local Gallery passcode",
-    name: "Folder hidden",
-    when: "You hide the gallery folder in Settings",
-    then: "A bashful wiggle",
-    status: "live",
-  },
-  {
-    id: "passcode-shown",
-    group: "Local Gallery passcode",
-    name: "Folder shown",
-    when: "You show the gallery folder again in Settings",
-    then: "A glance",
-    status: "live",
-  },
-
   // Speech
   {
     id: "speak",
     group: "Speech",
     name: "Speaking up",
-    when: "Right after something happens (a pet, waking up, a game, logging calories…), when Mote needs something, or every few minutes while you're around, just to chat",
+    when: "Right after something happens (a pet, waking up, a game…), when Mote needs something, or every few minutes while you're around, just to chat",
     then: "Says something that fits in a speech bubble",
     status: "live",
   },
@@ -1642,14 +1453,11 @@ export const REACTION_GROUPS: ReactionGroup[] = [
   "Sound",
   "Interest",
   "Helping you",
-  "Eating",
   "Checkers",
   "Chess",
   "Tic-tac-toe",
   "Liar’s Dice",
   "Solitaire",
-  "Local Gallery",
-  "Local Gallery passcode",
   "Speech",
   "Talking",
   "Time",

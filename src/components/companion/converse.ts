@@ -1,5 +1,5 @@
 // Talking to Mote. Click Mote and they ask what you'd like to do; you type
-// anything ("I want to play chess", "chess", "calories", "I want to paaly a
+// anything ("I want to play chess", "chess", "snack", "I want to paaly a
 // gatme") and Mote works out what you mean from a big list of keywords and
 // loose connections to them (typos, missing or extra letters, swapped
 // letters, words run together or split apart), then gets on with it:
@@ -11,8 +11,7 @@
 //
 // The point is to get out of the conversation as fast as possible: one line
 // from you, then the right thing opens. Everything Mote can do lives under
-// one intent each, so a keyword never points two ways ("track" and "log" are
-// only ever the diet tracker; a future workout log would join it there).
+// one intent each, so a keyword never points two ways.
 //
 // Nothing here touches the screen: Companion asks `understand` what was
 // meant, and picks the words to say from the lists below.
@@ -25,10 +24,6 @@ export type IntentId =
   | "tictactoe"
   | "liarsdice"
   | "solitaire"
-  // The diet tracker: logging what you ate, and the Days window.
-  | "diet"
-  | "dietDays"
-  | "gallery"
   | "files"
   | "bed"
   // Feeding Mote: the snack menu, or a snack by name.
@@ -169,74 +164,6 @@ const INTENTS: Record<IntentId, Word[]> = {
     ["on my own", 0.9],
     ["help me play", 1],
     ["together", 0.6],
-  ],
-  diet: [
-    ["calorie", 1.2],
-    ["kcal", 1.2],
-    ["cal", 1],
-    ["diet", 1.2],
-    ["dieting", 1.2],
-    ["track", 1],
-    ["tracker", 1],
-    ["tracking", 1],
-    ["log", 1],
-    ["record", 0.95],
-    ["count", 0.8],
-    ["counting", 0.8],
-    ["intake", 1],
-    ["nutrition", 1],
-    ["macros", 1],
-    ["weight", 0.85],
-    ["food log", 1.2],
-    ["food diary", 1.2],
-    ["food journal", 1.2],
-    ["what i ate", 1.2],
-    ["i ate", 1.1],
-    ["i had", 0.8],
-    ["ate", 0.8],
-    ["breakfast", 0.9],
-    ["lunch", 0.85],
-    ["dinner", 0.8],
-    ["supper", 0.85],
-    ["brunch", 0.9],
-    ["fitness", 0.9],
-    ["health", 0.75],
-    ["healthy", 0.7],
-    ["goal", 0.7],
-  ],
-  dietDays: [
-    ["days", 0.95],
-    ["history", 0.9],
-    ["week", 0.85],
-    ["weekly", 0.9],
-    ["month", 0.85],
-    ["monthly", 0.9],
-    ["calendar", 0.95],
-    ["chart", 0.9],
-    ["graph", 0.9],
-    ["progress", 0.9],
-    ["summary", 0.85],
-    ["overview", 0.85],
-    ["stats", 0.85],
-    ["average", 0.85],
-    ["so far", 0.7],
-    ["how am i doing", 1],
-    ["how im doing", 1],
-  ],
-  gallery: [
-    ["gallery", 1.2],
-    ["local gallery", 1.3],
-    ["photo", 1],
-    ["photos", 1],
-    ["picture", 1],
-    ["pic", 0.95],
-    ["pix", 0.9],
-    ["image", 1],
-    ["album", 1],
-    ["library", 0.9],
-    ["collection", 0.8],
-    ["media", 0.8],
-    ["passcode", 0.8],
   ],
   files: [
     ["file", 1],
@@ -569,11 +496,9 @@ const NOT_TYPOS = new Set(
     "roll role rule poll toll doll " +
     "sort sore sorry short snort fort port " +
     "liar lair " +
-    "diet died dirt duet " +
     "track trick truck crack stack " +
     "toy boy joy " +
     "clean clear cleat glean " +
-    "photo phone " +
     "feed feet feel fees need seed weed reed " +
     "meal real seal deal heal veal " +
     "treat great threat " +
@@ -641,7 +566,7 @@ const NONE: Match = { q: 0, sure: false };
 function wordMatch(typed: string, word: string): Match {
   if (!typed || !word) return NONE;
   if (typed === word || stem(typed) === stem(word)) return { q: 1, sure: true };
-  // Plurals either way ("calories" for "calorie", "cookie" for "cookies").
+  // Plurals either way ("games" for "game", "cookie" for "cookies").
   const forms = (w: string) => [w, w.replace(/s$/, ""), w.replace(/es$/, "")];
   if (forms(typed).some((t) => forms(word).includes(t))) return { q: 1, sure: true };
   if (squash(typed) === squash(word)) return { q: 0.97, sure: true };
@@ -738,7 +663,7 @@ const ORDINALS: Record<string, number> = {
  * What did they mean? Every intent's keywords are looked for in what was
  * typed; the strongest wins, with a nudge for more than one keyword pointing
  * the same way and for who it's about ("you" leans toward feeding Mote or
- * putting them to bed, "I" toward the diet tracker).
+ * putting them to bed, "I" away from bed).
  */
 export function understand(text: string, u: Understanding): Heard {
   const clean = normalize(text);
@@ -799,7 +724,6 @@ export function understand(text: string, u: Understanding): Heard {
     if (!best) continue;
     best.score += Math.min(2, extra) * 0.08;
     if (aboutYou && ["feed", "cookie", "berries", "meal", "bed", "howAreYou", "pet"].includes(intent)) best.score += 0.2;
-    if (aboutMe && !aboutYou && ["diet", "dietDays"].includes(intent)) best.score += 0.15;
     if (aboutMe && !aboutYou && intent === "bed") best.score -= 0.3;
     hits.push(best);
   }
@@ -807,10 +731,6 @@ export function understand(text: string, u: Understanding): Heard {
   let top = hits[0];
   if (!top || top.score < 0.5) return { kind: "unknown" };
 
-  // Days only make sense with the tracker: "calorie history" is the days.
-  const days = hits.find((h) => h.intent === "dietDays");
-  const diet = hits.find((h) => h.intent === "diet");
-  if (top.intent === "diet" && days && days.score > 0.6) top = { ...days, sure: days.sure && diet!.sure };
   // A snack by name is feeding; two games by name is the games menu.
   const second = hits[1];
   if (second && isGame(top.intent) && isGame(second.intent) && second.score > top.score - 0.1) {
@@ -906,9 +826,6 @@ const CHECK: Record<IntentId, string[]> = {
   tictactoe: ["Tic-tac-toe? Want to play?", "You mean tic-tac-toe?"],
   liarsdice: ["Liar’s Dice? Want to play?", "You mean Liar’s Dice?"],
   solitaire: ["Solitaire? I’ll help.", "You mean solitaire?"],
-  diet: ["You want to log some calories?", "Calories? Want to log something?"],
-  dietDays: ["You want to see your days?", "Your calorie days? Want to look?"],
-  gallery: ["You want to open Local Gallery?", "The gallery? Shall I open it?"],
   files: ["Something about files?", "You want help with some files?"],
   bed: ["Bedtime for me?", "You want to tuck me in?"],
   feed: ["A snack for me?", "You want to feed me?"],
@@ -941,8 +858,6 @@ export const LINES = {
     "Lots of things! Pick one, or say it your way:",
     "Try one of these, or tell me in your own words:",
   ],
-  diet: ["Okay! What did you have?", "Let’s log it. How many?", "Calories! Go on.", "Okay, what are we adding?"],
-  dietDays: ["Here are your days.", "Opening your days.", "Here’s how it’s been going."],
   files: [
     "Drag a folder or some videos onto me, and I’ll show you what I can do with them.",
     "Just drop a folder or a few videos on me. I’ll take it from there.",
@@ -971,8 +886,6 @@ export const LINES = {
     links: ["Saved links are switched off right now."],
     feed: ["I’m okay, thanks! I don’t need snacks right now.", "Not hungry! I don’t really need snacks."],
     bed: ["I’m not sleepy. I nap on my own when I need to.", "I don’t need bed. I just nap when I feel like it."],
-    diet: ["The diet tracker is switched off right now."],
-    gallery: ["Local Gallery is switched off right now."],
   },
 } as const;
 

@@ -9,9 +9,6 @@ const ALL = new Set<IntentId>([
   "tictactoe",
   "liarsdice",
   "solitaire",
-  "diet",
-  "dietDays",
-  "gallery",
   "files",
   "bed",
   "feed",
@@ -62,16 +59,6 @@ test("plain requests do the thing straight away", () => {
     ["cards", "do:solitaire"],
     ["play cards", "do:solitaire"],
     ["patience", "do:solitaire"],
-    ["calories", "do:diet"],
-    ["log calories", "do:diet"],
-    ["I want to track my food", "do:diet"],
-    ["diet", "do:diet"],
-    ["I ate a sandwich", "do:diet"],
-    ["calorie history", "do:dietDays"],
-    ["show me my week", "do:dietDays"],
-    ["gallery", "do:gallery"],
-    ["open local gallery", "do:gallery"],
-    ["my photos", "do:gallery"],
     ["clean up my downloads", "do:files"],
     ["help me tidy a folder", "do:files"],
     ["go to bed", "do:bed"],
@@ -110,16 +97,13 @@ test("typos get a check first", () => {
     ["chss", "check:chess"],
     ["chekers", "check:checkers"],
     ["solitare", "check:solitaire"],
-    ["galery", "do:gallery"],
-    ["gallrey", "check:gallery"],
-    ["calroies", "check:diet"],
     ["bedtiem", "check:bed"],
   ];
   for (const [text, want] of cases) assert.equal(heard(text), want, text);
 });
 
 test("short-cut words and run-together words are understood", () => {
-  assert.equal(heard("calor"), "do:diet");
+  assert.equal(heard("solitai"), "do:solitaire");
   assert.equal(heard("tictacto"), "do:tictactoe");
   assert.equal(heard("liars dic"), "do:liarsdice");
 });
@@ -136,7 +120,7 @@ test("don't is respected, and a no doesn't cancel what follows", () => {
   assert.equal(heard("no, chess"), "do:chess");
 });
 
-test("who it's about decides between feeding Mote and the diet tracker", () => {
+test("who it's about decides whether Mote is the tired one", () => {
   assert.equal(heard("I'm tired"), "unknown");
   assert.equal(heard("are you tired"), "do:bed");
 });
@@ -152,9 +136,13 @@ test("menus can be picked from by number", () => {
   assert.equal(heard("last", ALL, games), "do:solitaire");
 });
 
-test("anything locked away is as if Mote never heard of it", () => {
-  const known = new Set([...ALL].filter((i) => i !== "diet" && i !== "dietDays" && i !== "gallery"));
-  assert.equal(heard("calories", known), "unknown");
-  assert.equal(heard("gallery", known), "unknown");
-  assert.equal(heard("chess", known), "do:chess");
+test("anything Mote can't do is as if they never heard of it", () => {
+  const known = new Set([...ALL].filter((i) => i !== "files"));
+  assert.equal(heard("clean up my downloads", known), "unknown");
+  assert.equal(heard("checkers", known), "do:checkers");
+});
+
+test("the diet tracker and Local Gallery are gone", () => {
+  assert.equal(heard("log calories"), "unknown");
+  assert.equal(heard("open local gallery"), "unknown");
 });

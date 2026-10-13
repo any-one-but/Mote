@@ -14,11 +14,6 @@ export function openSettingsWindow() {
   else window.open("settings.html", "mote-settings", "popup,width=440,height=680");
 }
 
-export function openCaloriesWindow() {
-  if (isDesktopApp()) void invoke("open_calories").catch(() => {});
-  else window.open("calories.html", "mote-calories", "popup,width=760,height=840");
-}
-
 /** Makes the Settings window roomy enough for the Debug tabs, if it isn't. */
 export function widenSettingsWindow() {
   if (isDesktopApp()) void invoke("widen_settings").catch(() => {});

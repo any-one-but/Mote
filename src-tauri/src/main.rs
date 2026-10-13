@@ -1,6 +1,5 @@
 // Mote for Mac: native windows around the pages in ../desktop.
 mod audio;
-mod gallery;
 mod links;
 mod login;
 mod senses;
@@ -73,31 +72,9 @@ fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
-fn open_calories_window(app: &AppHandle) -> tauri::Result<()> {
-    if let Some(window) = app.get_webview_window("calories") {
-        window.show()?;
-        return window.set_focus();
-    }
-    WebviewWindowBuilder::new(app, "calories", WebviewUrl::App("calories.html".into()))
-        .title("Days")
-        .inner_size(760.0, 840.0)
-        .min_inner_size(520.0, 480.0)
-        .center()
-        .title_bar_style(TitleBarStyle::Overlay)
-        .hidden_title(true)
-        .background_color(PAPER)
-        .build()?;
-    Ok(())
-}
-
 #[tauri::command]
 fn open_settings(app: AppHandle) -> Result<(), String> {
     open_settings_window(&app).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-fn open_calories(app: AppHandle) -> Result<(), String> {
-    open_calories_window(&app).map_err(|e| e.to_string())
 }
 
 /// With Debug on, Settings carries the Debug tabs too: it grows to fit them
@@ -260,18 +237,9 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             open_settings,
-            open_calories,
             widen_settings,
             set_float_on_top,
             set_helping_size,
-            gallery::open_local_gallery,
-            gallery::gallery_status,
-            gallery::gallery_check_passcode,
-            gallery::gallery_set_passcode,
-            gallery::gallery_turn_off_passcode,
-            gallery::gallery_lock_now,
-            gallery::gallery_set_hidden,
-            gallery::gallery_library,
             login::login_item_enabled,
             login::set_login_item,
             links::read_dropped_link,

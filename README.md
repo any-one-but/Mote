@@ -180,10 +180,6 @@ however you like, and press Return:
 - "chess", "I want to play chess", "checkers", "tic tac toe", "liar's dice",
   "solitaire" (or "cards", "patience")
   — that game, straight away
-- "calories", "log my lunch", "track my food", "diet" — the calorie card;
-  "my week", "calorie history" — the Days window (with the diet tracker
-  unlocked)
-- "gallery", "my photos" — Local Gallery (with it unlocked)
 - "help with files", "clean up a folder" — Mote tells you to drag a folder
   or videos onto them (that's how the file help starts)
 - "bed", "goodnight", "nap" — tucks Mote in (with Goodnight Mote on)
@@ -197,19 +193,17 @@ however you like, and press Return:
 - and a few friendly ones: "hi", "thanks", "how are you", "never mind"
 
 Mote reads it with a big list of keywords for each thing, and is forgiving:
-plurals, words cut short ("calor"), words run together or split ("tictactoe",
+plurals, words cut short ("solitai"), words run together or split ("tictactoe",
 "tic tac toe"), extra or missing letters, swapped letters. If Mote is sure,
 they just do it. If it only matches with a typo or two ("I want to paaly a
 gatme"), they check first ("You want to play a game?"): yes does it, no asks
 what you meant. If nothing matches, Mote asks you to put it another way.
 "Don't" is understood ("I don't want to play" isn't a game). Each keyword
-belongs to one thing only ("track" and "log" are always the diet tracker),
-so new features join the thing they belong to rather than competing for
-words. Anything locked behind a key is as if Mote had never heard of it;
-anything switched off, Mote says so.
+belongs to one thing only, so new features join the thing they belong to
+rather than competing for words. Anything switched off, Mote says so.
 
 A double-click always works, whatever's open: a game (it's saved for next
-time), the calorie card or the passcode pad go away and a new conversation
+time) or the file options go away and a new conversation
 starts. The first click of it is a poke as usual, so it gets a little hop;
 if that click woke Mote up, they need a moment, and you can talk once
 they're up. While Mote is busy with a file job, they say so. Leaving a question
@@ -226,27 +220,6 @@ npm run mac
 
 A Mote window opens. Any change you save to the code shows up in it right away.
 Drag the window by its top edge.
-
-## Calories
-
-The diet tracker is locked behind its own **Feature Key** (see "Debug and
-experimental features"): until it's unlocked and on, Mote doesn't know the
-word "calories", there's no Calories section in Settings, and Mote keeps no
-count and says nothing about it.
-
-Set a **daily goal** in Settings (0 turns this off). Double-click Mote and say
-"calories" (or "log my lunch", "track food"…): type an amount and press **+** (or Return) to add it,
-or **−** to take it away. Click the big number to type today's total outright.
-
-**See the days** (ask Mote for "my week" or "calorie history", or use Settings) opens a calendar of every
-day you've logged, colored the way the old Diet Tracker did: cool while you're
-under the goal, hot once you pass it, nearly black when you're well past.
-
-Mote reacts to each entry: cheerful while the day is light, matter-of-fact in
-the middle, a little worried near the goal, and sad once you're over. Now and
-then Mote mentions where today stands, asks once a day if you haven't logged
-anything, says goodnight about the day after 9pm, and mentions yesterday the
-next morning. Every line is in `src/components/companion/calorie-lines.ts`.
 
 ## How Mote plays board games
 
@@ -371,85 +344,19 @@ The cards follow the style guide (see `STYLE.md`): warm paper faces with a
 deeper rim and no outlines, Mote's colour on the back with a little pair of
 Mote eyes.
 
-## Local Gallery
-
-Mote carries Local Gallery, the Mac app from the Local_Gallery repo, inside
-`Mote.app` and opens it when you ask (double-click Mote and say "gallery"; with Local Gallery
-unlocked by its own Feature Key, and on). It's the real app, built from the same code with the same
-app ID and name, so it uses the same library, folders, settings and
-thumbnails as the Local Gallery you build from its own repo. Mote doesn't run
-any of it; it only opens it, as if you'd double-clicked it.
-
-Its code is kept apart in `local-gallery/` (the core app, plus its design
-docs for keeping), with its own notes on where it came from and how to
-update it.
-
-### Mote keeps the passcode
-
-Local Gallery's passcode lives in Mote now, not in the gallery. With Local
-Gallery switched on, Settings has a **Local Gallery** section with everything
-the gallery's own Passcode menu had:
-
-- **Set a passcode** (four digits, typed twice so a slip can't lock you out),
-  or **Change passcode** (the current one first).
-- **Lock now**: if the gallery is open, it saves what it's doing and closes,
-  so it needs the passcode to open again.
-- **Turn passcode off** (the current one first).
-- **Hide gallery folder**: renames the library in Documents to
-  `.Local Gallery`, so Finder doesn't show it (the current passcode first).
-  An open gallery closes for a moment while the folder is renamed, then opens
-  again.
-
-With a passcode set, asking for the gallery brings up a passcode pad on
-Mote's window (type it, or press the keys). Mote shuts their eyes tight and
-turns away while you type, flinching a little at each digit. Right: their eyes
-pop open, a hop, a nod and a wink, and the gallery opens. Wrong: a sorry-but-no
-shake of the head (and a warning when you're down to the last two tries).
-Five wrong in a row and Mote refuses outright, turning away with their chin
-up, and won't take any tries for 30 seconds (then a minute, two, and so on up
-to 15 minutes; quitting Mote doesn't reset it). Close the pad or press Escape
-and the gallery simply stays shut. If the gallery is already open, the frame
-just brings it to the front. Mote reacts in their own window to what you do in
-Settings too.
-
-The same care as the gallery took: Mote keeps only a salted, slowly worked
-fingerprint of the passcode (the same kind the gallery used), never the
-digits, in `~/Library/Application Support/com.anyonebut.mote/gallery-passcode.json`.
-It keeps the gallery shut; it doesn't lock the pictures in Documents.
-**Forgot it?** Quit Mote and delete that file; the passcode is then off.
-
-In the copy Mote carries, the gallery's own passcode screen and Passcode menu
-are switched off, and its `lock.log.json` is ignored. So it can't be opened
-from inside Mote.app to get round Mote, it only starts when Mote hands it a
-one-time ticket; opened any other way, it says to open it from Mote and quits
-before showing anything. (The Local Gallery built from its own repo is
-unchanged and still uses its own passcode.)
-
-### Reading the gallery's logs
-
-Mote reads the library's log folder (`Documents/Local Gallery/.local-gallery`,
-or the hidden `.Local Gallery`): each log's size, when it was saved, and how
-many entries it holds (folders tagged, scored, journal days, what's in the
-trash, thumbnails), never the names, tags or anything else inside. Settings
-shows a line of it under the passcode; Debug's **Gallery** tab shows every
-file. The files Local Gallery kept for safekeeping (clean.sh, the
-userscripts, Automator workflows and so on) are in `safekeeping/`, at the top
-of Mote's folder; nothing in Mote or the gallery uses them. `npm run mac:build` builds it and tucks it in.
-
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. You can choose
 the **Appearance** (Light, Dark, or System to follow the Mac), the **Mode**
 (see below), Friendly mode,
 how lively Mote is, the pace for helping with files, whether Mote opens when
-you log in, and whether the window floats above others. With Local Gallery
-switched on, it also has the gallery's passcode (see above). Mote's eyes
+you log in, and whether the window floats above others. Mote's eyes
 always follow your pointer, and Mote always naps when left alone.
 
 **Dark mode** swaps Mote's colours, like a photo negative: a dark face with
 cream eyes (and cream eyebrows and mouth, if they're on), on a dark window.
 Everything around Mote goes dark and warm too: speech bubbles, buttons, the
-game cards, Settings and the Days window. The game boards and pieces stay as
+game cards and Settings. The game boards and pieces stay as
 they are.
 
 **Mode** gives Mote a special look for a vibe or a season. **Neutral** is just
@@ -467,12 +374,11 @@ Text in the app calls Mote "Mote", or "they/them" when a pronoun is needed.
 
 ### Debug and experimental features
 
-Three things are locked behind a **Feature Key** each: **Debug**, the **Diet
-tracker** and **Local Gallery**. At the bottom of Settings, type a key into
-**Feature Key** and press Unlock (or Return). Unlocking is for good
-(resetting settings doesn't undo it), and takes effect straight away; each
-unlocked one is then listed underneath, with a switch to turn it off again.
-Only a fingerprint of each key is kept in the app, never the key itself.
+**Debug** is locked behind a **Feature Key**. At the bottom of Settings, type
+the key into **Feature Key** and press Unlock (or Return). Unlocking is for
+good (resetting settings doesn't undo it), and takes effect straight away;
+Debug is then listed underneath, with a switch to turn it off again. Only a
+fingerprint of the key is kept in the app, never the key itself.
 
 With Debug unlocked and on, Settings itself grows tabs (and the window grows
 to fit them): **Settings** first, then the Debug tabs. Mote is in debug mode
@@ -576,9 +482,6 @@ feature that's switched off (Links, Gallery) isn't shown.
 - **Motion**: slow time down, freeze Mote, show outlines of the eye cuts, pretend
   another window is playing sound, give Mote a folder or video by typing its path
   (or pretend ones, in a browser), live numbers
-- **Gallery**: Local Gallery as Mote sees it: whether it's carried and open,
-  the passcode and tries left, where the library is, and every file in its
-  log folder (size, when saved, how many entries)
 - **Links**: every saved link with its history (when it was saved, how often
   Mote has suggested it and you've opened it), its weight and its chance of
   coming up next; add, rename, open, reset or remove links, or have Mote
@@ -606,18 +509,16 @@ npm run mac:build
 npm run release:patch
 ```
 
-Works like Local Gallery's: it moves the version up one (0.10.0 to 0.10.1)
-everywhere Mote keeps it, checks everything first (types, Mote's tests, the
-Mac side's tests, and that Local Gallery still has Mote's changes), builds the
+It moves the version up one (0.10.0 to 0.10.1) everywhere Mote keeps it,
+checks everything first (types, Mote's tests and the Mac side's tests), builds the
 app and installer, and only then saves it all to git as `release: v0.10.1`
 and pushes it. If a check or the build fails, nothing is changed, saved or
 pushed. Add `-- --dry-run` to see what it would do without doing it. The
 script is `scripts/release-patch.mjs`.
 
-With Local Gallery inside, the app is about 340 MB and the installer about
-155 MB, too big for GitHub (it refuses files over 100 MB). So the project on
-GitHub keeps only Mote's own part of the built app, and the installer is only
-on this computer. Build again to get the full one anywhere else.
+The project on GitHub keeps only Mote's own part of the built app, and the
+installer is only on this computer. Build again to get the full one anywhere
+else.
 
 ## See every expression side by side
 
@@ -632,15 +533,10 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 - `src/components/companion/engine.ts` — every expression and how Mote moves between them
 - `src/components/companion/Face.tsx` — how the face is drawn (the eyebrows' shape is in `eyeShape`, in engine.ts)
 - `src/lib/companion/theme.ts` — sizes and positions of the face and eyes
-- `desktop/` — the Mac app's pages: Mote (`index.html`), Settings (with the Debug tabs in `debug.tsx`), Days, and the expression sheet
+- `desktop/` — the Mac app's pages: Mote (`index.html`), Settings (with the Debug tabs in `debug.tsx`), and the expression sheet
 - `desktop/ui.tsx` and `desktop/ui.css` — the soft buttons, switches and sliders
 - `src/lib/companion/settings.ts` — the list of settings and their defaults, and dark mode (`useDark`)
-- `src/lib/companion/features.ts` — the Feature Keys (Debug, Diet tracker, Local Gallery) and every switch in the Features tab, by section
-- `local-gallery/` — Local Gallery's own code, kept separate; `src-tauri/src/gallery.rs` opens it,
-  keeps its passcode and reads its logs
-- `src/lib/companion/gallery.ts` — talking to that from Mote's windows (and a pretend gallery, passcode 1234, in a browser)
-- `src/components/companion/PasscodePad.tsx` and `passcode.css` — the passcode pad, on Mote's window and in Settings
-- `desktop/passcode-settings.tsx` — Settings' Local Gallery section
+- `src/lib/companion/features.ts` — the Feature Key (Debug) and every switch in the Features tab, by section
 - `src/components/companion/mind.ts` — Mote's mood, hunger and rest, and how they change
 - `src/components/companion/memories.ts` — the games Mote remembers, and how they bring them up
 - `src/components/companion/converse.ts` — talking to Mote: every keyword, how typing is understood, and what Mote says

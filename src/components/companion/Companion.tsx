@@ -27,7 +27,6 @@ import { SNACKS } from "@/components/companion/mind";
 import { DEBUG_DEFAULTS, listenBus, send, type DebugState } from "@/lib/companion/bus";
 import {
   onDropped,
-  openCaloriesWindow,
   openLink,
   openSettingsWindow,
   onMediaElsewhere,
@@ -38,22 +37,12 @@ import {
   windowPlacement,
 } from "@/lib/companion/desktop";
 import { featureOn, useFeatures } from "@/lib/companion/features";
-import {
-  galleryStatus,
-  openGallery,
-  type GalleryOpened,
-  type PasscodeCheck,
-} from "@/lib/companion/gallery";
 import { useDark, useMode, useSettings } from "@/lib/companion/settings";
-import { CaloriePad } from "@/components/companion/CaloriePad";
-import { PasscodePad } from "@/components/companion/PasscodePad";
 import { Checkers } from "@/components/companion/Checkers";
 import { Chess } from "@/components/companion/Chess";
 import { TicTacToe } from "@/components/companion/TicTacToe";
 import { LiarsDice } from "@/components/companion/LiarsDice";
 import { Solitaire } from "@/components/companion/Solitaire";
-import { applyToBook, dateKey, readBook } from "@/lib/companion/calories";
-import { markCalorieCare, useCalorieBook } from "@/lib/companion/calorie-store";
 
 type MediaInfo = EngineOptions["media"];
 
@@ -66,8 +55,6 @@ export function Companion() {
   const engineRef = useRef<FaceEngine | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [settings] = useSettings();
-  const [book, commitBook] = useCalorieBook();
-  const [logging, setLogging] = useState(false);
   const [playing, setPlaying] = useState<"checkers" | "chess" | "tictactoe" | "liarsdice" | "solitaire" | null>(null);
   const debugState = useRef<DebugState>({ ...DEBUG_DEFAULTS });
   const events = useRef<string[]>([]);
@@ -78,36 +65,21 @@ export function Companion() {
   const [bubble, setBubble] = useState<Bubble | null>(null);
   const [gift, setGift] = useState<Gift | null>(null);
   const [helping, setHelping] = useState(false);
-  // Asking for Local Gallery's passcode: how many wrong so far, what to say
-  // under the dots, and whether a try is being checked.
-  type Asking = { wrong: number; message: string | null; busy: boolean };
-  const [asking, setAsking] = useState<Asking | null>(null);
-  const askingNow = useRef(false);
-  askingNow.current = !!asking;
-  /** Puts the passcode pad away without a word (something else came up). */
-  const dropAsking = useCallback(() => {
-    if (!askingNow.current) return;
-    setAsking(null);
-    engineRef.current?.passcode("cancel", { quiet: true });
-  }, []);
   const getEngine = useCallback(() => engineRef.current, []);
   // Mote's own resizing moves the window; that isn't someone flinging it.
   const ownMoveUntil = useRef(0);
   useEffect(() => {
     ownMoveUntil.current = performance.now() + 800;
-    // The board needs a taller window than the file options do; the
-    // passcode pad, room for its keys with Mote above them.
+    // The board needs a taller window than the file options do;
     // Solitaire's seven columns want a little more room still.
     const size =
       playing === "solitaire"
         ? { width: 480, height: 800 }
         : playing
           ? { width: 430, height: 740 }
-          : asking
-            ? { width: 380, height: 640 }
-            : undefined;
-    setHelpingSize(helping || !!playing || !!asking, size);
-  }, [helping, playing, !!asking]); // eslint-disable-line react-hooks/exhaustive-deps
+          : undefined;
+    setHelpingSize(helping || !!playing, size);
+  }, [helping, playing]);
   const [anchor, setAnchor] = useState({ x: 0, y: 0 });
 
   // The bubble's tail points down at Mote, just above the eyes.
@@ -122,8 +94,7 @@ export function Companion() {
   useEffect(() => {
     measure();
     window.addEventListener("resize", measure);
-    // Mote also changes size when the calorie card or the checkers board
-    // opens; the bubble follows.
+    // Mote also changes size when a game board opens; the bubble follows.
     const svg = buttonRef.current?.querySelector("svg.face");
     const watch = svg ? new ResizeObserver(measure) : null;
     if (svg) watch?.observe(svg);
@@ -161,14 +132,9 @@ export function Companion() {
   const dark = useDark(settings.theme);
   useMode(settings.mode);
 
-  // The diet tracker is a keyed feature (see features.ts): off, Mote keeps no
-  // count and says nothing about calories, and its button and card are gone.
   const [features] = useFeatures();
-  const diet = featureOn(features, "diet");
-  const calorieGoal = diet ? settings.calorieGoal : 0;
   const hunger = featureOn(features, "hunger");
   const sleepNeed = featureOn(features, "sleep");
-  const gallery = featureOn(features, "gallery");
   const brows = featureOn(features, "brows");
   const mouth = featureOn(features, "mouth");
   const links = featureOn(features, "links");
@@ -217,27 +183,12 @@ export function Companion() {
       window.clearInterval(t);
     };
   }, [debugOn]);
-  useEffect(() => {
-    if (!diet) setLogging(false);
-  }, [diet]);
   // Toy chest switched off: a game that's open is put away.
   useEffect(() => {
     if (!games) setPlaying(null);
   }, [games]);
-  useEffect(() => {
-    if (!gallery) dropAsking();
-  }, [gallery, dropAsking]);
-  // Settings did something with the passcode: Mote reacts here.
-  useEffect(
-    () =>
-      listenBus((msg) => {
-        if (msg.type === "gallery") engineRef.current?.passcode(msg.event, msg.info);
-      }),
-    [],
-  );
   const engineOptions: Partial<EngineOptions> = {
     energy,
-    calorieGoal,
     friendly,
     mind: mindOn,
     remarks,
@@ -264,7 +215,7 @@ export function Companion() {
   optionsNow.current = engineOptions;
   useEffect(() => {
     engineRef.current?.configure(optionsNow.current);
-  }, [energy, calorieGoal, friendly, mindOn, remarks, chat, needs, memories, gameTalk, dizzy, antics, hunger, sleepNeed, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape, settings.mode]);
+  }, [energy, friendly, mindOn, remarks, chat, needs, memories, gameTalk, dizzy, antics, hunger, sleepNeed, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape, settings.mode]);
   // Noticing the screen switched on or off: sound elsewhere counts, or doesn't.
   useEffect(() => {
     applyAudio();
@@ -384,78 +335,6 @@ export function Companion() {
   }, [debug]);
 
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && logging) setLogging(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [logging]);
-
-  // Local Gallery: straight open with no passcode (or when it's open
-  // already), otherwise Mote asks for it first, and without it, it stays shut.
-  const ask = () => {
-    setLogging(false);
-    setPlaying(null);
-    setAsking({ wrong: 0, message: null, busy: false });
-    engineRef.current?.passcode("ask");
-  };
-  const refused = (check: PasscodeCheck) => {
-    if (check.result === "refused" || check.result === "waiting") {
-      engineRef.current?.passcode(check.result === "refused" ? "refuse" : "waiting", { wait: check.wait });
-    }
-  };
-  const opened = (result: GalleryOpened) => {
-    const engine = engineRef.current;
-    if (result.result === "opened") engine?.openedGallery(true);
-    else if (result.result === "alreadyOpen") engine?.passcode("already-open");
-    else if (result.result === "needPasscode") ask();
-    else if (result.result === "failed") engine?.openedGallery(false);
-    else refused(result.check);
-  };
-  const openLocalGallery = async () => {
-    const status = await galleryStatus();
-    if (!status?.carried) {
-      engineRef.current?.openedGallery(false);
-      return;
-    }
-    if (status.passcode && !status.open) {
-      if (status.wait > 0) engineRef.current?.passcode("waiting", { wait: status.wait });
-      else ask();
-      return;
-    }
-    opened(await openGallery());
-  };
-  const tryPasscode = async (pin: string) => {
-    setAsking((a) => a && { ...a, busy: true });
-    const result = await openGallery(pin);
-    const engine = engineRef.current;
-    if (result.result === "denied" && result.check.result === "wrong") {
-      const left = result.check.triesLeft;
-      const message =
-        left === 1 ? "That’s not it. One try left." : left === 2 ? "That’s not it. Two tries left." : "That’s not it.";
-      engine?.passcode("wrong", { triesLeft: left });
-      setAsking((a) => a && { wrong: a.wrong + 1, busy: false, message });
-      return;
-    }
-    if (result.result === "opened") {
-      engine?.passcode("right");
-      // A beat with the dots full, then the pad goes.
-      window.setTimeout(() => setAsking(null), 450);
-      return;
-    }
-    setAsking(null);
-    opened(result);
-  };
-
-  const todayTotal = book.days[dateKey()]?.total ?? 0;
-  const changeCalories = (kind: "add" | "sub" | "set", amount: number) => {
-    const result = applyToBook(readBook(), calorieGoal, { kind, amount });
-    if (!result) return;
-    commitBook(result.book);
-    engineRef.current?.noteCalories(result.moment);
-  };
-
   // Talking with Mote (see converse.ts). A click on Mote puts away whatever
   // was open and Mote asks what you'd like to do; you type it, and Mote does
   // it (or checks a guess first, or asks you to say it another way).
@@ -468,9 +347,8 @@ export function Companion() {
   const menu = useRef<IntentId[] | null>(null);
   const checking = useRef<IntentId | null>(null);
 
-  // What Mote can be talked into. Anything still locked behind a key is left
-  // out, as if Mote had never heard of it; anything switched off, Mote knows
-  // about but says so.
+  // What Mote can be talked into. Anything switched off, Mote knows about
+  // but says so.
   const known = new Set<IntentId>([
     "games",
     "chess",
@@ -494,28 +372,19 @@ export function Companion() {
     "pet",
     "cancel",
   ]);
-  if (features.unlocked.includes("diet")) {
-    known.add("diet");
-    known.add("dietDays");
-  }
-  if (features.unlocked.includes("gallery")) known.add("gallery");
   /** Is this one switched on? */
   const on = (i: IntentId) =>
     isGame(i) || i === "games"
       ? games
-      : i === "diet" || i === "dietDays"
-        ? diet
-        : i === "gallery"
-          ? gallery
-          : i === "files"
-            ? files
-            : i === "bed"
-              ? sleepNeed
-              : i === "feed" || isSnack(i)
-                ? hunger
-                : i === "links" || i === "saveLink"
-                  ? links
-                  : true;
+      : i === "files"
+        ? files
+        : i === "bed"
+          ? sleepNeed
+          : i === "feed" || isSnack(i)
+            ? hunger
+            : i === "links" || i === "saveLink"
+              ? links
+              : true;
   const ready = new Set([...known].filter(on));
 
   const mind = () => ({
@@ -546,12 +415,9 @@ export function Companion() {
   const offerGames = (text: string = say(LINES.games)) =>
     offer(text, ["checkers", "chess", "tictactoe", "liarsdice", "solitaire"], GAME_NAMES);
 
-  /** Whatever was open goes away: a game (it's saved), the calorie card,
-   * the passcode pad, the file options. */
+  /** Whatever was open goes away: a game (it's saved), the file options. */
   const putAway = () => {
     setPlaying(null);
-    setLogging(false);
-    dropAsking();
     setPutAwaySeq((n) => n + 1);
   };
 
@@ -572,17 +438,13 @@ export function Companion() {
       return remark(
         isGame(intent) || intent === "games"
           ? off.games
-          : intent === "diet" || intent === "dietDays"
-            ? off.diet
-            : intent === "gallery"
-              ? off.gallery
-              : intent === "files"
-                ? off.files
-                : intent === "bed"
-                  ? off.bed
-                  : intent === "links" || intent === "saveLink"
-                    ? off.links
-                    : off.feed,
+          : intent === "files"
+            ? off.files
+            : intent === "bed"
+              ? off.bed
+              : intent === "links" || intent === "saveLink"
+                ? off.links
+                : off.feed,
       );
     }
     if (isGame(intent)) {
@@ -599,18 +461,6 @@ export function Companion() {
     switch (intent) {
       case "games":
         return offerGames();
-      case "diet":
-        putAway();
-        setLogging(true);
-        markCalorieCare();
-        return remark(LINES.diet);
-      case "dietDays":
-        markCalorieCare();
-        openCaloriesWindow();
-        return remark(LINES.dietDays);
-      case "gallery":
-        engine.endTalk();
-        return void openLocalGallery();
       case "files":
         return remark(LINES.files);
       case "bed":
@@ -634,9 +484,6 @@ export function Companion() {
       case "help": {
         const labels: Partial<Record<IntentId, string>> = {
           games: "Play a game",
-          diet: "Log calories",
-          dietDays: "See the days",
-          gallery: "Open Local Gallery",
           feed: "Give me a snack",
           bed: "Tuck me in",
           links: "Something you saved",
@@ -712,7 +559,7 @@ export function Companion() {
   // empty window around Mote do nothing.
   return (
     <div
-      className={`stage${eyesOnly ? " is-eyes" : ""}${helping ? " is-helping" : ""}${logging ? " is-logging" : ""}${asking && !helping ? " is-asking" : ""}${playing && !helping ? " is-playing" : ""}`}
+      className={`stage${eyesOnly ? " is-eyes" : ""}${helping ? " is-helping" : ""}${playing && !helping ? " is-playing" : ""}`}
       onContextMenu={(e) => {
         const target = e.target;
         if (target instanceof Element && target.closest("input, textarea")) return;
@@ -807,8 +654,6 @@ export function Companion() {
         onOpen={(open) => {
           setHelping(open);
           if (open) {
-            setLogging(false);
-            dropAsking();
             // The game is saved; it'll be there when you open the board again.
             setPlaying(null);
           }
@@ -819,31 +664,6 @@ export function Companion() {
       {playing === "tictactoe" && !helping ? <TicTacToe engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "liarsdice" && !helping ? <LiarsDice engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "solitaire" && !helping ? <Solitaire engine={getEngine} onClose={() => setPlaying(null)} /> : null}
-      {asking && !helping ? (
-        <PasscodePad
-          title="Local Gallery"
-          prompt="Enter your passcode"
-          message={asking.message}
-          wrong={asking.wrong}
-          busy={asking.busy}
-          onDigit={() => engineRef.current?.passcode("digit")}
-          onEnter={(pin) => void tryPasscode(pin)}
-          onCancel={() => {
-            setAsking(null);
-            engineRef.current?.passcode("cancel");
-          }}
-        />
-      ) : null}
-      {logging && diet ? (
-        <CaloriePad
-          total={todayTotal}
-          goal={calorieGoal}
-          onAdd={(amount) => changeCalories("add", amount)}
-          onSub={(amount) => changeCalories("sub", amount)}
-          onSet={(amount) => changeCalories("set", amount)}
-          onClose={() => setLogging(false)}
-        />
-      ) : null}
       <SpeechBubble
         bubble={bubble}
         anchor={anchor}

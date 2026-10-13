@@ -11,7 +11,8 @@ const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url),
 const page = (name: string) => fileURLToPath(new URL(`./${name}.html`, import.meta.url));
 
 // A plain multi-page build of Mote for the Mac app (see src-tauri/): Mote's
-// window, Settings and Debug. gallery.html is only served while developing.
+// window, and Settings (with Debug). gallery.html, the expression sheet, is
+// only served while developing.
 export default defineConfig({
   root: fileURLToPath(new URL(".", import.meta.url)),
   base: "./",
@@ -28,7 +29,6 @@ export default defineConfig({
       input: {
         main: page("index"),
         settings: page("settings"),
-        calories: page("calories"),
       },
     },
   },

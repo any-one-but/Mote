@@ -1,14 +1,13 @@
 #!/usr/bin/env node
 // Releases Mote: `npm run release:patch` (or `-- --dry-run` to see what it
-// would do without changing anything). Works like Local Gallery's release
-// script:
+// would do without changing anything).
 //
 // 1. Bumps the patch version (0.10.0 -> 0.10.1) everywhere Mote keeps it:
 //    package.json, src-tauri/Cargo.toml, Cargo.lock, tauri.conf.json, and the
 //    installer's name in README.md.
-// 2. Checks first: types, Mote's tests, the Mac side's tests, and that Local
-//    Gallery still has Mote's changes. A failure stops the release.
-// 3. Builds the Mac app (with Local Gallery inside, and the installer) BEFORE
+// 2. Checks first: types, Mote's tests and the Mac side's tests. A failure
+//    stops the release.
+// 3. Builds the Mac app (and the installer) BEFORE
 //    committing anything. The build is the step most likely to fail; if it
 //    does, the version bump is put back and nothing is committed or pushed.
 // 4. Commits everything (with Mote's own built files) as "release: vX" and
@@ -108,7 +107,6 @@ const checks = [
   ["npm", ["run", "typecheck"]],
   ["npm", ["run", "test:mote"]],
   ["cargo", ["test", "--manifest-path", "src-tauri/Cargo.toml", "--quiet"]],
-  ["sh", ["scripts/check-gallery-mote.sh"]],
 ];
 for (const [cmd, args] of checks) {
   if ((run(cmd, args, { allowFailure: true }).status ?? 0) !== 0) {
