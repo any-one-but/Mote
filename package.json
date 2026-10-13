@@ -18,15 +18,14 @@
     "typecheck": "tsc --noEmit",
     "check:auth": "node scripts/check-auth-invariant.mjs",
     "test": "npm run test:mote && node --test 'scripts/**/*.test.mjs'",
-    "test:mote": "node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/app-data/readiness-schedule.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts src/lib/preview-path-prefix.test.ts src/lib/checkers/checkers.test.ts src/lib/chess/chess.test.ts src/components/companion/mind.test.ts src/components/companion/attention.test.ts src/lib/tictactoe/tictactoe.test.ts src/lib/close-game.test.ts src/components/companion/converse.test.ts src/lib/solitaire/game.test.ts src/lib/uno/game.test.ts",
+    "test:mote": "node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/app-data/readiness-schedule.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts src/lib/preview-path-prefix.test.ts src/lib/checkers/checkers.test.ts src/lib/chess/chess.test.ts src/components/companion/mind.test.ts src/lib/tictactoe/tictactoe.test.ts src/lib/close-game.test.ts src/components/companion/converse.test.ts src/lib/solitaire/game.test.ts src/lib/uno/game.test.ts",
     "lint": "eslint .",
     "release:patch": "node scripts/release-patch.mjs",
     "format": "prettier --write .",
-    "mac": "npm run senses:build && tauri dev",
-    "mac:build": "npm run senses:build && CI=true tauri build",
+    "mac": "tauri dev",
+    "mac:build": "CI=true tauri build",
     "desktop:web": "vite --config desktop/vite.config.ts",
-    "desktop:web:build": "vite build --config desktop/vite.config.ts",
-    "senses:build": "mkdir -p src-tauri/binaries && swiftc -O -swift-version 5 -target arm64-apple-macos14.4 desktop/senses/main.swift -o src-tauri/binaries/mote-senses-aarch64-apple-darwin"
+    "desktop:web:build": "vite build --config desktop/vite.config.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",

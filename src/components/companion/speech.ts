@@ -31,8 +31,6 @@ export type SpeechEvent =
   | "petted"
   | "dizzy-over"
   | "media-start"
-  /** Music came on and Mote started dancing to it. */
-  | "dancing"
   | "welcome-back"
   | "played"
   | "woke-rested"
@@ -50,8 +48,6 @@ export type SpeechContext = {
   placement: { x: number; y: number } | null;
   /** Sound coming from a window Mote can see. */
   media: boolean;
-  /** You're typing in another app. */
-  typing: boolean;
   /** The toy chest is switched on, so games can be suggested. */
   games: boolean;
   /** An app just dropped on Mote: its name and ID. */
@@ -158,13 +154,7 @@ export const LINES: Line[] = [
     when: (c) => c.event === "media-start",
     say: ["Ooh, something’s on!", "Oh! Are we watching something?"],
   },
-  {
-    id: "dancing",
-    group: "After something happens",
-    kind: "flavor",
-    when: (c) => c.event === "dancing",
-    say: ["Ooh, I like this one!", "This one’s got a good beat.", "Dance with me, {name}!", "I can’t help it. My body just moves."],
-  },
+
   {
     id: "woke-rested",
     group: "After something happens",
@@ -402,20 +392,6 @@ export const LINES: Line[] = [
       "Shouldn’t we both be asleep?",
       "Night owl, huh? Me too, I guess.",
       "The screen’s the brightest thing in the room, isn’t it?",
-    ],
-  },
-  {
-    id: "chat-typing",
-    group: "Just chatting",
-    kind: "flavor",
-    cooldown: 8 * 60_000,
-    weight: 2,
-    when: (c) => c.event === "chat" && c.typing,
-    say: [
-      "Lots of typing! Important stuff?",
-      "Clack clack clack.",
-      "You type fast. I can’t type at all.",
-      "Busy, busy.",
     ],
   },
   {
@@ -734,20 +710,6 @@ const ASKED: CheckIn[] = [
       ],
     },
     faces: { yes: "beam", no: "think", ignored: "soothe" },
-  },
-  {
-    id: "check-work",
-    weight: 3,
-    when: (c) => c.typing,
-    say: ["Lots of typing! Is it going alright?", "Is the work going okay?", "Keeping up alright with everything?"],
-    replies: {
-      yes: ["Good! Look at you go.", "Nice. You’re on a roll.", "Great. I’ll keep cheering quietly."],
-      no: [
-        "Ugh. Pick one small piece and just do that. The rest can wait its turn.",
-        "Stuck, or just too much of it? Either way, a two-minute break might help.",
-        "Mm. It doesn’t all have to get done today. Probably. Mostly.",
-      ],
-    },
   },
   {
     id: "check-watching",

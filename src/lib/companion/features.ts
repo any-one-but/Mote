@@ -35,7 +35,6 @@ export type FeatureId =
   | "links"
   | "apps"
   | "noticing"
-  | "dancing"
   | "dizzy"
   | "antics"
   | "moodshape"
@@ -164,16 +163,8 @@ export const FEATURES: Array<{
     id: "noticing",
     section: "noticing",
     name: "Noticing the screen",
-    about: "Mote turning to look when something plays sound in another window or you type in another app, finding it intriguing, watching along, and chatting about it. Off, Mote doesn’t notice either (their eyes still follow the pointer).",
+    about: "Mote turning to look when something plays sound in another window, finding it intriguing, watching along, and chatting about it. Off, Mote doesn’t notice it.",
     usual: true,
-  },
-  {
-    id: "dancing",
-    section: "noticing",
-    name: "Dancing to music",
-    about: "Mote listens to what’s playing in a window you can see and dances along: on the beat, harder the louder and livelier it is. The first time, macOS asks whether Mote may hear audio from other apps; nothing is recorded or kept. Without that, music apps still get a gentle sway. Off, Mote doesn’t listen.",
-    usual: true,
-    needs: "noticing",
   },
   {
     id: "dizzy",

@@ -22,18 +22,15 @@ import {
   type IntentId,
 } from "@/components/companion/converse";
 import { loadLinks } from "@/components/companion/links";
-import { DEBUG_DEFAULTS, listenBus, send, type DebugState, type FakeAudio } from "@/lib/companion/bus";
+import { DEBUG_DEFAULTS, listenBus, send, type DebugState } from "@/lib/companion/bus";
 import {
   onDropped,
   openLink,
   openSettingsWindow,
   onMediaElsewhere,
-  onPointerElsewhere,
-  onTypingElsewhere,
   onWindowMoved,
   appDropped,
   growWindow,
-  setListening,
   windowPlacement,
 } from "@/lib/companion/desktop";
 import { featureOn, useFeatures } from "@/lib/companion/features";
@@ -46,14 +43,9 @@ import { Uno } from "@/components/companion/Uno";
 
 type MediaInfo = EngineOptions["media"];
 
-/** Debug's pretend media: a window off to one side playing something, or
- * music to dance to (quiet and slow, or loud and fast). */
-function pretend(kind: FakeAudio): NonNullable<MediaInfo> {
-  const at = { dx: kind === "left" ? -700 : 700, dy: 0, app: "Pretend", heard: true };
-  if (kind === "left" || kind === "right") return { ...at, music: null };
-  const bpm = kind === "music-slow" ? 84 : 128;
-  const period = 60 / bpm;
-  return { ...at, music: { bpm, beatAgo: (Date.now() / 1000) % period, intensity: kind === "music-slow" ? 0.25 : 0.95 } };
+/** Debug's pretend media: a window off to one side playing something. */
+function pretend(side: "left" | "right"): NonNullable<MediaInfo> {
+  return { dx: side === "left" ? -700 : 700, dy: 0, app: "Pretend" };
 }
 
 type MeetStep = "hello" | "touch" | "talk" | "share" | "name";
@@ -186,7 +178,6 @@ export function Companion() {
   const talkOn = featureOn(features, "talk");
   const noticing = featureOn(features, "noticing");
   const dizzy = featureOn(features, "dizzy");
-  const dancing = featureOn(features, "dancing");
   const antics = featureOn(features, "antics");
   const linksOn = useRef(links);
   linksOn.current = links;
@@ -229,7 +220,6 @@ export function Companion() {
     memories,
     gameTalk,
     dizzy,
-    dancing,
     antics,
     brows,
     mouth,
@@ -248,14 +238,11 @@ export function Companion() {
   optionsNow.current = engineOptions;
   useEffect(() => {
     engineRef.current?.configure(optionsNow.current);
-  }, [energy, friendly, mindOn, remarks, chat, needs, memories, gameTalk, dizzy, dancing, antics, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape, look, settings.name, settings.animations]);
+  }, [energy, friendly, mindOn, remarks, chat, needs, memories, gameTalk, dizzy, antics, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape, look, settings.name, settings.animations]);
   // Noticing the screen switched on or off: sound elsewhere counts, or doesn't.
   useEffect(() => {
     applyAudio();
   }, [noticing]);
-  // Dancing on: the helper may listen to what's playing (the first time, macOS
-  // asks). Off, it doesn't listen at all.
-  useEffect(() => setListening(dancing), [dancing]);
 
   useEffect(
     () =>
@@ -275,18 +262,6 @@ export function Companion() {
     () =>
       onWindowMoved((dx, dy) => {
         if (performance.now() > ownMoveUntil.current) engineRef.current?.windowMoved(dx, dy);
-      }),
-    [],
-  );
-  useEffect(
-    () =>
-      onPointerElsewhere((dx, dy, inside) => engineRef.current?.pointerElsewhere(dx, dy, inside)),
-    [],
-  );
-  useEffect(
-    () =>
-      onTypingElsewhere((dx, dy) => {
-        if (noticingOn.current) engineRef.current?.typingAt(dx, dy);
       }),
     [],
   );
@@ -519,8 +494,7 @@ export function Companion() {
     if (step === "touch") return go(MEETING.touch.text, MEETING.touch.next);
     if (step === "talk") return go(MEETING.talk.text, MEETING.talk.next);
     if (step === "share") {
-      const watch = noticing ? (dancing ? MEETING.dance : MEETING.watch) : null;
-      const text = [watch, links ? MEETING.links : null].filter(Boolean).join(" ");
+      const text = [noticing ? MEETING.watch : null, links ? MEETING.links : null].filter(Boolean).join(" ");
       return go(text.replace(/^And i/, "I"), MEETING.shareNext);
     }
     askName(MEETING.name.text);

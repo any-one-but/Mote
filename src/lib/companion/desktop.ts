@@ -81,58 +81,10 @@ function onAppEvent<T>(name: string, cb: (payload: T) => void) {
   };
 }
 
-type SensedMedia = {
-  dx: number;
-  dy: number;
-  playing: boolean;
-  app?: string | null;
-  /** Listening to it (allowed, and the helper could). */
-  listening?: boolean;
-  music?: boolean;
-  bpm?: number;
-  beatAgo?: number;
-  intensity?: number;
-};
-
-/** Lets the helper listen to music that's playing (so Mote can dance to it), or not. */
-export function setListening(on: boolean) {
-  if (isDesktopApp()) void invoke("set_listening", { on }).catch(() => {});
-}
-
 /** Sound coming from a window you can see (null when there's none), and where it is. */
 export function onMediaElsewhere(cb: (media: Media | null) => void) {
-  const fromSenses = onAppEvent<{ media: SensedMedia | null }>("senses", (p) => {
-    const m = p.media;
-    if (!m || !m.playing) return cb(null);
-    const music =
-      m.music && m.bpm && m.beatAgo !== undefined
-        ? { bpm: m.bpm, beatAgo: m.beatAgo, intensity: m.intensity ?? 0.5 }
-        : null;
-    cb({ dx: m.dx, dy: m.dy, app: m.app ?? null, heard: !!m.listening, music });
-  });
-  // The simpler check the app falls back to if the helper can't run.
-  const fallback = onAppEvent<{ playing: boolean; dx: number; dy: number }>(
-    "audio-elsewhere",
-    (p) => cb(p.playing ? { dx: p.dx, dy: p.dy, app: null, heard: false, music: null } : null),
-  );
-  return () => {
-    fromSenses();
-    fallback();
-  };
-}
-
-/**
- * You're typing in another app: where its window is, from the centre of
- * Mote's window. (Only *that* you're typing is known, never what.)
- */
-export function onTypingElsewhere(cb: (dx: number, dy: number) => void) {
-  return onAppEvent<{ dx: number; dy: number }>("typing-elsewhere", (p) => cb(p.dx, p.dy));
-}
-
-/** The pointer anywhere on screen, measured from the centre of Mote's window. */
-export function onPointerElsewhere(cb: (dx: number, dy: number, inside: boolean) => void) {
-  return onAppEvent<{ dx: number; dy: number; inside: boolean }>("pointer-elsewhere", (p) =>
-    cb(p.dx, p.dy, p.inside),
+  return onAppEvent<{ playing: boolean; dx: number; dy: number }>("audio-elsewhere", (p) =>
+    cb(p.playing ? { dx: p.dx, dy: p.dy, app: null } : null),
   );
 }
 

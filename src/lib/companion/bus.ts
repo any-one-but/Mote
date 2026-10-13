@@ -5,9 +5,6 @@ import type { FeatureState } from "@/lib/companion/features";
 import type { Settings } from "@/lib/companion/settings";
 import { isDesktopApp } from "@/lib/companion/desktop";
 
-/** Debug's pretend media: sound, or music to dance to, on one side. */
-export type FakeAudio = "left" | "right" | "music-slow" | "music-fast";
-
 /** What the Debug tabs can ask Mote's window to do. */
 export type DebugCommand =
   | { do: "hello" }
@@ -19,7 +16,7 @@ export type DebugCommand =
   | { do: "autoMoods"; value: boolean }
   | { do: "loop"; value: boolean }
   | { do: "guides"; value: boolean }
-  | { do: "fakeAudio"; value: FakeAudio | null }
+  | { do: "fakeAudio"; value: "left" | "right" | null }
   | { do: "feeling"; attr: MindKey; value: number }
   | { do: "resetFeelings" }
   | { do: "react"; id: string }
@@ -39,7 +36,7 @@ export type DebugState = {
   loop: boolean;
   guides: boolean;
   manual: boolean;
-  fakeAudio: FakeAudio | null;
+  fakeAudio: "left" | "right" | null;
 };
 
 export const DEBUG_DEFAULTS: DebugState = {

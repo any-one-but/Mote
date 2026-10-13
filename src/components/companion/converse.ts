@@ -779,8 +779,6 @@ export const MEETING = {
   },
   /** What else Mote likes, as it's switched on: watching along, and links. */
   watch: "When something’s playing, I like to watch along with you.",
-  /** With dancing on too. */
-  dance: "When something’s playing, I like to watch along with you. And if it’s music, I dance!",
   links: "And if you drag a link onto me, I’ll keep it and bring it up some day.",
   shareNext: "Sounds good",
   name: { text: "So… what should I call you?", placeholder: "Your name…", skip: "I’d rather not say" },

@@ -536,27 +536,13 @@ function MindTab({ snap, command, settings }: Ctx) {
           label={
             snap.intrigued.length
               ? `Intrigued by ${snap.intrigued
-                  .map((i) =>
-                    i === "media"
-                      ? "what’s playing"
-                      : i === "you"
-                        ? "you"
-                        : i === "typing"
-                          ? "your typing"
-                          : "your pointer",
-                  )
+                  .map((i) => (i === "media" ? "what’s playing" : "you"))
                   .join(" and ")}`
               : "Not intrigued by anything"
           }
           hint={
-            snap.focus
-              ? `Looking at ${
-                  snap.focus === "media"
-                    ? "what’s playing"
-                    : snap.focus === "typing"
-                      ? "where you’re typing"
-                      : "your pointer"
-                } right now.`
+            snap.intrigued.includes("media")
+              ? "Watching what’s playing, checking in on you now and then."
               : snap.intrigued.includes("you")
                 ? "You’ve been using Mote’s window: fewer random moods."
                 : "Doing their own thing."
@@ -1150,7 +1136,7 @@ function MotionTab({ snap, debug, command }: Ctx) {
       <Section title="Pretend">
         <Row
           label="Sound in another window"
-          hint={`Acts as if a window over there is playing sound: Mote stays awake and watches it. The music ones (on the right) are music Mote can hear, to dance to: slow and quiet at 84 beats a minute, or fast and loud at 128.`}
+          hint={`Acts as if a window over there is playing sound: Mote stays awake and watches it.`}
           stacked
         >
           <Segmented
@@ -1159,8 +1145,6 @@ function MotionTab({ snap, debug, command }: Ctx) {
               { value: "off", label: "Off" },
               { value: "left", label: "On the left" },
               { value: "right", label: "On the right" },
-              { value: "music-slow", label: "Slow music" },
-              { value: "music-fast", label: "Fast music" },
             ]}
             value={debug.fakeAudio ?? "off"}
             onChange={(v) => command({ do: "fakeAudio", value: v === "off" ? null : v })}

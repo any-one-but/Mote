@@ -3,7 +3,6 @@ mod apps;
 mod audio;
 mod links;
 mod login;
-mod senses;
 
 /// Tests that change or read HOME take turns, so one never sees another's.
 #[cfg(test)]
@@ -219,10 +218,8 @@ fn main() {
                     let _ = open_settings_window(app);
                 }
             });
-            // The full senses helper if it's there, otherwise the simple sound check.
-            if !senses::start(handle.clone()) {
-                watch_audio(handle.clone());
-            }
+            // Sound playing in another window you can see.
+            watch_audio(handle.clone());
             login::refresh();
             Ok(())
         })
@@ -243,8 +240,7 @@ fn main() {
             login::set_login_item,
             links::read_dropped_link,
             links::open_link,
-            apps::app_dropped,
-            senses::set_listening
+            apps::app_dropped
         ])
         .run(tauri::generate_context!())
         .expect("Mote could not start");

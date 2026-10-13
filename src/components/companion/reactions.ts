@@ -198,14 +198,6 @@ export const REACTIONS: Reaction[] = [
     status: "live",
   },
   {
-    id: "dance",
-    group: "Sound",
-    name: "Dancing to music",
-    when: "Music Mote can hear plays in a window you can see (or a music app plays, if Mote isn’t allowed to listen)",
-    then: "Bounces on the beat and sways, harder the louder and livelier it is, with happy eyes; sometimes says they like it",
-    status: "live",
-  },
-  {
     id: "sound-ongoing",
     group: "Sound",
     name: "Watching along",
@@ -237,22 +229,6 @@ export const REACTIONS: Reaction[] = [
     name: "A little break",
     when: "Every so often while watching",
     then: "Looks away for a moment instead of checking in",
-    status: "live",
-  },
-  {
-    id: "pointer-elsewhere",
-    group: "Interest",
-    name: "Pointer out on the screen",
-    when: "You move the pointer anywhere on the screen",
-    then: "Follows it on its turn; while something’s playing, only a glance now and then",
-    status: "live",
-  },
-  {
-    id: "typing",
-    group: "Interest",
-    name: "Watching you type",
-    when: "You type steadily in another app (Mote only notices that keys are being pressed, never which)",
-    then: "Looks over at the window you’re typing in; counts as being intrigued",
     status: "live",
   },
   {
@@ -1127,7 +1103,7 @@ export const REACTIONS: Reaction[] = [
     id: "check-in",
     group: "Speech",
     name: "Checking in on you",
-    when: "Instead of the usual chat, while you’re around: the first one 25–40 minutes in, then one every hour or two. Picks a question that fits the time and what you’re doing (typing, something playing, late at night), never the same one within eight hours. Not while Mote is cross, unless in Friendly mode. Can be switched off in Debug’s Features tab",
+    when: "Instead of the usual chat, while you’re around: the first one 25–40 minutes in, then one every hour or two. Picks a question that fits the time and what you’re doing (something playing, late at night), never the same one within eight hours. Not while Mote is cross, unless in Friendly mode. Can be switched off in Debug’s Features tab",
     then: "Asks a simple question about how you’re doing (calm? rested? eaten? having fun?). Green always means you’re fine",
     status: "live",
   },
@@ -1344,15 +1320,6 @@ export const REACTIONS: Reaction[] = [
     status: "live",
   },
 
-  // Ideas for later
-  {
-    id: "idea-typing",
-    group: "Ideas",
-    name: "Busy typing",
-    when: "You’re typing a lot in another app",
-    then: "Intrigued: watches quietly and stays calm",
-    status: "idea",
-  },
 ];
 
 export const REACTION_GROUPS: ReactionGroup[] = [
