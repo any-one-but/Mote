@@ -128,16 +128,6 @@ function SettingsPanel() {
               onChange={(floatOnTop) => set({ floatOnTop })}
             />
           </Row>
-          <Row
-            label="Hide from the Dock"
-            hint="Mote stays in their window, without an icon in the Dock. Double-click Mote and say “settings”, or press ⌘, on their window, to get back here."
-          >
-            <Toggle
-              label="Hide from the Dock"
-              checked={settings.hideDock}
-              onChange={(hideDock) => set({ hideDock })}
-            />
-          </Row>
         </Section>
       ) : null}
     </>

@@ -63,11 +63,6 @@ export async function setOpensAtLogin(on: boolean): Promise<boolean> {
   }
 }
 
-/** Hides Mote's icon from the Dock (or shows it again). */
-export function setDockHidden(hidden: boolean) {
-  if (isDesktopApp()) void invoke("set_dock_hidden", { hidden }).catch(() => {});
-}
-
 export function setFloatOnTop(on: boolean) {
   if (isDesktopApp()) void invoke("set_float_on_top", { on }).catch(() => {});
 }

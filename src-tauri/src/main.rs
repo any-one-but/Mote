@@ -101,17 +101,6 @@ fn set_float_on_top(app: AppHandle, on: bool) -> Result<(), String> {
     }
 }
 
-/// Shows or hides Mote's icon in the Dock. Hidden, Mote is still there in
-/// their window (and in the app switcher's place, nothing).
-#[tauri::command]
-fn set_dock_hidden(app: AppHandle, hidden: bool) -> Result<(), String> {
-    #[cfg(target_os = "macos")]
-    app.set_dock_visibility(!hidden).map_err(|e| e.to_string())?;
-    #[cfg(not(target_os = "macos"))]
-    let _ = (app, hidden);
-    Ok(())
-}
-
 /// The window's size (and how far it was nudged up) before Mote grew it for
 /// a game, to put back afterwards.
 static BEFORE_GROWN: std::sync::Mutex<Option<(f64, f64, f64)>> = std::sync::Mutex::new(None);
@@ -249,7 +238,6 @@ fn main() {
             open_settings,
             widen_settings,
             set_float_on_top,
-            set_dock_hidden,
             grow_window,
             login::login_item_enabled,
             login::set_login_item,

@@ -301,10 +301,8 @@ Mote eyes.
 In the Mac app, press **⌘,** (Command + comma) to open Settings. It's kept
 short: **Your name** (what Mote calls you), **Mote Appearance** (Normal or the
 Jack-o'-lantern, see below), **Light or dark** (Light, Dark, or System to
-follow the Mac), whether Mote opens when you log in, whether the window floats above others,
-and **Hide from the Dock** (Mote stays in their window with no Dock icon;
-Settings is still a double-click and "settings" away, or ⌘, on Mote's
-window). Everything else (Friendly mode, Energy, Debug's own
+follow the Mac), whether Mote opens when you log in, and whether the window floats above
+others. Everything else (Friendly mode, Energy, Debug's own
 Mode, saved links) is in Debug. Mote's eyes
 always follow your pointer, and Mote always naps when left alone.
 

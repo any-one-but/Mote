@@ -19,8 +19,6 @@ export type Settings = {
   /** Which set of animations Mote uses (Debug's Moods tab). */
   animations: AnimationSet;
   floatOnTop: boolean;
-  /** Keeps Mote's icon out of the Dock. */
-  hideDock: boolean;
 };
 
 export type Theme = "light" | "dark" | "system";
@@ -45,7 +43,6 @@ export const DEFAULT_SETTINGS: Settings = {
   energy: "normal",
   animations: "simple",
   floatOnTop: false,
-  hideDock: false,
 };
 
 const KEY = "mote.settings";
@@ -77,7 +74,6 @@ export function readSettings(): Settings {
     energy: pick(raw.energy, ["calm", "normal", "lively"] as const, d.energy),
     animations: pick(raw.animations, ["classic", "simple"] as const, d.animations),
     floatOnTop: bool(raw.floatOnTop, d.floatOnTop),
-    hideDock: bool(raw.hideDock, d.hideDock),
   };
 }
 
