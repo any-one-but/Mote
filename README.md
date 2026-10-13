@@ -103,7 +103,7 @@ All of it carries over when Mote's app is closed: joy settles, and being
 gone for more than ten hours or so gets a bit lonely. Back after a few hours, Mote is glad
 to see you.
 
-**Friendly mode** (in Debug's Features tab, with the Mind) keeps Mote from getting too upset: joy and
+**Friendly mode** (in Debug's Features tab, with the Mind; on unless switched off) keeps Mote from getting too upset: joy and
 satisfaction never go below −3, hurt counts for half, and nothing sharp is
 said.
 
@@ -217,7 +217,11 @@ You're the dark pieces and go first. Click a piece, then one of the dots. The
 usual rules: jumping is compulsory (the pieces that can jump pulse), a jump
 keeps going while it can, and a piece that reaches the far side is crowned.
 Mote's pieces are tiny Motes that blink and look at whichever piece you pick
-up.
+up. In every game, Mote's pieces and marks are Mote in miniature, in Mote's
+whole look: little jack-o'-lanterns with triangle eyes and a carved grin,
+little ghosts, and so on (chess pieces keep their shapes and get Mote's
+eyes). They're drawn from the same shapes as Mote (`MoteMark.tsx`), so any
+new look reaches them too.
 
 Mote plays along: watching your pointer on your turn, scanning the board on
 theirs, wincing when you take a piece, looking smug when they take one,
@@ -263,10 +267,12 @@ one card at a time, and Mote is on your side: they watch, cheer the good bits
 (an ace, a two or a finished suit going home, a hidden card turning over, a
 column cleared), and help.
 
-- Drag a card where it goes: onto a column, a foundation, or an empty spot
-  (a face-up card in a column takes the cards on it along). Somewhere it
-  can't go, it slides back. Or click a card to pick it up, then click where
-  it goes. Double-click a card to send it home.
+- Click a card and it glides wherever it can go: home first, if it can,
+  otherwise the first column it fits on (an empty column only if nothing
+  else fits). Nowhere to go, Mote says so. A face-up card in a column takes
+  the cards on it along.
+- Or drag a card exactly where you want it: onto a column, a foundation, or
+  an empty spot. Somewhere it can't go, it slides back.
 - Click the deck to turn a card; when it's empty, click it to turn the pile
   back over, as often as you like.
 - **Ask Mote** for a move: they say it ("Try the 7 of clubs on the 8 of
@@ -295,8 +301,10 @@ Mote eyes.
 In the Mac app, press **⌘,** (Command + comma) to open Settings. It's kept
 short: **Your name** (what Mote calls you), **Mote Appearance** (Normal or the
 Jack-o'-lantern, see below), **Light or dark** (Light, Dark, or System to
-follow the Mac), whether Mote opens when you log in, and whether the window
-floats above others. Everything else (Friendly mode, Energy, Debug's own
+follow the Mac), whether Mote opens when you log in, whether the window floats above others,
+and **Hide from the Dock** (Mote stays in their window with no Dock icon;
+Settings is still a double-click and "settings" away, or ⌘, on Mote's
+window). Everything else (Friendly mode, Energy, Debug's own
 Mode, saved links) is in Debug. Mote's eyes
 always follow your pointer, and Mote always naps when left alone.
 
@@ -526,6 +534,7 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 - `src/components/companion/TicTacToe.tsx` and `tictactoe-lines.ts`, and `src/lib/tictactoe/game.ts` — tic-tac-toe
 - `src/components/companion/Solitaire.tsx`, `solitaire.css` and `solitaire-lines.ts`, and `src/lib/solitaire/game.ts` — Solitaire (the rules and Mote's advice)
 - `src/components/companion/cards.tsx` and `cards.css`, and `src/lib/cards.ts` — the playing cards the card games share
+- `src/components/companion/MoteMark.tsx` — Mote in miniature for game pieces and marks, in Mote's whole look
 - `src/components/companion/board-ui.tsx` and `board.css` — what both games share (level picker, header, end panel, the board's look)
 - `src/components/companion/links.ts` — saved links, their history, and how Mote picks one to suggest
 - `src-tauri/src/links.rs` — reading a dragged link, and opening one in your browser

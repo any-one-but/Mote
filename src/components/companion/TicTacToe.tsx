@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { FaceEngine } from "@/components/companion/engine";
 import type { TicTacToeEvent } from "@/components/companion/tictactoe-lines";
 import {
   chooseCell,
@@ -13,6 +12,8 @@ import {
 } from "@/lib/tictactoe/game";
 import { rollMayWin } from "@/lib/close-game";
 import { BoardHead, EndPanel } from "./board-ui";
+import { MoteMark, useLook } from "./MoteMark";
+import type { FaceEngine, Look } from "@/components/companion/engine";
 import { addToStats, load, readStats, sleep, store, type Phase, type Stats, type Winner } from "./board-store";
 
 type Props = {
@@ -153,6 +154,7 @@ export function TicTacToe({ engine, onClose }: Props) {
   };
 
   const yourTurn = phase === "playing" && turn === "you" && !busy;
+  const look = useLook();
 
   return (
     <div className="ck">
@@ -172,7 +174,7 @@ export function TicTacToe({ engine, onClose }: Props) {
             aria-label={`Square ${i + 1}${mark ? (mark === "you" ? ", X" : ", Mote") : ""}`}
             onClick={() => play(i)}
           >
-            {mark === "you" ? <XMark /> : mark === "mote" ? <MoteMark cell={i} lookAt={last.you} /> : null}
+            {mark === "you" ? <XMark /> : mark === "mote" ? <MoteMarkCell cell={i} lookAt={last.you} look={look} /> : null}
           </button>
         ))}
         {result?.line ? <WinLine line={result.line} /> : null}
@@ -202,8 +204,9 @@ function XMark() {
   );
 }
 
-/** Mote's mark: a tiny Mote, looking at the square you just took. */
-function MoteMark({ cell, lookAt }: { cell: number; lookAt: number | null }) {
+/** Mote's mark: a tiny Mote in Mote's whole look, looking at the square you
+ * just took. */
+function MoteMarkCell({ cell, lookAt, look }: { cell: number; lookAt: number | null; look: Look }) {
   let lx = 0;
   let ly = 2;
   if (lookAt !== null && lookAt !== cell) {
@@ -216,12 +219,7 @@ function MoteMark({ cell, lookAt }: { cell: number; lookAt: number | null }) {
   return (
     <svg viewBox="0 0 100 100" className="tt-o" aria-hidden="true">
       <ellipse cx="50" cy="80" rx="22" ry="4" className="ck-shadow" />
-      <circle cx="50" cy="54" r="27" className="tt-o-rim" />
-      <circle cx="50" cy="50" r="27" className="tt-o-body" />
-      <g className="ck-eyes" style={{ animationDelay: `${(cell * 1.7) % 6}s`, transformOrigin: "50% 50px" }}>
-        <rect x={39 + lx} y={41 + ly} width="7" height="15" rx="3.5" />
-        <rect x={54 + lx} y={41 + ly} width="7" height="15" rx="3.5" />
-      </g>
+      <MoteMark look={look} cx={50} cy={50} r={27} drop={4} gaze={{ x: lx, y: ly - 2 }} blinkDelay={(cell * 1.7) % 6} />
     </svg>
   );
 }

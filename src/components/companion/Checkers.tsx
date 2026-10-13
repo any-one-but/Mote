@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CheckersEvent } from "@/components/companion/checkers-lines";
-import type { FaceEngine } from "@/components/companion/engine";
+import type { FaceEngine, Look } from "@/components/companion/engine";
+import { MoteMark, useLook } from "./MoteMark";
 import {
   colOf,
   count,
@@ -345,6 +346,8 @@ export function Checkers({ engine, onClose }: Props) {
 
   // Mote's pieces look at the piece you've picked up, or else at you.
   const lookAt = selected ?? null;
+  // ...and are little Motes in whatever look Mote has.
+  const look = useLook();
 
   return (
     <div className="ck">
@@ -387,6 +390,7 @@ export function Checkers({ engine, onClose }: Props) {
             hint={yourTurn && selected === null && mustJump && movable.has(p.sq)}
             canMove={yourTurn && movable.has(p.sq)}
             lookAt={lookAt}
+            look={look}
             onTap={() => tap(p.sq)}
           />
         ))}
@@ -411,6 +415,7 @@ function PieceView({
   hint,
   canMove,
   lookAt,
+  look,
   onTap,
 }: {
   piece: Piece;
@@ -418,6 +423,7 @@ function PieceView({
   hint: boolean;
   canMove: boolean;
   lookAt: number | null;
+  look: Look;
   onTap: () => void;
 }) {
   const row = rowOf(piece.sq);
@@ -453,22 +459,26 @@ function PieceView({
     >
       <svg viewBox="0 0 100 100" className="ck-disc">
         <ellipse cx="50" cy="58" rx="38" ry="36" className="ck-shadow" />
-        {/* The piece's thickness, a deeper tone just below it (no outlines). */}
-        <circle cx="50" cy="55" r="38" className="ck-rim" />
-        <circle cx="50" cy="50" r="38" className="ck-body" />
-        <circle cx="50" cy="50" r="29" className="ck-ring" />
         {mote ? (
-          <g className="ck-eyes" style={{ animationDelay: `${(piece.id * 1.37) % 6}s` }}>
-            {piece.gone ? (
-              <path d="M33 50h10M57 50h10" className="ck-shut" />
-            ) : (
-              <>
-                <rect x={36 + lx} y={40 + ly} width="9" height="18" rx="4.5" />
-                <rect x={55 + lx} y={40 + ly} width="9" height="18" rx="4.5" />
-              </>
-            )}
-          </g>
-        ) : null}
+          // A little Mote, in Mote's whole look (see MoteMark).
+          <MoteMark
+            look={look}
+            cx={50}
+            cy={50}
+            r={38}
+            drop={5}
+            gaze={{ x: lx, y: ly }}
+            shut={piece.gone}
+            blinkDelay={(piece.id * 1.37) % 6}
+          />
+        ) : (
+          <>
+            {/* The piece's thickness, a deeper tone just below it (no outlines). */}
+            <circle cx="50" cy="55" r="38" className="ck-rim" />
+            <circle cx="50" cy="50" r="38" className="ck-body" />
+            <circle cx="50" cy="50" r="29" className="ck-ring" />
+          </>
+        )}
         {king ? (
           <path
             className="ck-crown"

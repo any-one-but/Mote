@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChessEvent } from "@/components/companion/chess-lines";
 import { ChessPieceArt } from "@/components/companion/chess-pieces";
-import type { FaceEngine } from "@/components/companion/engine";
+import { useLook } from "./MoteMark";
+import type { FaceEngine, Look } from "@/components/companion/engine";
 import { material, PIECE_NAME } from "@/lib/chess/ai";
 import {
   BISHOP,
@@ -356,6 +357,8 @@ export function Chess({ engine, onClose }: Props) {
     onClose();
   };
 
+  // Mote's pieces have Mote's eyes, in whatever look Mote has.
+  const moteLook = useLook();
   const kingInCheck = checked ? pos.kings[pos.turn === 1 ? 0 : 1] : -1;
   const status = note
     ? note
@@ -391,6 +394,7 @@ export function Chess({ engine, onClose }: Props) {
             selected={p.sq === selected && !p.gone}
             canMove={yourTurn && movable.has(p.sq) && !promoting}
             lookAt={selected}
+            moteLook={moteLook}
             onTap={() => tap(p.sq)}
           />
         ))}
@@ -428,12 +432,14 @@ function PieceView({
   selected,
   canMove,
   lookAt,
+  moteLook,
   onTap,
 }: {
   piece: Piece;
   selected: boolean;
   canMove: boolean;
   lookAt: number | null;
+  moteLook: Look;
   onTap: () => void;
 }) {
   const row = rowOf(piece.sq);
@@ -463,7 +469,7 @@ function PieceView({
       aria-hidden="true"
     >
       <div className="ck-disc">
-        <ChessPieceArt piece={piece.p} look={look} shut={piece.gone} blinkDelay={(piece.id * 1.37) % 6} />
+        <ChessPieceArt piece={piece.p} look={look} moteLook={moteLook} shut={piece.gone} blinkDelay={(piece.id * 1.37) % 6} />
       </div>
     </div>
   );

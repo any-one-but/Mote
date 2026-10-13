@@ -7,7 +7,6 @@ import {
   cardWords,
   deal,
   finishMove,
-  foundationFor,
   hint,
   isLegal,
   isRed,
@@ -27,9 +26,9 @@ import "./solitaire.css";
 
 // Solitaire in Mote's window, with Mote on your side: they watch, cheer the
 // good bits, and point out a move when you ask (or when you've been looking a
-// while). Drag a card where it goes, or click it to pick it up and click
-// where it goes (a face-up card in a column takes the cards on it along).
-// Double-click sends a card home.
+// while). Click a card and it glides wherever it can go (home first), or
+// drag it where you want it (a face-up card in a column takes the cards on
+// it along).
 // Click the deck to turn a card; when it's empty, click it to turn the pile
 // back over. Like every game here, it's saved as you go.
 
@@ -38,7 +37,6 @@ type Props = {
   onClose: () => void;
 };
 
-type Held = { from: Place; count: number };
 type Stats = { played: number; won: number };
 
 const SAVE = "mote.solitaire";
@@ -102,7 +100,6 @@ export function Solitaire({ engine, onClose }: Props) {
   const resumed = useRef(reviveGame(load(SAVE)));
   const [game, setGame] = useState<Game>(() => resumed.current ?? deal());
   const [history, setHistory] = useState<Game[]>([]);
-  const [held, setHeld] = useState<Held | null>(null);
   const [hinted, setHinted] = useState<Move | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats>(readStats);
@@ -235,7 +232,6 @@ export function Solitaire({ engine, onClose }: Props) {
           el.style.pointerEvents = "none";
           el.classList.add("is-dragging");
         });
-        setHeld(null);
         setHinted(null);
         setNote(null);
       }
@@ -345,7 +341,6 @@ export function Solitaire({ engine, onClose }: Props) {
     setHistory((h) => [...h.slice(-99), g]);
     setGame(next);
     gameRef.current = next;
-    setHeld(null);
     setHinted(null);
     setNote(null);
     if (m.type === "move") {
@@ -372,40 +367,47 @@ export function Solitaire({ engine, onClose }: Props) {
     from.pile !== "tableau" || isLegalRun(gameRef.current, from.i, count);
 
   /** Clicking a card or an empty spot. */
-  const clickAt = (place: Place, count: number) => {
-    if (done || finishing || justDragged.current) return;
-    const g = gameRef.current;
-    if (held) {
-      if (samePlace(held.from, place) && held.count === count) return setHeld(null);
-      if (place.pile !== "waste" && play({ type: "move", from: held.from, to: place, count: held.count })) return;
-      // Not there: pick this up instead, if it can be.
-      if (count > 0 && canPick(place, count)) return setHeld({ from: place, count });
-      setHeld(null);
-      setNote("That doesn’t go there.");
-      return;
+  /**
+   * Where a card (and any on it) goes when clicked: home, if it's a top card
+   * that can go there; otherwise the first column it fits on, one with cards
+   * before an empty one (and never an empty column for a card that's already
+   * the bottom of its own). Null: nowhere yet.
+   */
+  const destination = (g: Game, from: Place, count: number): Place | null => {
+    const fits = (to: Place) => !samePlace(to, from) && isLegal(g, { type: "move", from, to, count });
+    if (count === 1 && from.pile !== "foundation") {
+      for (let i = 0; i < 4; i++) if (fits({ pile: "foundation", i })) return { pile: "foundation", i };
     }
-    if (count > 0 && canPick(place, count)) setHeld({ from: place, count });
-    else if (place.pile === "tableau" && count > 0 && g.tableau[place.i].length) setNote("Only cards in order move together.");
+    const bottom = from.pile === "tableau" && g.tableau[from.i].length === count;
+    let empty: Place | null = null;
+    for (let i = 0; i < 7; i++) {
+      const to: Place = { pile: "tableau", i };
+      if (!fits(to)) continue;
+      if (g.tableau[i].length) return to;
+      if (!empty && !bottom) empty = to;
+    }
+    return empty;
   };
 
-  /** Double-click: home, if it can go. */
-  const sendHome = (place: Place) => {
-    if (done || finishing) return;
+  /** Until when clicks are ignored: the second click of a double-click. */
+  const quietUntil = useRef(0);
+
+  /** Clicking a card: it goes wherever it can, gliding there. */
+  const clickAt = (place: Place, count: number) => {
+    if (done || finishing || justDragged.current || count === 0 || performance.now() < quietUntil.current) return;
     const g = gameRef.current;
-    const card =
-      place.pile === "waste"
-        ? g.waste[g.waste.length - 1]
-        : place.pile === "tableau"
-          ? g.tableau[place.i][g.tableau[place.i].length - 1]
-          : undefined;
-    if (!card) return;
-    const f = foundationFor(g, card);
-    if (f >= 0) play({ type: "move", from: place, to: { pile: "foundation", i: f }, count: 1 });
+    if (!canPick(place, count)) {
+      if (place.pile === "tableau" && g.tableau[place.i].length) setNote("Only cards in order move together.");
+      return;
+    }
+    const to = destination(g, place, count);
+    if (!to) return setNote("Nowhere for that one to go yet.");
+    play({ type: "move", from: place, to, count });
+    quietUntil.current = performance.now() + 320;
   };
 
   const clickStock = () => {
     if (done || finishing) return;
-    setHeld(null);
     const g = gameRef.current;
     play(g.stock.length ? { type: "draw" } : { type: "recycle" });
   };
@@ -413,7 +415,6 @@ export function Solitaire({ engine, onClose }: Props) {
   const askMote = () => {
     const g = gameRef.current;
     const h = hint(g);
-    setHeld(null);
     if (!h) return tell("stuck");
     setHinted(h);
     if (h.type === "draw") tell("hint-draw");
@@ -427,7 +428,6 @@ export function Solitaire({ engine, onClose }: Props) {
     remember();
     setHistory((h) => h.slice(0, -1));
     setGame(prev);
-    setHeld(null);
     setHinted(null);
     setNote(null);
     said.current = "";
@@ -446,7 +446,6 @@ export function Solitaire({ engine, onClose }: Props) {
     remember(true);
     setGame(g);
     setHistory([]);
-    setHeld(null);
     setHinted(null);
     setNote(null);
     said.current = "";
@@ -457,7 +456,6 @@ export function Solitaire({ engine, onClose }: Props) {
   /** Everything's showing: Mote puts the cards away, one at a time. */
   const finish = async () => {
     setFinishing(true);
-    setHeld(null);
     setHinted(null);
     let g = gameRef.current;
     while (alive.current && !isWon(g)) {
@@ -473,13 +471,10 @@ export function Solitaire({ engine, onClose }: Props) {
   };
 
   const close = () => {
-    setHeld(null);
     onClose();
   };
 
-  // What's picked up, and what Mote pointed at.
-  const isHeld = (place: Place, index: number, length: number) =>
-    !!held && samePlace(held.from, place) && index >= length - held.count;
+  // What Mote pointed at.
   const hintFrom = hinted?.type === "move" ? hinted : null;
   const isHintSource = (place: Place, index: number, length: number) =>
     !!hintFrom && samePlace(hintFrom.from, place) && index >= length - hintFrom.count;
@@ -531,10 +526,8 @@ export function Solitaire({ engine, onClose }: Props) {
                 key={idOf(topWaste)}
                 id={idOf(topWaste)}
                 card={topWaste}
-                held={isHeld({ pile: "waste" }, 0, 1)}
                 hint={isHintSource({ pile: "waste" }, 0, 1)}
                 onClick={() => clickAt({ pile: "waste" }, 1)}
-                onDoubleClick={() => sendHome({ pile: "waste" })}
               />
             ) : null}
           </div>
@@ -555,7 +548,6 @@ export function Solitaire({ engine, onClose }: Props) {
                     key={idOf(c)}
                     id={idOf(c)}
                     card={c}
-                    held={isHeld(place, 0, 1)}
                     hint={false}
                     onClick={() => clickAt(place, 1)}
                   />
@@ -601,10 +593,8 @@ export function Solitaire({ engine, onClose }: Props) {
                       id={idOf(c)}
                       card={c}
                       style={style}
-                      held={isHeld(place, k, col.length)}
                       hint={isHintSource(place, k, col.length) || (last && isHintTarget(place))}
                       onClick={() => clickAt(place, count)}
-                      onDoubleClick={last ? () => sendHome(place) : undefined}
                     />
                   );
                 })}

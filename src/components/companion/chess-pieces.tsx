@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { BISHOP, KING, KNIGHT, PAWN, QUEEN, ROOK } from "@/lib/chess/rules";
+import type { Look } from "@/components/companion/engine";
+import { MoteEye } from "./MoteMark";
 
 // The chess pieces, drawn in a 100 × 100 box as solid, chunky silhouettes.
 // Each piece is a few overlapping shapes drawn twice, with no outlines (see
@@ -87,9 +89,12 @@ export function ChessPieceArt({
   look = { x: 0, y: 0 },
   shut = false,
   blinkDelay = 0,
+  moteLook = "neutral",
 }: {
   /** Positive is yours, negative Mote's. */
   piece: number;
+  /** Mote's look, for the shape of their pieces' eyes. */
+  moteLook?: Look;
   look?: { x: number; y: number };
   shut?: boolean;
   blinkDelay?: number;
@@ -117,7 +122,7 @@ export function ChessPieceArt({
             shut ? (
               <path key={x} d={`M${x - 3.5} ${eyes.y + 5}h7`} className="ck-shut" />
             ) : (
-              <rect key={x} x={x - 2.5 + look.x} y={eyes.y + look.y} width="5" height="10" rx="2.5" />
+              <MoteEye key={x} look={moteLook} x={x + look.x} y={eyes.y + 5 + look.y} h={10} />
             ),
           )}
         </g>

@@ -290,29 +290,40 @@
   fill: var(--ck-you-crown);
 }
 
-.is-mote .ck-body {
+/* Mote's pieces and marks are little Motes in Mote's whole look (see
+   MoteMark): Mote's own colours, with a deeper rim below for thickness. */
+.mm-body {
   fill: var(--mote-face);
 }
 
-.is-mote .ck-rim {
+.mm-rim {
   fill: var(--ck-mote-rim);
 }
 
-.is-mote .ck-ring {
-  fill: none;
-}
-
-.is-mote .ck-eyes rect {
+.mm-ink {
   fill: var(--mote-eyes);
-  transition:
-    x 0.3s ease,
-    y 0.3s ease;
 }
 
-.is-mote .ck-shut {
+.mm-mouth.is-jack,
+.mm-mouth.is-snow {
+  stroke: var(--mote-eyes);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.mm-shut {
   stroke: var(--mote-eyes);
   stroke-width: 4;
   stroke-linecap: round;
+}
+
+.mm-gaze {
+  transition: transform 0.3s ease;
+}
+
+/* Chess pieces keep their own colours, with Mote's eyes on them. */
+.cs-eyes .mm-eye {
+  fill: #f6ebe0;
 }
 
 /* Each little Mote blinks now and then, all at different times. */
@@ -666,21 +677,6 @@
 
 .tt-o {
   animation: tt-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.tt-o-body {
-  fill: var(--mote-face);
-}
-
-.tt-o-rim {
-  fill: var(--ck-mote-rim);
-}
-
-.tt-o .ck-eyes rect {
-  fill: var(--mote-eyes);
-  transition:
-    x 0.3s ease,
-    y 0.3s ease;
 }
 
 @keyframes tt-pop {

@@ -1857,6 +1857,20 @@ export function lookEye(look: Look, p: EyeShape["pill"], side: "l" | "r"): strin
   return look === "jack" ? jackEye(p) : look === "ghost" ? ghostEye(p) : look === "snow" ? coalEye(p, side) : null;
 }
 
+/**
+ * Whether a look's mouth is part of the look itself: the jack-o'-lantern's
+ * carved grin is, so its little game pieces always have it. (Mote's own mouth
+ * otherwise follows its switch.) A new look adds itself here, to `Look`, and
+ * to `lookEye`, `lookMouth` and `lookBody`, and Mote and every game piece
+ * take it on.
+ */
+export const LOOK_HAS_MOUTH: Record<Look, boolean> = { neutral: false, jack: true, ghost: false, snow: true };
+
+/** A look's own body shape, in place of the round face (null: the round face). */
+export function lookBody(look: Look): string | null {
+  return look === "ghost" ? ghostSheet() : null;
+}
+
 /** Each look's mouth. `talk` (0..1) works a jack-o'-lantern's jaw. (A ghost
  * has no mouth of its own: with the mouth switched on, it's the plain one.) */
 export function lookMouth(look: Look, pose: Pose, gazeX: number, gazeY: number, talk = 0): string {
