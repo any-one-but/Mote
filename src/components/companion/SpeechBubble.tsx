@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { Bubble, Direction } from "@/components/companion/speech";
+import { TALK } from "@/components/companion/engine";
 
 type Props = {
   bubble: Bubble | null;
@@ -20,8 +21,10 @@ const LEAVE_MS = 200;
 /**
  * Mote's speech bubble. Words type out, questions get a green and a red
  * button, and requests show a small hint. In a conversation there's a box to
- * type in, and sometimes choices, one per line. Bubbles swap with a little
- * exit animation so a reply never jumps straight over the last thing said.
+ * type in, and sometimes choices, one per line. A conversation always has an
+ * X in the corner, and Escape closes it (or a passing remark) wherever the
+ * keyboard is. Bubbles swap with a little exit animation so a reply never
+ * jumps straight over the last thing said.
  */
 export function SpeechBubble({ bubble, anchor, onAnswer, onDismiss, onSubmit, onChoose, onTyping }: Props) {
   const [shown, setShown] = useState<Bubble | null>(bubble);
@@ -72,6 +75,17 @@ export function SpeechBubble({ bubble, anchor, onAnswer, onDismiss, onSubmit, on
 
   useEffect(() => setText(""), [shown?.id]);
 
+  // What can be closed: a conversation, or a remark.
+  const closable = !!shown && (shown.lineId === TALK || shown.kind === "flavor");
+  useEffect(() => {
+    if (!closable) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onDismiss();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [closable, onDismiss]);
+
   useLayoutEffect(() => {
     const el = self.current;
     if (!el) return setNudge(0);
@@ -87,11 +101,12 @@ export function SpeechBubble({ bubble, anchor, onAnswer, onDismiss, onSubmit, on
   const talking = shown.kind === "talk" || shown.kind === "choose";
   const timed = shown.kind !== "flavor" && !talking;
   const choices = shown.choices ?? [];
+  const conversation = shown.lineId === TALK;
 
   return (
     <div
       ref={self}
-      className={`speech is-${shown.kind}${leaving ? " is-leaving" : ""}${nudge ? " is-nudged" : ""}`}
+      className={`speech is-${shown.kind}${conversation ? " is-closable" : ""}${leaving ? " is-leaving" : ""}${nudge ? " is-nudged" : ""}`}
       style={{ left: anchor.x, bottom: `calc(100% - ${anchor.y}px)`, marginBottom: -nudge }}
       role="status"
       aria-live="polite"
@@ -100,6 +115,23 @@ export function SpeechBubble({ bubble, anchor, onAnswer, onDismiss, onSubmit, on
       data-tauri-drag-region={shown.kind === "move" ? true : undefined}
       onClick={shown.kind === "flavor" ? onDismiss : undefined}
     >
+      {conversation ? (
+        <button
+          type="button"
+          className="speech-close"
+          aria-label="Close"
+          title="Close (Esc)"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDismiss();
+          }}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 7l10 10M17 7L7 17" />
+          </svg>
+        </button>
+      ) : null}
+
       <span className="sr-only">{plain(shown.text)}</span>
       <p className="speech-text" aria-hidden="true">
         {render(shown.text, typed)}
@@ -146,7 +178,7 @@ export function SpeechBubble({ bubble, anchor, onAnswer, onDismiss, onSubmit, on
         </div>
       ) : null}
 
-      {talking ? (
+      {talking && !shown.noTyping ? (
         <form
           className="speech-type"
           onSubmit={(e) => {
@@ -168,9 +200,6 @@ export function SpeechBubble({ bubble, anchor, onAnswer, onDismiss, onSubmit, on
             onChange={(e) => {
               setText(e.target.value);
               onTyping();
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") onDismiss();
             }}
           />
         </form>

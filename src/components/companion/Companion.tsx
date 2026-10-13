@@ -483,8 +483,9 @@ export function Companion() {
 
   // Meeting Mote (see MEETING in converse.ts): the first time Mote opens,
   // while they don't know your name. Which step is up (null when not
-  // meeting). Each step has a button to go on, and typing anything goes on
-  // too; the last asks your name. Skipping it is fine: Mote won't ask again.
+  // meeting). Each step has just a button to go on (no box to type in, so
+  // it's clear what to do); the last asks your name. Skipping it is fine:
+  // Mote won't ask again.
   const after = (step: MeetStep): MeetStep => {
     const i = MEET_STEPS.indexOf(step);
     const next = MEET_STEPS[Math.min(i + 1, MEET_STEPS.length - 1)];
@@ -502,7 +503,7 @@ export function Companion() {
   const meetStep = (step: MeetStep) => {
     meeting.current = step;
     const go = (text: string, next: string) =>
-      talk({ kind: "choose", text, choices: [{ id: "meet-next", label: next }], placeholder: "Or type anything…" });
+      talk({ kind: "choose", text, choices: [{ id: "meet-next", label: next }], noTyping: true });
     if (step === "hello") return go(MEETING.hello.text, MEETING.hello.next);
     if (step === "touch") return go(MEETING.touch.text, MEETING.touch.next);
     if (step === "talk") return go(MEETING.talk.text, MEETING.talk.next);

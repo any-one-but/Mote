@@ -264,6 +264,8 @@ export type Talk = {
   text: string;
   choices?: Array<{ id: string; label: string }>;
   placeholder?: string;
+  /** No box to type in, just the choices. */
+  noTyping?: boolean;
 };
 
 export type EngineOptions = {
@@ -3602,6 +3604,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
         text: t.text,
         choices: t.choices,
         placeholder: t.placeholder,
+        noTyping: t.noTyping,
         born: clock,
         ttl,
       });

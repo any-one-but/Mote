@@ -765,8 +765,7 @@ export const LINES = {
 /**
  * Meeting Mote: the first time Mote opens (while they don't know your name),
  * they say hello, show you the basics a step at a time (each with a button to
- * go on, or type anything), and ask what to call you. Saying you'd rather not
- * is fine too.
+ * go on), and ask what to call you. Saying you'd rather not is fine too.
  */
 export const MEETING = {
   hello: { text: "Hi! I’m Mote. I live here, on your screen.", next: "Hi, Mote!" },

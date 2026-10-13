@@ -488,6 +488,54 @@
   outline-offset: 1px;
 }
 
+/* The X in a conversation's corner: always easy to spot and hit. The words
+   keep clear of it. */
+.speech.is-closable .speech-text {
+  padding-inline: 18px;
+}
+
+.speech-close {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--text-soft);
+  transition:
+    transform 0.18s var(--spring),
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.speech-close:hover {
+  background: var(--sunk);
+  color: var(--color-ink);
+}
+
+.speech-close:active {
+  transform: scale(0.88);
+}
+
+.speech-close:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 70%, transparent);
+  outline-offset: 1px;
+}
+
+.speech-close svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
 .speech-type {
   margin: 10px 0 0;
 }

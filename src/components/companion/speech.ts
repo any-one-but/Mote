@@ -1067,7 +1067,8 @@ export type Bubble = {
   /** A reply to an earlier bubble, rather than something new. */
   reply?: boolean;
   /** In a conversation: choices to pick from (one per line), and a hint in
-   * the box to type in. */
+   * the box to type in (or no box at all). */
   choices?: Array<{ id: string; label: string }>;
   placeholder?: string;
+  noTyping?: boolean;
 };
