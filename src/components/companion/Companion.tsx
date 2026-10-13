@@ -16,14 +16,12 @@ import {
   howAmI,
   introLine,
   isGame,
-  isSnack,
   PLACEHOLDERS,
   say,
   understand,
   type IntentId,
 } from "@/components/companion/converse";
 import { loadLinks } from "@/components/companion/links";
-import { SNACKS } from "@/components/companion/mind";
 import { DEBUG_DEFAULTS, listenBus, send, type DebugState } from "@/lib/companion/bus";
 import {
   onDropped,
@@ -133,8 +131,6 @@ export function Companion() {
   useMode(settings.mode);
 
   const [features] = useFeatures();
-  const hunger = featureOn(features, "hunger");
-  const sleepNeed = featureOn(features, "sleep");
   const brows = featureOn(features, "brows");
   const mouth = featureOn(features, "mouth");
   const links = featureOn(features, "links");
@@ -198,8 +194,6 @@ export function Companion() {
     gameTalk,
     dizzy,
     antics,
-    hunger,
-    sleepNeed,
     brows,
     mouth,
     links,
@@ -215,7 +209,7 @@ export function Companion() {
   optionsNow.current = engineOptions;
   useEffect(() => {
     engineRef.current?.configure(optionsNow.current);
-  }, [energy, friendly, mindOn, remarks, chat, needs, memories, gameTalk, dizzy, antics, hunger, sleepNeed, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape, settings.mode]);
+  }, [energy, friendly, mindOn, remarks, chat, needs, memories, gameTalk, dizzy, antics, brows, mouth, links, checkIns, games, eyesOnly, dark, glint, moodShape, settings.mode]);
   // Noticing the screen switched on or off: sound elsewhere counts, or doesn't.
   useEffect(() => {
     applyAudio();
@@ -357,11 +351,6 @@ export function Companion() {
     "liarsdice",
     "solitaire",
     "files",
-    "bed",
-    "feed",
-    "cookie",
-    "berries",
-    "meal",
     "links",
     "saveLink",
     "settings",
@@ -378,13 +367,9 @@ export function Companion() {
       ? games
       : i === "files"
         ? files
-        : i === "bed"
-          ? sleepNeed
-          : i === "feed" || isSnack(i)
-            ? hunger
-            : i === "links" || i === "saveLink"
-              ? links
-              : true;
+        : i === "links" || i === "saveLink"
+          ? links
+          : true;
   const ready = new Set([...known].filter(on));
 
   const mind = () => ({
@@ -440,11 +425,7 @@ export function Companion() {
           ? off.games
           : intent === "files"
             ? off.files
-            : intent === "bed"
-              ? off.bed
-              : intent === "links" || intent === "saveLink"
-                ? off.links
-                : off.feed,
+            : off.links,
       );
     }
     if (isGame(intent)) {
@@ -453,25 +434,11 @@ export function Companion() {
       setPlaying(intent);
       return;
     }
-    if (isSnack(intent)) {
-      engine.endTalk();
-      engine.feed(intent);
-      return;
-    }
     switch (intent) {
       case "games":
         return offerGames();
       case "files":
         return remark(LINES.files);
-      case "bed":
-        engine.endTalk();
-        return engine.tuckIn();
-      case "feed":
-        return offer(
-          say(LINES.snacks),
-          SNACKS.map((s) => s.id as IntentId),
-          Object.fromEntries(SNACKS.map((s) => [s.id, s.name])),
-        );
       case "links":
         if (!loadLinks().length) return remark(LINES.noLinks);
         engine.endTalk();
@@ -484,8 +451,6 @@ export function Companion() {
       case "help": {
         const labels: Partial<Record<IntentId, string>> = {
           games: "Play a game",
-          feed: "Give me a snack",
-          bed: "Tuck me in",
           links: "Something you saved",
           files: "Help with files",
           settings: "Settings",

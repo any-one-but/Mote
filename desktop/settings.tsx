@@ -1,38 +1,15 @@
-import { StrictMode, useEffect, useState } from "react";
+import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import type { Energy } from "@/components/companion/engine";
 import {
   isDesktopApp,
-  openLink,
   opensAtLogin,
   setOpensAtLogin,
   widenSettingsWindow,
 } from "@/lib/companion/desktop";
-import { featureOn, KEYED, useFeatures } from "@/lib/companion/features";
-import {
-  useDark,
-  useMode,
-  useSettings,
-  type Mode,
-  type Pace,
-  type Settings,
-  type Theme,
-} from "@/lib/companion/settings";
-import {
-  linkName,
-  loadLinks,
-  onLinksChanged,
-  removeLink,
-  type SavedLink,
-} from "@/components/companion/links";
+import { featureOn, useFeatures } from "@/lib/companion/features";
+import { useDark, useMode, useSettings, type Settings, type Theme } from "@/lib/companion/settings";
 import { DebugPanel } from "./debug";
 import { MiniMote, Page, Row, Section, Segmented, Toggle } from "./ui";
-
-const ENERGY: Array<{ value: Energy; label: string }> = [
-  { value: "calm", label: "Calm" },
-  { value: "normal", label: "Normal" },
-  { value: "lively", label: "Lively" },
-];
 
 const THEME: Array<{ value: Theme; label: string }> = [
   { value: "light", label: "Light" },
@@ -40,38 +17,30 @@ const THEME: Array<{ value: Theme; label: string }> = [
   { value: "system", label: "System" },
 ];
 
-const MODE: Array<{ value: Mode; label: string }> = [
-  { value: "neutral", label: "Neutral" },
-  { value: "jack", label: "Jack-o’-lantern" },
-];
-
-const MODE_HINT: Record<Mode, string> = {
-  neutral: "Just Mote.",
-  jack: "Pumpkin orange, triangle eyes, and a carved, toothy grin if the mouth is on. Happy Halloween!",
-};
-
-const PACE: Array<{ value: Pace; label: string }> = [
-  { value: "gentle", label: "Gentle" },
-  { value: "normal", label: "Normal" },
-  { value: "turbo", label: "Turbo" },
-];
-
-const PACE_HINT: Record<Pace, string> = {
-  gentle: "Works quietly in the background. Easy on your Mac, but slower.",
-  normal: "Works through one thing at a time.",
-  turbo: "Works on many things at once. Much faster, but your Mac will be busy.",
-};
-
 /**
- * The Settings window. With Debug unlocked and on, it's the Debug tabs too,
- * Settings first.
+ * The Settings window: how Mote looks (light or dark), and how Mote sits on
+ * your Mac. With Debug unlocked, it's the Debug tabs too, Settings first.
  */
 function SettingsWindow() {
   const [settings] = useSettings();
-  const [features] = useFeatures();
+  const [features, { unlockTyped }] = useFeatures();
   const debug = featureOn(features, "debug");
   useDark(settings.theme);
   useMode(settings.mode);
+  // Debug's key, typed anywhere in this window (there's no box for it).
+  const typed = useRef("");
+  useEffect(() => {
+    if (debug) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.key.length !== 1) return;
+      typed.current = (typed.current + e.key).slice(-40);
+      void unlockTyped(typed.current).then((id) => {
+        if (id) typed.current = "";
+      });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [debug, unlockTyped]);
   // The Debug tabs need more room.
   useEffect(() => {
     if (debug) widenSettingsWindow();
@@ -87,9 +56,6 @@ function SettingsWindow() {
 
 function SettingsPanel() {
   const [settings, update] = useSettings();
-  const [features] = useFeatures();
-  const links = featureOn(features, "links");
-  const files = featureOn(features, "files");
   const [hop, setHop] = useState(0);
 
   // Every change makes the little Mote in the corner do a happy hop.
@@ -117,52 +83,7 @@ function SettingsPanel() {
             onChange={(theme) => set({ theme })}
           />
         </Row>
-        <Row label="Mode" hint={MODE_HINT[settings.mode]} stacked>
-          <Segmented
-            label="Mode"
-            options={MODE}
-            value={settings.mode}
-            onChange={(mode) => set({ mode })}
-          />
-        </Row>
-        <Row
-          label="Friendly mode"
-          hint="Mote never gets too upset: hurt counts for half, and no sulking or sharp words."
-        >
-          <Toggle
-            label="Friendly mode"
-            checked={settings.friendly}
-            onChange={(friendly) => set({ friendly })}
-          />
-        </Row>
-        <Row label="Energy" hint="How often Mote does something on their own." stacked>
-          <Segmented
-            label="Energy"
-            options={ENERGY}
-            value={settings.energy}
-            onChange={(energy) => set({ energy })}
-          />
-        </Row>
       </Section>
-
-      {files ? (
-        <Section title="Helping with files">
-          <Row label="Pace" hint={PACE_HINT[settings.pace]} stacked>
-            <Segmented
-              label="Pace"
-              options={PACE}
-              value={settings.pace}
-              onChange={(pace) => set({ pace })}
-            />
-          </Row>
-        </Section>
-      ) : null}
-
-      {links ? (
-        <Section title="Saved links">
-          <SavedLinks />
-        </Section>
-      ) : null}
 
       {isDesktopApp() ? (
         <Section title="On your Mac">
@@ -176,10 +97,6 @@ function SettingsPanel() {
           </Row>
         </Section>
       ) : null}
-
-      <div className="settings-foot">
-        <FeatureKey />
-      </div>
     </>
   );
 }
@@ -189,67 +106,6 @@ createRoot(document.getElementById("root")!).render(
     <SettingsWindow />
   </StrictMode>,
 );
-
-/**
- * The links you've dragged onto Mote, newest first, with how they've gone
- * when Mote brought them up. Removing one here means it never comes up again.
- */
-function SavedLinks() {
-  const [links, setLinks] = useState<SavedLink[]>([]);
-  useEffect(() => {
-    const read = () => setLinks(loadLinks().slice().reverse());
-    read();
-    return onLinksChanged(read);
-  }, []);
-  if (!links.length) {
-    return (
-      <p className="links-empty">
-        Drag a link from your browser onto Mote to save it. Every now and then, Mote will bring one
-        up and ask if you’d like to go there.
-      </p>
-    );
-  }
-  return (
-    <ul className="links">
-      {links.map((l) => (
-        <li key={l.url} className="link-row">
-          <div className="link-text">
-            <a
-              href={l.url}
-              className="link-name"
-              onClick={(e) => {
-                e.preventDefault();
-                openLink(l.url);
-              }}
-            >
-              {linkName(l)}
-            </a>
-            <span className="link-stats">
-              {host(l.url)} ·{" "}
-              {l.suggested
-                ? `suggested ${times(l.suggested)}, ${l.opened ? `opened ${times(l.opened)}` : "never opened"}`
-                : "not suggested yet"}
-            </span>
-          </div>
-          <button
-            type="button"
-            className="link-remove"
-            aria-label={`Remove ${linkName(l)}`}
-            title="Remove"
-            onClick={() => {
-              removeLink(l.url);
-              setLinks(loadLinks().slice().reverse());
-            }}
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M7 7l10 10M17 7L7 17" />
-            </svg>
-          </button>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 /** Lives on the Mac rather than in Mote's settings, so it's asked for. */
 function OpenAtLogin({ onChange }: { onChange: () => void }) {
@@ -277,70 +133,4 @@ function OpenAtLogin({ onChange }: { onChange: () => void }) {
       />
     </Row>
   );
-}
-
-/**
- * Feature Key: type a key to unlock a feature kept out of reach (for now,
- * just Debug). Every unlocked feature is listed underneath, with a
- * switch.
- */
-function FeatureKey() {
-  const [features, { unlock, setOn }] = useFeatures();
-  const [key, setKey] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const tryKey = async () => {
-    if (!key.trim()) return;
-    const got = await unlock(key);
-    const name = got && KEYED.find((f) => f.id === got.id)?.name;
-    setMessage(got ? (got.already ? `${name} is already unlocked.` : `Unlocked: ${name}.`) : "That key doesn’t unlock anything.");
-    if (got) setKey("");
-  };
-  const unlocked = KEYED.filter((f) => features.unlocked.includes(f.id));
-  return (
-    <Section title="Feature Key">
-      <form
-        className="key-row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void tryKey();
-        }}
-      >
-        <input
-          className="text-input"
-          aria-label="Feature Key"
-          placeholder="Feature Key"
-          autoComplete="off"
-          spellCheck={false}
-          value={key}
-          onChange={(e) => {
-            setKey(e.target.value);
-            setMessage(null);
-          }}
-        />
-        <button type="button" className="btn is-accent" onClick={() => void tryKey()}>
-          Unlock
-        </button>
-      </form>
-      {message ? <p className="key-message">{message}</p> : null}
-      {unlocked.map((f) => (
-        <Row key={f.id} label={f.name} hint={f.about}>
-          <Toggle
-            label={f.name}
-            checked={featureOn(features, f.id)}
-            onChange={(on) => setOn(f.id, on)}
-          />
-        </Row>
-      ))}
-    </Section>
-  );
-}
-
-const times = (n: number) => (n === 1 ? "once" : n === 2 ? "twice" : `${n} times`);
-
-function host(url: string) {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
 }

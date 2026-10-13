@@ -77,18 +77,18 @@ fn open_settings(app: AppHandle) -> Result<(), String> {
     open_settings_window(&app).map_err(|e| e.to_string())
 }
 
-/// With Debug on, Settings carries the Debug tabs too: it grows to fit them
+/// With Debug on, Settings carries the Debug tabs too (down the left): it grows to fit them
 /// (if it isn't that big already) and stays centred.
 #[tauri::command]
 fn widen_settings(app: AppHandle) -> Result<(), String> {
     let Some(window) = app.get_webview_window("settings") else { return Ok(()) };
     let scale = window.scale_factor().map_err(|e| e.to_string())?;
     let size = window.inner_size().map_err(|e| e.to_string())?.to_logical::<f64>(scale);
-    if size.width >= 600.0 && size.height >= 760.0 {
+    if size.width >= 780.0 && size.height >= 760.0 {
         return Ok(());
     }
     window
-        .set_size(tauri::LogicalSize::new(size.width.max(640.0), size.height.max(800.0)))
+        .set_size(tauri::LogicalSize::new(size.width.max(820.0), size.height.max(800.0)))
         .map_err(|e| e.to_string())?;
     window.center().map_err(|e| e.to_string())
 }

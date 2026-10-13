@@ -35,7 +35,6 @@ export type SpeechEvent =
   | "welcome-back"
   | "played"
   | "woke-rested"
-  | "woke-groggy"
   | "startled"
   /** Nothing in particular: Mote just feels like saying something. */
   | "chat";
@@ -163,17 +162,7 @@ export const LINES: Line[] = [
     say: [
       "Good morning! …Is it morning?",
       "I’m back! Did I miss anything?",
-      "That was a great nap. I dreamed about snacks.",
-    ],
-  },
-  {
-    id: "woke-groggy",
-    group: "After something happens",
-    kind: "flavor",
-    when: (c) => c.event === "woke-groggy",
-    say: [
-      "Five more minutes…",
-      "Wha—? I was right in the middle of a dream.",
+      "That was a great nap. I dreamed about bits.",
       "Mmf… was I snoring?",
     ],
   },
@@ -250,7 +239,7 @@ export const LINES: Line[] = [
     group: "Apps you give Mote",
     kind: "flavor",
     when: never,
-    say: (c) => [`*${name(c)}* is an app, not a game. Or a snack.`],
+    say: (c) => [`*${name(c)}* is an app, not a game. Or a toy.`],
   },
   {
     id: "busy",
@@ -274,7 +263,7 @@ export const LINES: Line[] = [
             `${x}, saved! We’ll watch it together sometime.`,
             `Into my little box of favorites it goes: ${x}.`,
             `Saving ${x} for a cozy day.`,
-            `${x}! I’ll remember that one. Probably while snacking.`,
+            `${x}! I’ll remember that one. Probably while napping.`,
           ]
         : [
             `${x}, saved! I’ll remind you about it someday.`,
@@ -309,7 +298,7 @@ export const LINES: Line[] = [
       const it = l.video ? "watch it" : "have a look";
       const lines = [
         `I was just thinking about ${x}. Want to ${it}?`,
-        `Snack break? We could ${see} ${x}.`,
+        `Little break? We could ${see} ${x}.`,
         `Before I nap… ${x}? Just one?`,
         `Ooh, I know! ${x}! Yes?`,
         `Feel like ${x}?`,
@@ -371,7 +360,6 @@ export const LINES: Line[] = [
     when: (c) => c.event === "chat" && c.hour >= 12 && c.hour < 17,
     say: [
       "Afternoon already? Where did the morning go?",
-      "Is it snack o’clock yet?",
       "Afternoons are for little naps. Just saying.",
     ],
   },
@@ -492,76 +480,6 @@ export const LINES: Line[] = [
     say: ["Hmph.", "Still a bit cross, if you were wondering.", "I’m fine. (I’m not.)"],
   },
   {
-    id: "chat-hungry",
-    group: "Just chatting",
-    kind: "flavor",
-    cooldown: 8 * 60_000,
-    weight: 4,
-    when: (c) => c.event === "chat" && (c.moods.includes("hungry") || c.moods.includes("starving")),
-    say: ["My tummy’s rumbling.", "Is it snack time? It feels like snack time."],
-  },
-  {
-    id: "chat-sleepy",
-    group: "Just chatting",
-    kind: "flavor",
-    cooldown: 8 * 60_000,
-    weight: 4,
-    when: (c) => c.event === "chat" && (c.moods.includes("sleepy") || c.moods.includes("exhausted")),
-    say: ["*yawn* …sorry.", "I could use a nap.", "My eyes keep closing on their own."],
-  },
-
-  // Looking after Mote: snacks and bedtime
-  {
-    id: "fed-cookie",
-    group: "Looking after Mote",
-    kind: "flavor",
-    when: never,
-    say: ["Mmm, cookie!", "Crunchy. Thank you!"],
-  },
-  {
-    id: "fed-berries",
-    group: "Looking after Mote",
-    kind: "flavor",
-    when: never,
-    say: ["Berries! My favorite.", "Sweet and a little sour. Perfect."],
-  },
-  {
-    id: "fed-meal",
-    group: "Looking after Mote",
-    kind: "flavor",
-    when: never,
-    say: ["A whole meal! Thank you.", "Oh, that hits the spot."],
-  },
-  {
-    id: "fed-hungry",
-    group: "Looking after Mote",
-    kind: "flavor",
-    when: never,
-    say: ["Oh, thank you. I really needed that.", "Finally! I was so hungry."],
-  },
-  {
-    id: "full",
-    group: "Looking after Mote",
-    kind: "flavor",
-    when: never,
-    say: ["I’m full! Maybe later.", "Couldn’t eat another bite."],
-  },
-  {
-    id: "tucked-in",
-    group: "Looking after Mote",
-    kind: "flavor",
-    when: never,
-    say: ["Night night…", "Just a little nap…"],
-  },
-  {
-    id: "not-sleepy",
-    group: "Looking after Mote",
-    kind: "flavor",
-    when: never,
-    say: ["I’m not sleepy yet!", "Bedtime? It’s way too early."],
-  },
-
-  {
     id: "drop-declined",
     group: "After something happens",
     kind: "flavor",
@@ -570,27 +488,6 @@ export const LINES: Line[] = [
   },
 
   // Needs: Mote asks for these on their own, when they need them
-  {
-    id: "feed-me",
-    group: "Needs",
-    kind: "flavor",
-    when: never,
-    cooldown: 10 * 60_000,
-    say: [
-      "I’m getting hungry… is there a snack?",
-      "My tummy’s rumbling. A snack, maybe?",
-      "Could I have something to eat?",
-      "Snack? Double-click me and say “snack”. Please?",
-    ],
-  },
-  {
-    id: "tuck-me-in",
-    group: "Needs",
-    kind: "flavor",
-    when: never,
-    cooldown: 10 * 60_000,
-    say: ["I’m so sleepy… could you tuck me in?", "*yawn* I need a nap. Double-click me and say “bed”?"],
-  },
   {
     id: "play-with-me",
     group: "Needs",
@@ -954,7 +851,7 @@ export const APPLE_APPS: Record<string, { say: string[]; mood?: AppMood }> = {
     mood: "think",
   },
   "com.apple.reminders": {
-    say: ["Reminder: feed Mote.", "Can you add ‘pet Mote’ to the list?"],
+    say: ["Reminder: play with Mote.", "Can you add ‘pet Mote’ to the list?"],
     mood: "think",
   },
   "com.apple.ical": {
@@ -983,7 +880,7 @@ export const APPLE_APPS: Record<string, { say: string[]; mood?: AppMood }> = {
     mood: "think",
   },
   "com.apple.finder": {
-    say: ["Finder! Can you find me a snack?", "All your files! Any tasty ones?"],
+    say: ["Finder! Can you find me a toy?", "All your files! Any fun ones?"],
     mood: "delight",
   },
   "com.apple.systempreferences": {
@@ -1050,12 +947,12 @@ export const APPLE_APPS: Record<string, { say: string[]; mood?: AppMood }> = {
     mood: "glance",
   },
   "com.apple.journal": { say: ["Dear diary: today Mote was very cute."], mood: "cute" },
-  "com.apple.shortcuts": { say: ["Is there a shortcut for snacks?"], mood: "think" },
+  "com.apple.shortcuts": { say: ["Is there a shortcut for pets?"], mood: "think" },
   "com.apple.voicememos": { say: ["Record me! Ahem. Hi!"], mood: "delight" },
   "com.apple.news": { say: ["Any news about dots?"], mood: "glance" },
   "com.apple.findmy": { say: ["Did you lose something? I’m right here."], mood: "glance" },
   "com.apple.backup.launcher": {
-    say: ["Time Machine! Can we go back to when I was full?"],
+    say: ["Time Machine! Can we go back to yesterday?"],
     mood: "think",
   },
   "com.apple.automator": { say: ["A robot! Hello, robot friend."], mood: "delight" },

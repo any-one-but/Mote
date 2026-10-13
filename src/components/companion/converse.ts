@@ -1,5 +1,5 @@
 // Talking to Mote. Click Mote and they ask what you'd like to do; you type
-// anything ("I want to play chess", "chess", "snack", "I want to paaly a
+// anything ("I want to play chess", "chess", "my links", "I want to paaly a
 // gatme") and Mote works out what you mean from a big list of keywords and
 // loose connections to them (typos, missing or extra letters, swapped
 // letters, words run together or split apart), then gets on with it:
@@ -25,12 +25,6 @@ export type IntentId =
   | "liarsdice"
   | "solitaire"
   | "files"
-  | "bed"
-  // Feeding Mote: the snack menu, or a snack by name.
-  | "feed"
-  | "cookie"
-  | "berries"
-  | "meal"
   // Saved links: bring one up, or how to save one.
   | "links"
   | "saveLink"
@@ -49,9 +43,6 @@ type Word = string | [string, number];
 const GAMES = ["chess", "checkers", "tictactoe", "liarsdice", "solitaire"] as const;
 export type GameIntent = (typeof GAMES)[number];
 export const isGame = (id: IntentId): id is GameIntent => (GAMES as readonly string[]).includes(id);
-const SNACK_IDS = ["cookie", "berries", "meal"] as const;
-export const isSnack = (id: IntentId): id is "cookie" | "berries" | "meal" =>
-  (SNACK_IDS as readonly string[]).includes(id);
 
 /**
  * Every intent's keywords. Strong, specific words weigh 1; words that only
@@ -199,63 +190,6 @@ const INTENTS: Record<IntentId, Word[]> = {
     ["delete", 0.75],
     ["junk", 0.85],
   ],
-  bed: [
-    ["bed", 1.1],
-    ["bedtime", 1.2],
-    ["sleep", 1.05],
-    ["sleepy", 0.9],
-    ["nap", 1.05],
-    ["naptime", 1.2],
-    ["tuck", 1.1],
-    ["tuck in", 1.2],
-    ["tuck you in", 1.3],
-    ["goodnight", 1.1],
-    ["good night", 1.1],
-    ["night night", 1.2],
-    ["nighty night", 1.2],
-    ["lights out", 1.1],
-    ["snooze", 0.95],
-    ["rest", 0.75],
-    ["tired", 0.6],
-    ["lie down", 0.95],
-    ["go to sleep", 1.3],
-  ],
-  feed: [
-    ["feed", 1.1],
-    ["feeding", 1.1],
-    ["food", 0.95],
-    ["snack", 1.1],
-    ["snacktime", 1.2],
-    ["hungry", 0.9],
-    ["hunger", 0.85],
-    ["starving", 0.85],
-    ["eat", 0.85],
-    ["eating", 0.8],
-    ["treat", 1],
-    ["nom", 0.9],
-    ["munch", 0.9],
-    ["something to eat", 1.2],
-  ],
-  cookie: [
-    ["cookie", 1.3],
-    ["biscuit", 1.25],
-    ["choc chip", 1.2],
-  ],
-  berries: [
-    ["berries", 1.3],
-    ["berry", 1.3],
-    ["fruit", 1.1],
-    ["strawberry", 1.25],
-    ["blueberry", 1.25],
-    ["raspberry", 1.25],
-  ],
-  meal: [
-    ["proper meal", 1.35],
-    ["meal", 1.15],
-    ["full meal", 1.35],
-    ["big meal", 1.35],
-    ["supper for you", 1.3],
-  ],
   links: [
     ["link", 1.1],
     ["saved", 0.9],
@@ -295,13 +229,10 @@ const INTENTS: Record<IntentId, Word[]> = {
     ["light mode", 1.2],
     ["theme", 1],
     ["appearance", 1],
-    ["jack o lantern", 1.1],
-    ["halloween", 0.9],
-    ["pumpkin", 0.9],
-    ["spooky", 0.85],
-    ["friendly mode", 1.2],
-    ["energy", 0.8],
-    ["feature key", 1.2],
+    ["login", 1.1],
+    ["log in", 1.1],
+    ["float", 0.9],
+    ["on top", 0.9],
   ],
   help: [
     ["help", 1],
@@ -415,6 +346,8 @@ const STOP = new Set(
 /** Phrases that keep their words, though some are stop words. */
 const KEEP_PHRASES = [
   "what can you do",
+  "on top",
+  "log in",
   "what do you do",
   "what can i do",
   "what should we do",
@@ -437,23 +370,16 @@ const KEEP_PHRASES = [
   "how im doing",
   "play with you",
   "play with me",
-  "tuck you in",
   "beat you",
-  "something to eat",
   "something to watch",
   "show me something",
   "remind me",
   "so far",
   "not now",
-  "i ate",
-  "i had",
-  "what i ate",
   "x and o",
   "three in a row",
   "pass the time",
-  "go to sleep",
   "how do i save",
-  "supper for you",
   "call your bluff",
   "free up space",
   "just saying hi",
@@ -571,13 +497,13 @@ function wordMatch(typed: string, word: string): Match {
   if (forms(typed).some((t) => forms(word).includes(t))) return { q: 1, sure: true };
   if (squash(typed) === squash(word)) return { q: 0.97, sure: true };
   if (NOT_TYPOS.has(typed)) return NONE;
-  // A word cut short ("calor", "galler", "tic tac"): sure when most of it is there.
+  // A word cut short ("solitai", "chec", "tic tac"): sure when most of it is there.
   if (typed.length >= 4 && word.startsWith(typed)) {
     const part = typed.length / word.length;
     if (part >= 0.7) return { q: 0.92, sure: true };
     if (part >= 0.5) return { q: 0.75, sure: false };
   }
-  // Short words only forgive two letters swapped ("bde" for "bed").
+  // Short words only forgive two letters swapped ("lnik" for "link").
   if (word.length <= 3) {
     const swapped =
       typed.length === word.length && [...typed].sort().join("") === [...word].sort().join("") && distance(typed, word) === 1;
@@ -626,7 +552,7 @@ export type Understanding = {
   /** The intents Mote can be talked into right now (anything locked away is
    * left out, so it's as if Mote had never heard of it). */
   known: ReadonlySet<IntentId>;
-  /** Choices on offer just now (a menu of games or snacks): their intents,
+  /** Choices on offer just now (a menu of games, or of what Mote can do): their intents,
    * in order, so "2" or "the second one" picks one. */
   choices?: IntentId[];
 };
@@ -662,8 +588,8 @@ const ORDINALS: Record<string, number> = {
 /**
  * What did they mean? Every intent's keywords are looked for in what was
  * typed; the strongest wins, with a nudge for more than one keyword pointing
- * the same way and for who it's about ("you" leans toward feeding Mote or
- * putting them to bed, "I" away from bed).
+ * the same way and for who it's about ("you" leans toward asking how Mote is,
+ * or petting them).
  */
 export function understand(text: string, u: Understanding): Heard {
   const clean = normalize(text);
@@ -704,7 +630,6 @@ export function understand(text: string, u: Understanding): Heard {
   }
 
   const aboutYou = raw.some((w) => ["you", "your", "yourself", "u", "ur", "mote", "ya"].includes(w));
-  const aboutMe = raw.some((w) => ["i", "im", "ive", "my", "me", "ate", "eaten"].includes(w));
 
   const hits: Hit[] = [];
   for (const [intent, list] of Object.entries(INTENTS) as Array<[IntentId, Word[]]>) {
@@ -723,15 +648,14 @@ export function understand(text: string, u: Understanding): Heard {
     }
     if (!best) continue;
     best.score += Math.min(2, extra) * 0.08;
-    if (aboutYou && ["feed", "cookie", "berries", "meal", "bed", "howAreYou", "pet"].includes(intent)) best.score += 0.2;
-    if (aboutMe && !aboutYou && intent === "bed") best.score -= 0.3;
+    if (aboutYou && ["howAreYou", "pet"].includes(intent)) best.score += 0.2;
     hits.push(best);
   }
   hits.sort((a, b) => b.score - a.score);
   let top = hits[0];
   if (!top || top.score < 0.5) return { kind: "unknown" };
 
-  // A snack by name is feeding; two games by name is the games menu.
+  // Two games by name is the games menu.
   const second = hits[1];
   if (second && isGame(top.intent) && isGame(second.intent) && second.score > top.score - 0.1) {
     top = { ...top, intent: "games" };
@@ -782,17 +706,11 @@ export function introLine(m: Mind): string {
       "Yes! Hello! What would you like to do?",
     ]);
   }
-  if (has("sleepy") || has("exhausted")) {
-    lists.push(["*yawn* …What do you need?", "Mm? What should we do?", "I’m awake. Mostly. What would you like?"]);
-  }
   if ((has("annoyed") || has("frustrated")) && !m.friendly) {
     lists.push(["What. …What do you want to do?", "Hmph. What is it you need?", "Fine. What would you like?"]);
   }
   if (has("down") || has("depressed")) {
     lists.push(["Oh! You want to do something with me? What?", "Hi. …What should we do?", "Oh, hello. What do you need?"]);
-  }
-  if (has("hungry") || has("starving")) {
-    lists.push(["Hi! What would you like to do? (A snack is also an option.)"]);
   }
   if (m.hour >= 23 || m.hour < 5) lists.push(["Still up? What do you need?"]);
   if (m.hour >= 5 && m.hour < 11) lists.push(["Morning! What should we do?"]);
@@ -827,11 +745,6 @@ const CHECK: Record<IntentId, string[]> = {
   liarsdice: ["Liar’s Dice? Want to play?", "You mean Liar’s Dice?"],
   solitaire: ["Solitaire? I’ll help.", "You mean solitaire?"],
   files: ["Something about files?", "You want help with some files?"],
-  bed: ["Bedtime for me?", "You want to tuck me in?"],
-  feed: ["A snack for me?", "You want to feed me?"],
-  cookie: ["A cookie for me?"],
-  berries: ["Berries for me?"],
-  meal: ["A whole meal for me?"],
   links: ["One of your saved links?", "Something saved to watch or read?"],
   saveLink: ["You want to save a link?"],
   settings: ["You want Settings?", "Open Settings?"],
@@ -852,7 +765,6 @@ export const LINES = {
     "Boo. Let’s fix that. Pick a game, I’ll even let you go first:",
     "Not even a little? Okay. A game. Which one?",
   ],
-  snacks: ["Ooh, a snack! Which one?", "Yes please! What have you got?", "Which one can I have?"],
   help: [
     "Here’s what I can do. Pick one, or just tell me:",
     "Lots of things! Pick one, or say it your way:",
@@ -884,8 +796,6 @@ export const LINES = {
     games: ["The games are put away right now.", "No games right now. They’re switched off."],
     files: ["I’m not helping with files right now. That’s switched off."],
     links: ["Saved links are switched off right now."],
-    feed: ["I’m okay, thanks! I don’t need snacks right now.", "Not hungry! I don’t really need snacks."],
-    bed: ["I’m not sleepy. I nap on my own when I need to.", "I don’t need bed. I just nap when I feel like it."],
   },
 } as const;
 
@@ -895,8 +805,6 @@ export function howAmI(m: Mind): string {
   if (has("joyful")) return pick(["Wonderful, actually! What should we do?", "So good. What are we doing?"]);
   if ((has("frustrated") || has("annoyed")) && !m.friendly) return pick(["A bit cross. But go on, what do you need?"]);
   if (has("down") || has("depressed")) return pick(["A little lonely. Want to do something together?"]);
-  if (has("hungry") || has("starving")) return pick(["Hungry! But what would you like to do?"]);
-  if (has("sleepy") || has("exhausted")) return pick(["Sleepy. *yawn* What do you need?"]);
   return pick(["Pretty good! What would you like to do?", "I’m good! What should we do?"]);
 }
 

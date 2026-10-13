@@ -10,11 +10,6 @@ const ALL = new Set<IntentId>([
   "liarsdice",
   "solitaire",
   "files",
-  "bed",
-  "feed",
-  "cookie",
-  "berries",
-  "meal",
   "links",
   "saveLink",
   "settings",
@@ -61,14 +56,6 @@ test("plain requests do the thing straight away", () => {
     ["patience", "do:solitaire"],
     ["clean up my downloads", "do:files"],
     ["help me tidy a folder", "do:files"],
-    ["go to bed", "do:bed"],
-    ["bedtime", "do:bed"],
-    ["goodnight mote", "do:bed"],
-    ["are you hungry?", "do:feed"],
-    ["snack time", "do:feed"],
-    ["have a cookie", "do:cookie"],
-    ["some berries for you", "do:berries"],
-    ["a proper meal", "do:meal"],
     ["show me a video", "do:links"],
     ["play a video", "do:links"],
     ["something to watch", "do:links"],
@@ -97,7 +84,6 @@ test("typos get a check first", () => {
     ["chss", "check:chess"],
     ["chekers", "check:checkers"],
     ["solitare", "check:solitaire"],
-    ["bedtiem", "check:bed"],
   ];
   for (const [text, want] of cases) assert.equal(heard(text), want, text);
 });
@@ -120,11 +106,6 @@ test("don't is respected, and a no doesn't cancel what follows", () => {
   assert.equal(heard("no, chess"), "do:chess");
 });
 
-test("who it's about decides whether Mote is the tired one", () => {
-  assert.equal(heard("I'm tired"), "unknown");
-  assert.equal(heard("are you tired"), "do:bed");
-});
-
 test("two games by name is the games menu", () => {
   assert.equal(heard("chess or checkers"), "do:games");
 });
@@ -142,7 +123,9 @@ test("anything Mote can't do is as if they never heard of it", () => {
   assert.equal(heard("checkers", known), "do:checkers");
 });
 
-test("the diet tracker and Local Gallery are gone", () => {
+test("the diet tracker, Local Gallery, snacks and bedtime are gone", () => {
   assert.equal(heard("log calories"), "unknown");
   assert.equal(heard("open local gallery"), "unknown");
+  assert.equal(heard("have a cookie"), "unknown");
+  assert.equal(heard("go to bed"), "unknown");
 });

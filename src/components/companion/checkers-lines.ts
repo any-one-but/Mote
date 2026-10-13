@@ -64,7 +64,7 @@ const LINES: Record<CheckersEvent, string[]> = {
   "you-capture": ["Hey! I needed that.", "Ow.", "Okay, I sort of saw that coming.", "Rude!", "That one was my favorite.", "Hmph."],
   "you-multi": ["Two?! Come on.", "Whoa, a double jump!", "That’s… a lot of my pieces.", "Okay, that was good."],
   "you-crown": ["A king! Uh oh.", "Now you’ve got a king. Great.", "Crowned! I don’t like where this is going."],
-  "mote-capture": ["Yoink!", "Mine now.", "Thank you!", "Hehe.", "Didn’t see that, did you?", "Snack."],
+  "mote-capture": ["Yoink!", "Mine now.", "Thank you!", "Hehe.", "Didn’t see that, did you?", "Gotcha."],
   "mote-multi": ["Double jump!", "Hop, hop!", "Wheee!", "Two for me!"],
   "mote-crown": ["Crown me!", "I’m a king now. Bow.", "Look at my little crown!"],
   "mote-ahead": ["This is going well for me…", "I like this board.", "I think I’m winning?"],

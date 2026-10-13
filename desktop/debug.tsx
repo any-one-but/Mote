@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   MOOD_LIST,
   POSE_KEYS,
   REST,
+  type Energy,
   type EngineSnapshot,
   type ManualFace,
   type Mood,
@@ -18,7 +19,6 @@ import {
 import {
   FRIENDLY_FLOOR,
   LASTING_MOODS,
-  NEEDS,
   QUADRANT_NAME,
   type Feeling,
 } from "@/components/companion/mind";
@@ -48,10 +48,11 @@ import {
   type FeatureId,
   type KeyedId,
 } from "@/lib/companion/features";
-import { DEFAULT_SETTINGS, useSettings, type Settings } from "@/lib/companion/settings";
+import { DEFAULT_SETTINGS, useSettings, type Mode, type Pace, type Settings } from "@/lib/companion/settings";
 import { Button, Page, Row, Section, Segmented, Slider, Toggle } from "./ui";
 
-// Settings with Debug unlocked and on: Settings first, then the Debug tabs.
+// Settings with Debug unlocked: Settings first, then the Debug tabs, all down
+// the left of the window.
 // Each tab is one entry in TABS, so new tools slot in as their own tab
 // without touching the others. A tab about a feature that's switched off
 // (saved links) isn't shown.
@@ -104,7 +105,6 @@ const MOOD_NAMES: Record<Mood, string> = {
   purr: "Purr",
   huff: "Huff",
   sulk: "Sulk",
-  fidget: "Fidget",
   hum: "Hum",
   checkin: "Check in",
   chess: "Chess",
@@ -127,7 +127,6 @@ const MOOD_NAMES: Record<Mood, string> = {
   "ck-lose": "Board game: lost",
   "ch-check": "Chess: check!",
   "ch-checked": "Chess: in check",
-  munch: "Eating",
   decline: "No thanks",
 };
 
@@ -259,53 +258,59 @@ export function DebugPanel({ settingsTab }: { settingsTab: ReactNode }) {
   const tabs = TABS.filter((t) => !t.needs || featureOn(features, t.needs));
   const current = tabs.find((t) => t.id === tab) ?? tabs[0];
 
-  const tabBar = (
-    <div className="debug-tabs">
-      <Segmented
-        label="Section"
-        options={tabs.map((t) => ({ value: t.id, label: t.label }))}
-        value={current.id}
-        onChange={(id) => {
-          setTab(id);
-          try {
-            localStorage.setItem(TAB_KEY, id);
-          } catch {
-            // Fine: the tab just won't be remembered.
-          }
-        }}
-      />
-    </div>
-  );
+  const pick = (id: string) => {
+    setTab(id);
+    try {
+      localStorage.setItem(TAB_KEY, id);
+    } catch {
+      // Fine: the tab just won't be remembered.
+    }
+  };
 
-  if (current.id === "settings") {
-    return (
-      <Page wide>
-        {tabBar}
-        {settingsTab}
-      </Page>
-    );
-  }
-
+  // The tabs run down the left; the chosen one fills the rest.
   return (
-    <Page wide>
-      {tabBar}
-      <header className="debug-header">
-        <div>
-          <h1>Debug</h1>
-          <p>{connected ? "Connected to Mote" : "Waiting for Mote’s window…"}</p>
+    <div className="debug-shell">
+      <nav className="debug-nav" aria-label="Sections">
+        <div className="page-drag" data-tauri-drag-region />
+        <div className="debug-nav-list">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className="debug-nav-item"
+              aria-current={t.id === current.id ? "page" : undefined}
+              onClick={() => pick(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
-        <div className="chips">
-          <span className={`chip is-mood${connected ? "" : " is-off"}`}>
-            <span className="chip-dot" />
-            {snap ? MOOD_NAMES[snap.mood] : "—"}
-          </span>
-          <span className="chip mono">{snap ? `${(snap.moodMs / 1000).toFixed(1)}s` : "—"}</span>
-          <span className="chip mono">{snap ? `${Math.round(snap.fps)} fps` : "—"}</span>
-        </div>
-      </header>
+      </nav>
+      <div className="debug-main">
+        {current.id === "settings" ? (
+          <Page wide>{settingsTab}</Page>
+        ) : (
+          <Page wide>
+            <header className="debug-header">
+              <div>
+                <h1>{current.label}</h1>
+                <p>{connected ? "Connected to Mote" : "Waiting for Mote’s window…"}</p>
+              </div>
+              <div className="chips">
+                <span className={`chip is-mood${connected ? "" : " is-off"}`}>
+                  <span className="chip-dot" />
+                  {snap ? MOOD_NAMES[snap.mood] : "—"}
+                </span>
+                <span className="chip mono">{snap ? `${(snap.moodMs / 1000).toFixed(1)}s` : "—"}</span>
+                <span className="chip mono">{snap ? `${Math.round(snap.fps)} fps` : "—"}</span>
+              </div>
+            </header>
 
-      {current.render(ctx)}
-    </Page>
+            {current.render(ctx)}
+          </Page>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -357,26 +362,6 @@ function MoodsTab({ snap, debug, command }: Ctx) {
 /* Mind */
 
 const FEELING_NAME: Record<Feeling, string> = { joy: "Joy", peace: "Satisfied" };
-
-/** Reactions that are about hunger, hidden while "Mote eats too" is off. */
-const HUNGER_REACTIONS = new Set([
-  "fed",
-  "fed-hungry",
-  "fed-full",
-  "mind-hunger",
-  "mood-hungry",
-  "mood-starving",
-]);
-
-/** Reactions that are about tiredness, hidden while "Goodnight Mote" is off. */
-const SLEEP_REACTIONS = new Set([
-  "mind-tired",
-  "mind-sleep",
-  "mood-sleepy",
-  "mood-exhausted",
-  "tucked-in",
-  "tuck-not-sleepy",
-]);
 
 const seconds = (ms: number) => `${Math.max(0, Math.ceil(ms / 1000))}s`;
 
@@ -433,25 +418,15 @@ function MoodChart({ joy, peace, friendly }: { joy: number; peace: number; frien
 
 function MindTab({ snap, command, settings }: Ctx) {
   const [show, setShow] = useState<"all" | "live" | "idea">("all");
-  const [features] = useFeatures();
-  const hunger = featureOn(features, "hunger");
-  const sleepNeed = featureOn(features, "sleep");
   const [memories, setMemories] = useState(loadMemories);
   useEffect(() => {
     const t = window.setInterval(() => setMemories(loadMemories()), 3000);
     return () => window.clearInterval(t);
   }, []);
   if (!snap) return <p className="empty">Nothing yet. Is Mote’s window open?</p>;
-  // The hunger reactions only show while Mote eats too, and the sleep ones
-  // with Goodnight Mote.
-  const list = REACTIONS.filter(
-    (r) =>
-      (show === "all" || r.status === show) &&
-      (hunger || !HUNGER_REACTIONS.has(r.id)) &&
-      (sleepNeed || !SLEEP_REACTIONS.has(r.id)),
-  );
+  const list = REACTIONS.filter((r) => show === "all" || r.status === show);
   const { joy, peace } = snap.mind;
-  const set = (attr: "joy" | "peace" | "fullness" | "rest", value: number) =>
+  const set = (attr: "joy" | "peace", value: number) =>
     command({ do: "feeling", attr, value });
   const since = Math.floor(snap.sinceAttention);
   return (
@@ -475,61 +450,9 @@ function MindTab({ snap, command, settings }: Ctx) {
               <Button onClick={() => set("joy", joy + 1)}>Joy +1</Button>
               <Button onClick={() => set("peace", peace - 1)}>Satisfied −1</Button>
               <Button onClick={() => set("peace", peace + 1)}>Satisfied +1</Button>
+              <Button onClick={() => command({ do: "resetFeelings" })}>Back to the start</Button>
             </div>
           </div>
-        </div>
-      </Section>
-
-      <Section title="Needs">
-        {NEEDS.filter(
-          (n) => (hunger || n.key !== "fullness") && (sleepNeed || n.key !== "rest"),
-        ).map((n) => {
-          const v = snap.mind[n.key];
-          const note =
-            n.key === "rest"
-              ? snap.asleep
-                ? "Asleep: resting up"
-                : v <= 3
-                  ? "Sleepy: naps come sooner"
-                  : v > 6
-                    ? "Wide awake: no naps"
-                    : "Getting tired"
-              : v <= 3
-                ? "Hungry"
-                : v >= 9
-                  ? "Full: won’t eat"
-                  : "Fine for now";
-          return (
-            <div key={n.key} className="meter">
-              <div className="meter-top">
-                <span>{n.low}</span>
-                <span className="mono meter-value">{v.toFixed(1)}</span>
-                <span>{n.high}</span>
-              </div>
-              <div
-                className="meter-track"
-                style={{
-                  ["--v" as string]: `${v * 10}%`,
-                  ["--lo" as string]: n.key === "rest" ? "#b9cbd9" : "#e7b7a2",
-                  ["--hi" as string]: "#b9cfa0",
-                }}
-              >
-                <span className="meter-dot" />
-              </div>
-              <div className="meter-foot">
-                <span className="meter-note">{note}</span>
-                <span className="meter-buttons">
-                  <Button onClick={() => set(n.key, v - 1)}>← 1</Button>
-                  <Button onClick={() => set(n.key, v + 1)}>1 →</Button>
-                </span>
-              </div>
-            </div>
-          );
-        })}
-        <div className="button-row">
-          <Button onClick={() => command({ do: "resetFeelings" })}>
-            Mood and needs back to the start
-          </Button>
         </div>
       </Section>
 
@@ -1299,10 +1222,67 @@ function LogTab({ log, clearLog }: Ctx) {
 
 /* Data */
 
-/** Everything Mote does, a switch each, sorted by kind. */
+/* Features */
+
+const ENERGY: Array<{ value: Energy; label: string }> = [
+  { value: "calm", label: "Calm" },
+  { value: "normal", label: "Normal" },
+  { value: "lively", label: "Lively" },
+];
+
+const MODE: Array<{ value: Mode; label: string }> = [
+  { value: "neutral", label: "Neutral" },
+  { value: "jack", label: "Jack-o’-lantern" },
+];
+
+const MODE_HINT: Record<Mode, string> = {
+  neutral: "Just Mote.",
+  jack: "Pumpkin orange, triangle eyes, and a carved, toothy grin if the mouth is on. Happy Halloween!",
+};
+
+const PACE: Array<{ value: Pace; label: string }> = [
+  { value: "gentle", label: "Gentle" },
+  { value: "normal", label: "Normal" },
+  { value: "turbo", label: "Turbo" },
+];
+
+const PACE_HINT: Record<Pace, string> = {
+  gentle: "Works quietly in the background. Easy on your Mac, but slower.",
+  normal: "Works through one thing at a time.",
+  turbo: "Works on many things at once. Much faster, but your Mac will be busy.",
+};
+
+/** Everything Mote does, a switch each, sorted by kind. A few of Mote's
+ * settings sit here too, right after the feature they go with. */
 function FeaturesTab() {
   const [features, { setOn }] = useFeatures();
+  const [settings, update] = useSettings();
   const nameOf = (id: FeatureId) => FEATURES.find((f) => f.id === id)?.name ?? id;
+  const filesOn = featureOn(features, "files");
+  const after: Partial<Record<FeatureId, ReactNode>> = {
+    mind: (
+      <>
+        <Row label="Friendly mode" hint="Mote never gets too upset: hurt counts for half, and no sulking or sharp words.">
+          <Toggle label="Friendly mode" checked={settings.friendly} onChange={(friendly) => update({ friendly })} />
+        </Row>
+        <Row label="Energy" hint="How often Mote does something on their own." stacked>
+          <Segmented label="Energy" options={ENERGY} value={settings.energy} onChange={(energy) => update({ energy })} />
+        </Row>
+      </>
+    ),
+    files: (
+      <div className={filesOn ? "feature" : "feature is-blocked"}>
+        <Row label="Pace" hint={PACE_HINT[settings.pace]} stacked>
+          <Segmented label="Pace" options={PACE} value={settings.pace} onChange={(pace) => update({ pace })} />
+        </Row>
+      </div>
+    ),
+    glint: (
+      <Row label="Mode" hint={MODE_HINT[settings.mode]} stacked>
+        <Segmented label="Mode" options={MODE} value={settings.mode} onChange={(mode) => update({ mode })} />
+      </Row>
+    ),
+  };
   return (
     <>
       {FEATURE_SECTIONS.map((section) => (
@@ -1310,7 +1290,8 @@ function FeaturesTab() {
           {FEATURES.filter((f) => f.section === section.id).map((f) => {
             const blocked = !!f.needs && !featureOn(features, f.needs);
             return (
-              <div key={f.id} className={blocked ? "feature is-blocked" : "feature"}>
+              <Fragment key={f.id}>
+              <div className={blocked ? "feature is-blocked" : "feature"}>
                 <Row label={f.name} hint={f.about}>
                   <Toggle
                     label={f.name}
@@ -1328,6 +1309,8 @@ function FeaturesTab() {
                   </div>
                 ) : null}
               </div>
+              {after[f.id]}
+              </Fragment>
             );
           })}
         </Section>
@@ -1337,10 +1320,19 @@ function FeaturesTab() {
 }
 
 function DataTab({ settings, updateSettings, snap }: Ctx) {
+  const [, { lock }] = useFeatures();
   return (
     <>
       <Section title="Version">
         <p className="mono data">Mote {__MOTE_VERSION__}</p>
+      </Section>
+      <Section title="Debugging">
+        <Row
+          label="Turn off debugging"
+          hint="Locks Debug again: Settings goes back to what everyone sees. Type the key in Settings to bring it back."
+        >
+          <Button onClick={() => lock("debug")}>Turn off</Button>
+        </Row>
       </Section>
       <Section title="Saved settings">
         <pre className="mono data">{JSON.stringify(settings, null, 2)}</pre>

@@ -3,24 +3,26 @@ import { listenBus, send } from "@/lib/companion/bus";
 
 // Features kept in the app for testing but out of everyone else's reach.
 //
-// Debug is locked behind a Feature Key, typed in at the bottom of Settings;
-// unlocking is remembered for good (resetting settings doesn't undo it), and
-// once unlocked it gets a switch there. With Debug unlocked and on, Settings
-// grows the Debug tabs, and the Features tab switches everything else Mote
+// Debug is locked behind a key, typed anywhere in the Settings window (there's
+// no box for it: you just type it). Unlocking is remembered for good
+// (resetting settings doesn't undo it) until Debug's own "Turn off debugging"
+// locks it again. With Debug unlocked, Settings grows the Debug tabs, and the
+// Features tab switches everything else Mote
 // does on and off, sorted by kind (their mind, each kind of thing they say,
 // what you do together, what they notice, how they look): the usual ones are
 // on until switched off, the experimental ones off until switched on. Some
 // only work with another on (remembering games needs the games).
 //
 // Only a fingerprint of the key (its SHA-256) lives in the app, never the key.
+// A few of Mote's settings live in the Features tab too (Friendly mode,
+// Energy, Mode, the file helper's Pace): they're kept with the rest of the
+// settings (see settings.ts), just shown there.
 
 /** Features that need a key. */
 export type KeyedId = "debug";
 /** Features switched on and off in the Features tab (with Debug on). */
 export type FeatureId =
   | "mind"
-  | "hunger"
-  | "sleep"
   | "remarks"
   | "chat"
   | "needs"
@@ -57,7 +59,7 @@ export const KEYED: Array<{ id: KeyedId; name: string; about: string; fingerprin
     id: "debug",
     name: "Debug",
     about: "Debug tabs alongside Settings: testing tools, and switches for Mote’s skills and experimental features.",
-    fingerprint: "5338425b70e71202639415bbc64b4ca2b70d2d436f292fb7cc5415ba27eaafa9",
+    fingerprint: "997c25068d8968f30b9eaa415b32fdf0fcf598d7b877089e1f02befa9bcbb9d1",
   },
 ];
 
@@ -80,20 +82,6 @@ export const FEATURES: Array<{
     about: "How Mote feels, and everything that moves it: joy that goes up with pets, play and winning and down with pokes, shaking and losing; peace that grows with company and wears down when they’re ignored; the lasting moods those add up to (joyful, cross, down…) and how they show in Mote’s face, idle moods and words. Off, Mote stays even and nothing changes how they feel; how they felt is kept for when it’s back on.",
     usual: true,
   },
-  {
-    id: "hunger",
-    section: "mind",
-    name: "Mote eats too",
-    about: "Mote gets hungry, feeding them (ask Mote for a snack), and hunger’s effect on their mood, face and what they say.",
-    needs: "mind",
-  },
-  {
-    id: "sleep",
-    section: "mind",
-    name: "Goodnight Mote",
-    about: "Mote getting tired and needing sleep: sleepy and exhausted moods, asking for bed, tucking them in (ask Mote for “bed”), and waking when rested. Off, Mote still naps when left alone.",
-    needs: "mind",
-  },
 
   // Speech
   {
@@ -107,14 +95,14 @@ export const FEATURES: Array<{
     id: "chat",
     section: "speech",
     name: "Small talk",
-    about: "Every few minutes while you’re around, something just to chat: about the time of day, your typing or what’s playing, a passing thought, or how they feel (cheerful, low, grumpy, hungry, sleepy).",
+    about: "Every few minutes while you’re around, something just to chat: about the time of day, your typing or what’s playing, a passing thought, or how they feel (cheerful, low, grumpy).",
     usual: true,
   },
   {
     id: "needs",
     section: "speech",
     name: "Asking for things",
-    about: "Mote speaking up when they need something: a snack when hungry, bed when exhausted, a game or a pet when they’ve been left out too long. Off, they still need it, they just don’t say.",
+    about: "Mote speaking up when they’ve been left out too long: asking for a game, or a pet. Off, they still feel it, they just don’t say.",
     usual: true,
   },
   {
@@ -197,7 +185,7 @@ export const FEATURES: Array<{
     id: "antics",
     section: "noticing",
     name: "Little moods",
-    about: "The little things Mote does on their own between everything else: glancing about, thinking, feeling cute, a surprise, and with their mood, a hum, a huff, a sulk, a fidget or a look your way. Off, Mote just rests between things (still blinking, napping and following the pointer).",
+    about: "The little things Mote does on their own between everything else: glancing about, thinking, feeling cute, a surprise, and with their mood, a hum, a huff, a sulk or a look your way. Off, Mote just rests between things (still blinking, napping and following the pointer).",
     usual: true,
   },
 
@@ -206,7 +194,7 @@ export const FEATURES: Array<{
     id: "moodshape",
     section: "looks",
     name: "Mood effects persistent eye shape",
-    about: "How Mote feels shapes their eyes while they rest: a scowl when frustrated, a little smile when joyful, a droop when low, heavy lids when sleepy, worried brows when hungry. Off, the eyes rest in their usual shape whatever the mood (expressions still play).",
+    about: "How Mote feels shapes their eyes while they rest: a scowl when frustrated, a little smile when joyful, a droop when low. Off, the eyes rest in their usual shape whatever the mood (expressions still play).",
     usual: true,
     needs: "mind",
   },
@@ -339,16 +327,31 @@ export function useFeatures() {
     writeFeatures(next);
   }, []);
 
-  /** Tries a key. Returns the feature it unlocked (or had already), or null. */
-  const unlock = useCallback(
-    async (key: string): Promise<{ id: KeyedId; already: boolean } | null> => {
-      const print = await fingerprint(key.trim());
-      const feature = KEYED.find((f) => f.fingerprint === print);
-      if (!feature) return null;
+  /** Whatever was just typed (the last few dozen keys): if it ends with a
+   * key, that feature unlocks. Returns the feature it unlocked, or null. */
+  const unlockTyped = useCallback(
+    async (typed: string): Promise<KeyedId | null> => {
+      for (let i = 0; i < typed.length; i++) {
+        const print = await fingerprint(typed.slice(i));
+        const feature = KEYED.find((f) => f.fingerprint === print);
+        if (!feature) continue;
+        const now = current.current;
+        if (now.unlocked.includes(feature.id)) return null;
+        commit({ unlocked: [...now.unlocked, feature.id], on: { ...now.on, [feature.id]: true } });
+        return feature.id;
+      }
+      return null;
+    },
+    [commit],
+  );
+
+  /** Locks a keyed feature again, as if it had never been unlocked. */
+  const lock = useCallback(
+    (id: KeyedId) => {
       const now = current.current;
-      if (now.unlocked.includes(feature.id)) return { id: feature.id, already: true };
-      commit({ unlocked: [...now.unlocked, feature.id], on: { ...now.on, [feature.id]: true } });
-      return { id: feature.id, already: false };
+      const on = { ...now.on };
+      delete on[id];
+      commit({ unlocked: now.unlocked.filter((u) => u !== id), on });
     },
     [commit],
   );
@@ -359,5 +362,5 @@ export function useFeatures() {
     [commit],
   );
 
-  return [state, { unlock, setOn }] as const;
+  return [state, { unlockTyped, lock, setOn }] as const;
 }

@@ -43,7 +43,7 @@ Mote won't work on your Mac's own folders, your Library, your whole Home
 folder, or the inside of apps. If a job needs a tool that isn't installed
 (ffmpeg, czkawka, mat2…), Mote offers to install it with Homebrew.
 
-How hard your Mac works on it is the **Pace** in Settings: Gentle (quietly in
+How hard your Mac works on it is the **Pace** (in Debug's Features tab, by Helping with files): Gentle (quietly in
 the background), Normal (one thing at a time), or Turbo (many at once, much
 faster, but your Mac will be busy).
 
@@ -67,13 +67,13 @@ faster, but your Mac will be busy).
 `.webloc` link file from Finder) are saved: any website, with YouTube and
 other video sites talked about as videos. Now and then, when Mote is awake,
 nothing is playing and you've been around in the last couple of minutes,
-Mote brings one up ("Snack break? We could watch *lofi hip hop radio*.") and
+Mote brings one up ("Little break? We could watch *lofi hip hop radio*.") and
 asks if you'd like to go there; yes opens it in your browser. It happens about
 every 20 minutes at most, and never within 12 minutes of the last one. Mote
 keeps count of how often they've suggested each link, how often you said yes,
 and when they last brought it up, and favours links they've never suggested,
 ones you usually say yes to, and ones that haven't come up for a while.
-Settings lists your saved links with their history, and you can remove any.
+Debug's Links tab lists your saved links with their history, and you can remove any.
 
 ## Mote themself
 
@@ -87,14 +87,10 @@ in a row is too many, and Mote gets annoyed.
   button held down never counts as shaking.
 - **Dizzy:** shaking the pointer around wildly (without holding the button),
   or throwing the window around the screen, makes Mote dizzy for a moment.
-- **Sleep** (tiredness is an experimental feature, Goodnight Mote; without it, Mote
-  just naps after a few quiet minutes left alone): Mote gets tired while awake (faster late at night and while
-  playing). Once tired, left be for a few minutes with nothing interesting
-  going on, they yawn, doze and fall asleep, and they sleep until rested.
-  Exhausted, they nod off even with things going on. A click (a poke) wakes them
-  (groggy, and a little put out, if they're still tired), and so does
-  something starting to play (with a jolt) or something dropped on them.
-  Petting a sleeping Mote gets a sleepy purr.
+- **Naps:** left be for 4–7 minutes with nothing interesting going on, Mote
+  yawns, dozes and falls asleep, and naps until something wakes them: a
+  click (a poke), something starting to play (with a jolt) or something
+  dropped on them. Petting a napping Mote gets a sleepy purr.
 - **Eyes on you:** Mote's eyes follow your pointer anywhere on the screen,
   even while you're busy in other windows.
 - **Watching along:** in the Mac app, if another visible window is playing
@@ -103,39 +99,33 @@ in a row is too many, and Mote gets annoyed.
   and so does typing in another app (Mote only notices *that* keys are
   pressed, never which).
 
-## Mood, hunger and sleep
+## Mood
 
 Mote's mood sits on two axes, which Debug's Mind tab draws as a chart:
 
 - **Joyful ↔ Frustrated** is about how Mote is *treated*. Petting, pokes,
   playing, attention and winning bring joy. Meanness (poking over and over),
-  being shaken or thrown around, being woken up tired, and losing at games
+  being shaken or thrown around, and losing at games
   (more so each time in a row) bring frustration. It fades back toward the
   middle on its own.
 - **Satisfied ↔ Depressed** is about whether Mote is *looked after* and not
-  ignored. Time together, playing anything, being fed and being rested
-  bring satisfaction. Being left alone for 20 minutes or more (faster when
-  you're right there at the computer, just not with Mote), hunger, and
-  being kept up exhausted bring them down. It changes slowly.
+  ignored. Time together, playing anything and a good nap bring
+  satisfaction. Being left alone for 20 minutes or more (faster when
+  you're right there at the computer, just not with Mote) brings them down.
+  It changes slowly.
 
 The corners are **Happy**, **Needy** (treated well but too often left out),
 **Grumpy** (looked after, but someone's been mean) and **Miserable**; with
 only one axis leaning, Mote is **Cheerful**, **Cross**, **Content** or
 **Lonely**; near the middle, **Okay**. It shows on Mote's face (a little
-smile, a scowl, a droop, heavy lids, worried brows), in what they do on their
-own, in how much they chat and what about, and they ask for what they need:
-a snack, bedtime, or a game.
+smile, a scowl, a droop), in what they do on their own, in how much they
+chat and what about, and when they're lonely they ask for a game or a pet.
 
-**Hunger** (an experimental feature, Mote eats too): fullness goes down while Mote is awake (about four hours from
-full to empty). Feed them by asking for a snack: a cookie, some berries, or a
-proper meal. Full, they politely say no.
-
-All of it carries over when Mote's app is closed: that time counts as
-sleeping, a little hunger builds (never below 3), and being gone for more
-than ten hours or so gets a bit lonely. Back after a few hours, Mote is glad
+All of it carries over when Mote's app is closed: joy settles, and being
+gone for more than ten hours or so gets a bit lonely. Back after a few hours, Mote is glad
 to see you.
 
-**Friendly mode** (in Settings) keeps Mote from getting too upset: joy and
+**Friendly mode** (in Debug's Features tab, with the Mind) keeps Mote from getting too upset: joy and
 satisfaction never go below −3, hurt counts for half, and nothing sharp is
 said.
 
@@ -152,7 +142,7 @@ Mote speaks up when something happens (after a pet, getting dizzy, something
 starting to play, you coming back after a while), when they need something,
 and every few minutes while you're around, just to chat: a hello, a passing
 thought, something about the time of day, what you're up to, or how they're
-feeling. How often follows **Energy** in Settings (about every 3–6 minutes at
+feeling. How often follows **Energy** (in Debug's Features tab, with the Mind) (about every 3–6 minutes at
 Normal), and their mood.
 
 **Check-ins:** every hour or two (the first about half an hour in), instead of
@@ -172,7 +162,7 @@ doesn't come back within eight hours, and none come while Mote is cross
 
 Almost everything you do with Mote starts with a double-click on them. Mote
 asks what you'd like to do (the words change with their mood: bright when happy,
-a yawn when sleepy, a little short when cross), with a box to type in (its hint never names anything in particular). Type it
+a little short when cross), with a box to type in (its hint never names anything in particular). Type it
 however you like, and press Return:
 
 - "I want to play a game", "game", "I'm bored" — the games, as a list to
@@ -182,9 +172,6 @@ however you like, and press Return:
   — that game, straight away
 - "help with files", "clean up a folder" — Mote tells you to drag a folder
   or videos onto them (that's how the file help starts)
-- "bed", "goodnight", "nap" — tucks Mote in (with Goodnight Mote on)
-- "snack", "are you hungry?" — the snacks to pick from; "cookie",
-  "berries", "a proper meal" — that one (with Mote eats too on)
 - "a video", "something to watch", "my links" — one of your saved links
   (or how to save one, if there are none)
 - "settings", "dark mode" — opens Settings
@@ -346,11 +333,11 @@ Mote eyes.
 
 ## Settings and debug mode
 
-In the Mac app, press **⌘,** (Command + comma) to open Settings. You can choose
-the **Appearance** (Light, Dark, or System to follow the Mac), the **Mode**
-(see below), Friendly mode,
-how lively Mote is, the pace for helping with files, whether Mote opens when
-you log in, and whether the window floats above others. Mote's eyes
+In the Mac app, press **⌘,** (Command + comma) to open Settings. It's kept
+short: the **Appearance** (Light, Dark, or System to follow the Mac), whether
+Mote opens when you log in, and whether the window floats above others.
+Everything else (Friendly mode, Energy, Mode, the file helper's Pace, saved
+links) is in Debug. Mote's eyes
 always follow your pointer, and Mote always naps when left alone.
 
 **Dark mode** swaps Mote's colours, like a photo negative: a dark face with
@@ -359,7 +346,7 @@ Everything around Mote goes dark and warm too: speech bubbles, buttons, the
 game cards and Settings. The game boards and pieces stay as
 they are.
 
-**Mode** gives Mote a special look for a vibe or a season. **Neutral** is just
+**Mode** (in Debug's Features tab, with the Looks) gives Mote a special look for a vibe or a season. **Neutral** is just
 Mote. **Jack-o'-lantern** (for Halloween) turns Mote's cream a soft pumpkin
 orange, makes the eyes triangles like a carved pumpkin's (they still scowl,
 smile, blink and look around), and turns the mouth, if it's on, into a
@@ -374,16 +361,16 @@ Text in the app calls Mote "Mote", or "they/them" when a pronoun is needed.
 
 ### Debug and experimental features
 
-**Debug** is locked behind a **Feature Key**. At the bottom of Settings, type
-the key into **Feature Key** and press Unlock (or Return). Unlocking is for
-good (resetting settings doesn't undo it), and takes effect straight away;
-Debug is then listed underneath, with a switch to turn it off again. Only a
-fingerprint of the key is kept in the app, never the key itself.
+**Debug** is locked behind a key. There's no box for it: with the Settings
+window in front, just type it. Unlocking is for good (resetting settings
+doesn't undo it) and takes effect straight away. To lock it again, use
+**Turn off debugging** in the Data tab. Only a fingerprint of the key is kept
+in the app, never the key itself.
 
-With Debug unlocked and on, Settings itself grows tabs (and the window grows
-to fit them): **Settings** first, then the Debug tabs. Mote is in debug mode
-(taking orders from those tabs) only while Settings is open. A tab about a
-feature that's switched off (Links, Gallery) isn't shown.
+With Debug unlocked, Settings grows tabs down the left of the window (and
+the window grows to fit them): **Settings** first, then the Debug tabs. Mote
+is in debug mode (taking orders from those tabs) only while Settings is
+open. A tab about a feature that's switched off (Links) isn't shown.
 
 - **Features**: a switch for everything Mote does, sorted by kind. The usual
   ones are on until switched off; the ones tagged Experimental are off until
@@ -394,8 +381,10 @@ feature that's switched off (Links, Gallery) isn't shown.
   - **Mind**: how Mote feels and everything that moves it (joy, peace, the
     lasting moods, and how they show). Off, Mote is held even (no lasting
     moods, nothing changes how they feel) and how they felt is kept aside,
-    so switching it back on picks up where it left off. Mote eats too,
-    Goodnight Mote and the mood-shaped eyes need it.
+    so switching it back on picks up where it left off. The mood-shaped
+    eyes need it.
+  - **Friendly mode** (a setting): Mote never gets too upset.
+  - **Energy** (a setting): how often Mote does something on their own.
 
   **Speech: what Mote says on their own** (replies to what you do, and
   what the skills below need to say, aren't affected)
@@ -404,7 +393,7 @@ feature that's switched off (Links, Gallery) isn't shown.
     play, you coming back). Off, the face still reacts.
   - **Small talk**: the every-few-minutes chat (time of day, your typing or
     what's playing, a passing thought, how Mote feels).
-  - **Asking for things**: speaking up for a snack, bed, a game or a pet.
+  - **Asking for things**: speaking up for a game or a pet when lonely.
     Off, the need is still there, Mote just doesn't say.
   - **Check-ins**: Mote now and then asking how you're doing.
   - **Remembering games** (needs Games): rematch nods, streaks, and old
@@ -418,10 +407,12 @@ feature that's switched off (Links, Gallery) isn't shown.
     double-click is just two pokes, and nothing can be asked for.
   - **Saved links**: saving links dragged onto Mote, and Mote suggesting
     them. Off, a dropped link gets a polite "not right now", no link is
-    brought up, and Settings hides the list (saved ones are kept).
+    brought up, and Debug hides the Links tab (saved ones are kept).
   - **Helping with files**: the cleanup jobs for folders and videos dragged
-    onto Mote. Off, they get the same "not right now", and Settings hides the
-    Pace. A job already running finishes first.
+    onto Mote. Off, they get the same "not right now". A job already running
+    finishes first.
+  - **Pace** (a setting): how hard the Mac works on file jobs (Gentle,
+    Normal or Turbo).
   - **Reacting to apps**: playing games and reacting to the Mac's own apps
     dragged onto Mote. Off, apps get the same "not right now".
   - **Games**: the games, and Mote asking for or suggesting a game. Off, an
@@ -441,18 +432,12 @@ feature that's switched off (Links, Gallery) isn't shown.
 
   **Looks**
   - **Mood effects persistent eye shape** (needs Mind): how Mote feels
-    shaping their resting eyes (a scowl, a little smile, a droop, heavy
-    lids, worried brows). Off, the eyes rest in their usual shape whatever
+    shaping their resting eyes (a scowl, a little smile, a droop). Off, the eyes rest in their usual shape whatever
     the mood; expressions still play.
 
-  and in **Mind** and **Looks**, the experimental ones:
-  - **Mote eats too**: Mote getting hungry, feeding them (ask for a snack), and
-    hunger's effect on their mood, face and what they say. Off, Mote simply
-    stays full.
-  - **Goodnight Mote**: Mote getting tired and needing sleep (sleepy and
-    exhausted moods, asking for bed, tucking them in by asking, waking once rested).
-    Off, Mote stays rested and simply naps after a few quiet minutes left
-    alone, until poked.
+  - **Mode** (a setting): a special look (see above).
+
+  and in **Looks**, the experimental ones:
   - **Eyebrows**: two little soft eyebrows above Mote's eyes. They have no
     moves of their own: they follow the brow cut that every expression
     already shapes, so they come down and slant in when Mote is cross, tilt up
@@ -475,7 +460,7 @@ feature that's switched off (Links, Gallery) isn't shown.
     frustrated, a hint of blue when low, a little purple when both. In dark
     mode it's inverted with everything else, so it's dark.
 - **Moods**: play any mood on demand, blink, poke, turn off automatic moods, loop a mood
-- **Mind**: the mood chart, hunger and rest (with buttons to nudge them), the
+- **Mind**: the mood chart (with buttons to nudge it), the
   games Mote remembers, and every reaction with what it does to the mood
 - **Speech**: everything Mote can say, and a button to say any of it now
 - **Pose**: shape Mote's face by hand with sliders, then "Copy values" to share the numbers
@@ -536,8 +521,8 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 - `desktop/` — the Mac app's pages: Mote (`index.html`), Settings (with the Debug tabs in `debug.tsx`), and the expression sheet
 - `desktop/ui.tsx` and `desktop/ui.css` — the soft buttons, switches and sliders
 - `src/lib/companion/settings.ts` — the list of settings and their defaults, and dark mode (`useDark`)
-- `src/lib/companion/features.ts` — the Feature Key (Debug) and every switch in the Features tab, by section
-- `src/components/companion/mind.ts` — Mote's mood, hunger and rest, and how they change
+- `src/lib/companion/features.ts` — Debug's key and every switch in the Features tab, by section
+- `src/components/companion/mind.ts` — Mote's mood, and how it changes
 - `src/components/companion/memories.ts` — the games Mote remembers, and how they bring them up
 - `src/components/companion/converse.ts` — talking to Mote: every keyword, how typing is understood, and what Mote says
 - `src/components/companion/reactions.ts` — every stimulus → response rule

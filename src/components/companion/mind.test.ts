@@ -9,18 +9,17 @@ const store = new Map<string, string>();
   removeItem: (k: string) => void store.delete(k),
 };
 
-const { awayFor, FRIENDLY_FLOOR, lastingMoods, nudge, quadrant, tickMind } = await import("./mind.ts");
+const { awayFor, FRIENDLY_FLOOR, nudge, quadrant, tickMind } = await import("./mind.ts");
 const { chatLine, loadMemories, marginOf, recordGame, startLine, streakLine, whenWords } = await import(
   "./memories.ts"
 );
 
-const base = { joy: 0, peace: 0, fullness: 7, rest: 7 };
+const base = { joy: 0, peace: 0 };
 const ctx = {
   asleep: false,
   sinceAttention: 0,
   youAround: false,
   busyTogether: false,
-  hour: 14,
   friendly: false,
 };
 
@@ -44,16 +43,9 @@ describe("Mote's mood", () => {
     assert.ok(ignoredHere.peace < away.peace);
   });
 
-  it("gets hungry and tired awake, and rests up asleep", () => {
-    const awake = tickMind(base, 120, ctx);
-    assert.ok(awake.fullness < base.fullness - 4);
-    assert.ok(awake.rest < base.rest - 2);
-    const night = tickMind(base, 120, { ...ctx, hour: 23 });
-    assert.ok(night.rest < awake.rest);
-    const asleep = tickMind({ ...base, rest: 1 }, 30, { ...ctx, asleep: true });
-    assert.ok(asleep.rest > 8);
-    assert.ok(lastingMoods({ ...base, fullness: 2 }).includes("hungry"));
-    assert.ok(lastingMoods({ ...base, rest: 0.5 }).includes("exhausted"));
+  it("rests a little easier in a nap", () => {
+    const asleep = tickMind(base, 60, { ...ctx, asleep: true, sinceAttention: 500 });
+    assert.ok(asleep.peace > base.peace);
   });
 
   it("lets joy settle, and keeps Friendly mode out of the deep end", () => {
@@ -65,12 +57,10 @@ describe("Mote's mood", () => {
     assert.equal(ignored.peace, FRIENDLY_FLOOR);
   });
 
-  it("sleeps through time away, a little hungrier and a little lonely", () => {
-    const night = awayFor({ joy: 5, peace: 6, fullness: 8, rest: 1 }, 8 * 60);
-    assert.equal(night.rest, 10);
+  it("takes a night away in stride, but gets a little lonely after days", () => {
+    const night = awayFor({ joy: 5, peace: 6 }, 8 * 60);
     assert.equal(night.peace, 6);
-    const days = awayFor({ joy: 5, peace: 6, fullness: 8, rest: 1 }, 48 * 60);
-    assert.equal(days.fullness, 3);
+    const days = awayFor({ joy: 5, peace: 6 }, 48 * 60);
     assert.equal(days.peace, -2);
     assert.equal(days.joy, 0);
   });

@@ -20,7 +20,6 @@ export type ReactionGroup =
   | "Solitaire"
   | "Time"
   | "Lasting moods"
-  | "Looking after Mote"
   | "Memories"
   | "Ideas";
 
@@ -98,7 +97,7 @@ export const REACTIONS: Reaction[] = [
     group: "Talking",
     name: "Understood",
     when: "What you typed clearly matches something Mote can do (the words, a plural, a word cut short, or near enough)",
-    then: "Does it straight away: opens the game, the snack menu, puts themself to bed… Some things are a list (games, snacks, what Mote can do), shown as choices",
+    then: "Does it straight away: opens the game, brings up a saved link, opens Settings… Some things are a list (games, what Mote can do), shown as choices",
     status: "live",
   },
   {
@@ -1134,8 +1133,8 @@ export const REACTIONS: Reaction[] = [
     id: "needs",
     group: "Speech",
     name: "Asking for what they need",
-    when: "Mote notices a need and it lasts 8–25 seconds: hungry (Fullness 2½ or less), worn out (Rest 1½ or less), or lonely (Satisfied −4 or less). Never while helping you, playing, or asleep",
-    then: "Asks to be fed, to be tucked in, to play something, or (if they’re cross as well, or games are switched off) for a pet. If ignored, asks again only after a while",
+    when: "Mote notices they’re lonely (Satisfied −4 or less) and it lasts 8–25 seconds. Never while helping you, playing, or asleep",
+    then: "Asks to play something, or (if they’re cross as well, or games are switched off) for a pet. If ignored, asks again only after a while",
     status: "live",
   },
   {
@@ -1153,7 +1152,7 @@ export const REACTIONS: Reaction[] = [
     id: "doze",
     group: "Time",
     name: "Nodding off",
-    when: "Tired (Rest 6 or lower) and left be for 4–7 minutes, or about a minute and a half when sleepy. Exhausted (Rest 1 or lower), even with things going on, unless you’re playing",
+    when: "Left be for 4–7 minutes with nothing going on",
     then: "Yawns, dozes, and falls asleep (unless something happens meanwhile)",
     status: "live",
   },
@@ -1168,18 +1167,9 @@ export const REACTIONS: Reaction[] = [
   {
     id: "wake-rested",
     group: "Touch",
-    name: "Woken after a proper nap",
-    when: "You poke Mote once they’re rested (Rest 6 or more), or they’ve slept enough and wake up on their own",
+    name: "Woken from a nap",
+    when: "You poke Mote while they’re napping",
     then: "Wakes up bright: “Good morning! …Is it morning?”",
-    status: "live",
-  },
-  {
-    id: "wake-groggy",
-    group: "Touch",
-    name: "Woken too soon",
-    when: "You poke Mote awake while they’re still tired",
-    then: "Wakes up groggy: “Five more minutes…”",
-    effects: { joy: -0.4 },
     status: "live",
   },
   {
@@ -1191,8 +1181,6 @@ export const REACTIONS: Reaction[] = [
     effects: { joy: -0.3 },
     status: "live",
   },
-
-
 
   {
     id: "mind-joy-fade",
@@ -1206,7 +1194,7 @@ export const REACTIONS: Reaction[] = [
     id: "mind-company",
     group: "Time",
     name: "Time together",
-    when: "You’ve done something with Mote in the last 10 minutes (or you’re playing, or Mote’s helping you), and they’re fed and rested",
+    when: "You’ve done something with Mote in the last 10 minutes (or you’re playing, or Mote’s helping you)",
     then: "Satisfied rises, about a point every 20 minutes",
     status: "live",
   },
@@ -1219,35 +1207,11 @@ export const REACTIONS: Reaction[] = [
     status: "live",
   },
   {
-    id: "mind-needs",
+    id: "mind-nap",
     group: "Time",
-    name: "Hungry or worn out",
-    when: "Fullness under 3, or Rest under 2 while awake",
-    then: "Satisfaction slides, a point every half hour",
-    status: "live",
-  },
-  {
-    id: "mind-hunger",
-    group: "Time",
-    name: "Getting hungry",
-    when: "Awake (a quarter as fast asleep)",
-    then: "Fullness drops a point every 25 minutes, a bit faster while playing",
-    status: "live",
-  },
-  {
-    id: "mind-tired",
-    group: "Time",
-    name: "Getting tired",
-    when: "Awake; faster late at night (10pm–6am) and while playing",
-    then: "Rest drops a point every 40 minutes",
-    status: "live",
-  },
-  {
-    id: "mind-sleep",
-    group: "Time",
-    name: "Sleeping it off",
+    name: "A nap",
     when: "Asleep",
-    then: "Rest comes back a point every 4 minutes; once fully rested, Mote wakes up on their own",
+    then: "Satisfied rises a little, about a point every 50 minutes",
     status: "live",
   },
   {
@@ -1255,7 +1219,7 @@ export const REACTIONS: Reaction[] = [
     group: "Time",
     name: "Time away",
     when: "Mote’s app is closed",
-    then: "Counts as sleeping; a little hungrier (never below 3); a long time away is a bit lonely (Satisfied drifts down, no lower than −2). Back after 3 hours or more: glad to see you, and says hello",
+    then: "Joy settles; a long time away is a bit lonely (Satisfied drifts down, no lower than −2). Back after 3 hours or more: glad to see you, and says hello",
     status: "live",
   },
   {
@@ -1276,11 +1240,6 @@ export const REACTIONS: Reaction[] = [
   },
 
   // Lasting moods
-
-
-
-
-
 
   {
     id: "mood-joyful",
@@ -1330,83 +1289,7 @@ export const REACTIONS: Reaction[] = [
     then: "All of Down, more so; the odd sulk; asks for company",
     status: "live",
   },
-  {
-    id: "mood-hungry",
-    group: "Lasting moods",
-    name: "Hungry",
-    when: "Fullness is 3 or lower",
-    then: "Worried brows, fidgets; asks to be fed",
-    status: "live",
-  },
-  {
-    id: "mood-starving",
-    group: "Lasting moods",
-    name: "Starving",
-    when: "Fullness is 1 or lower",
-    then: "All of Hungry, more so",
-    status: "live",
-  },
-  {
-    id: "mood-sleepy",
-    group: "Lasting moods",
-    name: "Sleepy",
-    when: "Rest is 3 or lower",
-    then: "Heavy lids, yawns, slow blinks; naps come sooner",
-    status: "live",
-  },
-  {
-    id: "mood-exhausted",
-    group: "Lasting moods",
-    name: "Exhausted",
-    when: "Rest is 1 or lower",
-    then: "Nods off even with things going on; asks to be tucked in",
-    status: "live",
-  },
 
-  // Looking after Mote
-  {
-    id: "fed",
-    group: "Looking after Mote",
-    name: "A snack",
-    when: "You give Mote something to eat (ask them for a snack)",
-    then: "Eats it happily (a cookie fills them a little, a proper meal a lot)",
-    effects: { joy: 0.3, peace: 0.5 },
-    status: "live",
-  },
-  {
-    id: "fed-hungry",
-    group: "Looking after Mote",
-    name: "A snack when hungry",
-    when: "You feed Mote while they’re hungry",
-    then: "Eats gratefully, and says so",
-    effects: { joy: 0.6, peace: 1.2 },
-    status: "live",
-  },
-  {
-    id: "fed-full",
-    group: "Looking after Mote",
-    name: "Too full",
-    when: "You offer food when Mote is full (9 or more)",
-    then: "Politely says no",
-    status: "live",
-  },
-  {
-    id: "tucked-in",
-    group: "Looking after Mote",
-    name: "Tucked in",
-    when: "You tuck Mote in (ask them for bed) while they’re tired (Rest 7 or less)",
-    then: "Yawns, maybe says goodnight, and falls asleep",
-    effects: { peace: 0.3 },
-    status: "live",
-  },
-  {
-    id: "tuck-not-sleepy",
-    group: "Looking after Mote",
-    name: "Not sleepy",
-    when: "You try to tuck Mote in while they’re rested",
-    then: "Says it’s too early",
-    status: "live",
-  },
 
   // Memories
   {
@@ -1462,7 +1345,6 @@ export const REACTION_GROUPS: ReactionGroup[] = [
   "Talking",
   "Time",
   "Lasting moods",
-  "Looking after Mote",
   "Memories",
   "Ideas",
 ];
