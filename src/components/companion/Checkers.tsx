@@ -52,6 +52,28 @@ let nextId = 1;
 const piecesOf = (board: Cell[]): Piece[] =>
   board.flatMap((cell, sq) => (cell ? [{ id: nextId++, sq, cell }] : []));
 
+/**
+ * The drawn pieces, checked against the board itself once a move is over:
+ * any that don't match are dropped and whatever's missing is drawn, so what
+ * you see can never drift from the real game (taken pieces still fading out
+ * are left to fade).
+ */
+const settle = (ps: Piece[], board: Cell[]): Piece[] => {
+  const kept: Piece[] = [];
+  const covered = new Set<number>();
+  for (const p of ps) {
+    if (p.gone) kept.push(p);
+    else if (board[p.sq] === p.cell && !covered.has(p.sq)) {
+      kept.push({ ...p, lifted: false });
+      covered.add(p.sq);
+    }
+  }
+  board.forEach((cell, sq) => {
+    if (cell && !covered.has(sq)) kept.push({ id: nextId++, sq, cell });
+  });
+  return kept;
+};
+
 /** A game of checkers against Mote, played in Mote's window. */
 export function Checkers({ engine, onClose }: Props) {
   const saved = useRef(
@@ -237,6 +259,7 @@ export function Checkers({ engine, onClose }: Props) {
     const { game: after, crowned } = play(g, choice.move);
     await animate(choice.move, crowned, true);
     if (!alive.current) return;
+    setPieces((ps) => settle(ps, after.board));
     setLast([choice.move.from, ...choice.move.path]);
     setGame(after);
     setBusy(false);
@@ -283,6 +306,7 @@ export function Checkers({ engine, onClose }: Props) {
       setTimeout(() => alive.current && setPieces((ps) => ps.filter((p) => !p.gone)), 400);
     }
     if (!alive.current) return;
+    setPieces((ps) => settle(ps, after.board));
     setLast([move.from, ...move.path]);
     setGame(after);
     setNote(null);
@@ -335,11 +359,13 @@ export function Checkers({ engine, onClose }: Props) {
       const hop = steps.length;
       const from = hop ? steps[hop - 1] : selected!;
       const taken = left[0].captures[hop];
-      setPieces((ps) =>
-        ps.map((p) =>
-          p.sq === from && !p.gone ? { ...p, sq } : taken !== undefined && p.sq === taken ? { ...p, gone: true } : p,
-        ),
+      // Noted straight away (not just on the next draw): if this hop finishes
+      // the jump for you, the rest of it starts from here.
+      const next = piecesRef.current.map((p) =>
+        p.sq === from && !p.gone ? { ...p, sq } : taken !== undefined && p.sq === taken ? { ...p, gone: true } : p,
       );
+      piecesRef.current = next;
+      setPieces(next);
       const done = left.find((m) => m.path.length === nextSteps.length);
       // Only one way to finish the jump: finish it for you.
       if (done || left.length === 1) void yourMove(done ?? left[0], nextSteps.length);
