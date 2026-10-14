@@ -41,6 +41,8 @@ type Stats = { played: number; won: number };
 
 const SAVE = "mote.solitaire";
 const STATS = "mote.solitaire.stats";
+/** How many cards Mote moves when you let them play. */
+const MOTE_MOVES = 3;
 /** How long Mote waits, while you look, before offering a move. */
 const NUDGE_MS = 25_000;
 
@@ -104,6 +106,9 @@ export function Solitaire({ engine, onClose }: Props) {
   const [note, setNote] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats>(readStats);
   const [finishing, setFinishing] = useState(false);
+  /** Mote's taking a few moves. */
+  const [helping, setHelping] = useState(false);
+  const busy = finishing || helping;
   const [sure, setSure] = useState(false);
   const alive = useRef(true);
   const gameRef = useRef(game);
@@ -199,7 +204,7 @@ export function Solitaire({ engine, onClose }: Props) {
     return null;
   };
   const grab = (e: ReactPointerEvent) => {
-    if (e.button !== 0 || done || finishing) return;
+    if (e.button !== 0 || done || busy) return;
     const id = (e.target as Element).closest<HTMLElement>("[data-card]")?.dataset.card;
     if (!id || id === "stock") return;
     const at = whereIs(id);
@@ -321,7 +326,7 @@ export function Solitaire({ engine, onClose }: Props) {
 
   // Looking a while: Mote offers a move (one that's on the table, not the deck).
   useEffect(() => {
-    if (done || finishing) return;
+    if (done || busy) return;
     const t = window.setTimeout(() => {
       const g = gameRef.current;
       const h = hint(g);
@@ -330,10 +335,11 @@ export function Solitaire({ engine, onClose }: Props) {
       tell("nudge", advice(g, h));
     }, NUDGE_MS);
     return () => window.clearTimeout(t);
-  }, [game, done, finishing, tell]);
+  }, [game, done, busy, tell]);
 
-  /** Plays a move, if it's allowed, and says something if it's worth it. */
-  const play = (m: Move): boolean => {
+  /** Plays a move, if it's allowed, and says something if it's worth it
+   * (unless it's Mote's own move, which they talk about themselves). */
+  const play = (m: Move, quiet = false): boolean => {
     const g = gameRef.current;
     if (!isLegal(g, m)) return false;
     const next = apply(g, m);
@@ -343,7 +349,7 @@ export function Solitaire({ engine, onClose }: Props) {
     gameRef.current = next;
     setHinted(null);
     setNote(null);
-    if (m.type === "move") {
+    if (m.type === "move" && !quiet) {
       const col = m.from.pile === "tableau" ? next.tableau[m.from.i] : null;
       const before = m.from.pile === "tableau" ? g.tableau[m.from.i] : null;
       const revealed = !!col?.length && !!before && before.length - m.count > 0 && !before[before.length - m.count - 1].up;
@@ -394,7 +400,7 @@ export function Solitaire({ engine, onClose }: Props) {
 
   /** Clicking a card: it goes wherever it can, gliding there. */
   const clickAt = (place: Place, count: number) => {
-    if (done || finishing || justDragged.current || count === 0 || performance.now() < quietUntil.current) return;
+    if (done || busy || justDragged.current || count === 0 || performance.now() < quietUntil.current) return;
     const g = gameRef.current;
     if (!canPick(place, count)) {
       if (place.pile === "tableau" && g.tableau[place.i].length) setNote("Only cards in order move together.");
@@ -407,7 +413,7 @@ export function Solitaire({ engine, onClose }: Props) {
   };
 
   const clickStock = () => {
-    if (done || finishing) return;
+    if (done || busy) return;
     const g = gameRef.current;
     play(g.stock.length ? { type: "draw" } : { type: "recycle" });
   };
@@ -424,7 +430,7 @@ export function Solitaire({ engine, onClose }: Props) {
 
   const undo = () => {
     const prev = history[history.length - 1];
-    if (!prev || finishing) return;
+    if (!prev || busy) return;
     remember();
     setHistory((h) => h.slice(0, -1));
     setGame(prev);
@@ -470,6 +476,41 @@ export function Solitaire({ engine, onClose }: Props) {
     if (alive.current) setFinishing(false);
   };
 
+  /** Mote takes a few moves: the ones they'd suggest, turning the deck as
+   * they need to. Each is its own step for Undo. */
+  const letMotePlay = async () => {
+    if (done || busy) return;
+    setHelping(true);
+    setHinted(null);
+    setNote(null);
+    engine()?.setBoardGame("mote");
+    tell("mote-turn");
+    const start = gameRef.current;
+    const progress = (g: Game) =>
+      g.foundations.reduce((n, f) => n + f.length, 0) - g.tableau.flat().filter((c) => !c.up).length;
+    await sleep(700);
+    let placed = 0;
+    // A few cards moved, and never more than a lap or two of the deck.
+    for (let n = 0; n < 60 && placed < MOTE_MOVES && alive.current; n++) {
+      const g = gameRef.current;
+      if (isWon(g) || canFinish(g)) break;
+      const m = hint(g);
+      if (!m) break;
+      if (m.type === "move") placed++;
+      play(m, true);
+      await sleep(m.type === "move" ? 560 : 200);
+    }
+    if (!alive.current) return;
+    setHelping(false);
+    const g = gameRef.current;
+    const over = isWon(g) || stuck(g);
+    engine()?.setBoardGame(over ? "idle" : "you");
+    // A win, being stuck or everything showing says itself.
+    if (over || canFinish(g)) return;
+    if (!placed) tell("mote-nothing");
+    else tell(progress(g) > progress(start) ? "mote-good" : "mote-done");
+  };
+
   const close = () => {
     onClose();
   };
@@ -489,6 +530,8 @@ export function Solitaire({ engine, onClose }: Props) {
         ? "Nothing left that helps."
         : finishing
           ? "Mote’s putting them away…"
+          : helping
+            ? "Mote’s playing…"
           : `${home} of 52 home`;
 
   const topWaste = game.waste[game.waste.length - 1];
@@ -500,10 +543,10 @@ export function Solitaire({ engine, onClose }: Props) {
           <strong>Solitaire</strong>
           {stats.played ? <span>Won {stats.won} of {stats.played}</span> : null}
         </p>
-        <button type="button" className="ck-quiet" onClick={undo} disabled={!history.length || finishing}>
+        <button type="button" className="ck-quiet" onClick={undo} disabled={!history.length || busy}>
           Undo
         </button>
-        <button type="button" className={`ck-quiet${sure ? " is-sure" : ""}`} onClick={newDeal} disabled={finishing}>
+        <button type="button" className={`ck-quiet${sure ? " is-sure" : ""}`} onClick={newDeal} disabled={busy}>
           {sure ? "Sure?" : "New deal"}
         </button>
         <CloseButton onClick={close} />
@@ -618,8 +661,13 @@ export function Solitaire({ engine, onClose }: Props) {
           </button>
         ) : null}
         {!done ? (
-          <button type="button" className="ck-secondary" onClick={askMote} disabled={finishing}>
+          <button type="button" className="ck-secondary" onClick={askMote} disabled={busy}>
             Ask Mote
+          </button>
+        ) : null}
+        {!done && !canFinish(game) ? (
+          <button type="button" className="ck-secondary" onClick={() => void letMotePlay()} disabled={busy}>
+            Let Mote play
           </button>
         ) : null}
       </div>

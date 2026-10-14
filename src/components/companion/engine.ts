@@ -2505,7 +2505,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       SOLITAIRE_FACE[event],
       SOLITAIRE_CHANCE[event],
       () => pickSolitaireLine(event, recentGameLines, { move }),
-      event === "hint" || event === "hint-draw" || event === "hint-recycle",
+      event === "hint" || event === "hint-draw" || event === "hint-recycle" || event === "mote-nothing",
     );
   };
 

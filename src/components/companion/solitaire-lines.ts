@@ -30,7 +30,15 @@ export type SolitaireEvent =
   /** Everything's face up: Mote can finish it. */
   | "finish"
   | "win"
-  | "new-deal";
+  | "new-deal"
+  /** You let Mote play: they're starting. */
+  | "mote-turn"
+  /** Mote's done, and handing back. */
+  | "mote-done"
+  /** Mote's done, and got cards home or turned some over. */
+  | "mote-good"
+  /** Mote looked but didn't find anything worth doing. */
+  | "mote-nothing";
 
 export const SOLITAIRE_FACE: Partial<Record<SolitaireEvent, string>> = {
   start: "delight",
@@ -46,6 +54,10 @@ export const SOLITAIRE_FACE: Partial<Record<SolitaireEvent, string>> = {
   finish: "beam",
   win: "ck-win",
   "new-deal": "cute",
+  "mote-turn": "delight",
+  "mote-done": "cute",
+  "mote-good": "beam",
+  "mote-nothing": "worry",
 };
 
 export const SOLITAIRE_CHANCE: Record<SolitaireEvent, number> = {
@@ -66,6 +78,10 @@ export const SOLITAIRE_CHANCE: Record<SolitaireEvent, number> = {
   finish: 1,
   win: 1,
   "new-deal": 0.6,
+  "mote-turn": 1,
+  "mote-done": 1,
+  "mote-good": 1,
+  "mote-nothing": 1,
 };
 
 const LINES: Record<SolitaireEvent, string[]> = {
@@ -90,6 +106,21 @@ const LINES: Record<SolitaireEvent, string[]> = {
   finish: ["Everything’s showing! I can finish this for us.", "We’ve got it now. Want me to put them all away?"],
   win: ["We did it!!", "Every card home! Teamwork!", "Yes! We won! High five. (Imagine I have hands.)", "We did it, {name}! Every single card!"],
   "new-deal": ["New cards! Let’s go.", "Fresh deck. This one’s ours."],
+  "mote-turn": [
+    "My turn? Ooh, okay!",
+    "Let me have a go.",
+    "Leave it to me for a bit.",
+    "I’ll take a few. Watch this!",
+    "Ooh, I’ve been dying to touch the cards.",
+  ],
+  "mote-done": ["There! Back to you.", "Your turn again.", "That’s my bit. Over to you!", "Okay, your go, {name}."],
+  "mote-good": [
+    "Ooh, that went well! Your turn.",
+    "Did you see that? Okay, back to you!",
+    "Not bad, right? Your go.",
+    "I think I helped! Over to you, {name}.",
+  ],
+  "mote-nothing": ["Hmm. I looked, but there’s nothing I’d do.", "I don’t see a good one either. Sorry!"],
 };
 
 /** A line for this moment, avoiding recent ones. `{move}` is filled in. */
