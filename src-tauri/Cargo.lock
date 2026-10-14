@@ -1790,7 +1790,7 @@ dependencies = [
 
 [[package]]
 name = "mote"
-version = "0.10.35"
+version = "0.10.36"
 dependencies = [
  "core-foundation",
  "core-graphics",
