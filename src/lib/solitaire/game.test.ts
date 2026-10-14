@@ -6,6 +6,7 @@ import {
   deal,
   finishMove,
   fitsColumn,
+  foundationFor,
   fitsFoundation,
   hint,
   isLegal,
@@ -14,8 +15,10 @@ import {
   stuck,
   type Card,
   type Game,
+  type Move,
   type Suit,
 } from "./game.ts";
+import { solve, type Step } from "./solve.ts";
 
 function seeded(seed: number) {
   let s = seed >>> 0;
@@ -39,6 +42,49 @@ test("a deal is the whole deck, laid out properly", () => {
   });
   assert.equal(g.stock.length, 24);
   assert.ok(reviveGame(JSON.parse(JSON.stringify(g))));
+});
+
+/** Plays a solver's win through the real game, turning the deck over to
+ * reach each card it takes from there. */
+function playOut(g: Game, steps: Step[]): Game {
+  for (const s of steps) {
+    let from: Extract<Move, { type: "move" }>["from"];
+    let count = 1;
+    if (s.from === "deck") {
+      for (let n = 0; !(top(g.waste)?.suit === s.card.suit && top(g.waste)?.rank === s.card.rank); n++) {
+        assert.ok(n < 60, "the card is in the deck");
+        g = apply(g, g.stock.length ? { type: "draw" } : { type: "recycle" });
+      }
+      from = { pile: "waste" };
+    } else {
+      from = { pile: "tableau", i: s.from };
+      count = s.count;
+    }
+    const card = from.pile === "waste" ? top(g.waste)! : g.tableau[s.from as number][g.tableau[s.from as number].length - count];
+    const to = s.to === "foundation" ? { pile: "foundation" as const, i: foundationFor(g, card) } : { pile: "tableau" as const, i: s.to };
+    const m: Move = { type: "move", from, to, count };
+    assert.ok(isLegal(g, m), "every step of the win is allowed");
+    g = apply(g, m);
+  }
+  return g;
+}
+const top = (p: Card[]) => p[p.length - 1];
+
+test("every deal can be won, and the win really plays out", () => {
+  for (let seed = 1; seed <= 40; seed++) {
+    const g = deal(seeded(seed));
+    const win = solve(g.tableau, g.stock);
+    assert.ok(win, `deal ${seed} has a win`);
+    assert.ok(isWon(playOut(g, win!)), `deal ${seed} plays out to a win`);
+  }
+});
+
+test("a deal that can't be won is turned down", () => {
+  // Black cards on top of every column, none of which fit on another, and
+  // the aces buried under them: nothing can ever move.
+  const tops = [c(13, "spades"), c(13, "clubs"), c(12, "spades"), c(12, "clubs"), c(11, "spades"), c(11, "clubs"), c(10, "spades")];
+  const tableau = tops.map((t, i) => [...(i < 4 ? [c(1, (["spades", "hearts", "diamonds", "clubs"] as Suit[])[i], false)] : []), t]);
+  assert.equal(solve(tableau, []), null);
 });
 
 test("columns build down in alternating colours; only kings go in empty ones", () => {

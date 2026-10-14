@@ -15,6 +15,7 @@
 // there's nothing left that helps (`stuck`).
 
 import { isCard, isRed, shuffledDeck, type Card } from "../cards.ts";
+import { solve } from "./solve.ts";
 
 export { cardWords, isRed, RANK_NAME, SUITS, type Card, type Suit } from "../cards.ts";
 
@@ -37,8 +38,16 @@ export type Game = {
 
 const top = <T,>(pile: T[]): T | undefined => pile[pile.length - 1];
 
-/** A shuffled deal. */
+/** A shuffled deal that can be won: deals that can't (or that take too long
+ * to be sure of) are shuffled again. */
 export function deal(rand: () => number = Math.random): Game {
+  for (;;) {
+    const g = shuffledDeal(rand);
+    if (solve(g.tableau, g.stock)) return g;
+  }
+}
+
+function shuffledDeal(rand: () => number): Game {
   const deck = shuffledDeck(rand);
   const tableau: Card[][] = [];
   for (let col = 0; col < 7; col++) {
