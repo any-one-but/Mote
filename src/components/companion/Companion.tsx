@@ -40,6 +40,7 @@ import { Chess } from "@/components/companion/Chess";
 import { TicTacToe } from "@/components/companion/TicTacToe";
 import { Solitaire } from "@/components/companion/Solitaire";
 import { Uno } from "@/components/companion/Uno";
+import { MoteClicker } from "@/components/companion/MoteClicker";
 
 type MediaInfo = EngineOptions["media"];
 
@@ -79,7 +80,9 @@ export function Companion() {
   const engineRef = useRef<FaceEngine | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [settings, updateSettings] = useSettings();
-  const [playing, setPlaying] = useState<"checkers" | "chess" | "tictactoe" | "solitaire" | "uno" | null>(null);
+  const [playing, setPlaying] = useState<"checkers" | "chess" | "tictactoe" | "solitaire" | "uno" | "clicker" | null>(
+    null,
+  );
   const debugState = useRef<DebugState>({ ...DEBUG_DEFAULTS });
   const events = useRef<string[]>([]);
   const realMedia = useRef<MediaInfo>(null);
@@ -93,10 +96,10 @@ export function Companion() {
   useEffect(() => {
     ownMoveUntil.current = performance.now() + 800;
     // The board needs a taller window than the file options do;
-    // Solitaire's seven columns, and Uno's two hands, want a little more
-    // room still.
+    // Solitaire's seven columns, Uno's two hands and Mote Clicker's shop
+    // want a little more room still.
     const size =
-      playing === "solitaire" || playing === "uno"
+      playing === "solitaire" || playing === "uno" || playing === "clicker"
         ? { width: 480, height: 800 }
         : playing
           ? { width: 430, height: 740 }
@@ -407,6 +410,7 @@ export function Companion() {
     "tictactoe",
     "solitaire",
     "uno",
+    "clicker",
     "links",
     "saveLink",
     "settings",
@@ -451,9 +455,10 @@ export function Companion() {
     tictactoe: "Tic-tac-toe",
     solitaire: "Solitaire",
     uno: "Uno",
+    clicker: "Mote Clicker",
   };
   const offerGames = (text: string = say(LINES.games)) =>
-    offer(text, ["checkers", "chess", "tictactoe", "solitaire", "uno"], GAME_NAMES);
+    offer(text, ["checkers", "chess", "tictactoe", "solitaire", "uno", "clicker"], GAME_NAMES);
 
   /** Whatever was open goes away: a game (it's saved). */
   const putAway = () => {
@@ -726,6 +731,7 @@ export function Companion() {
       {playing === "tictactoe" ? <TicTacToe engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "solitaire" ? <Solitaire engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "uno" ? <Uno engine={getEngine} onClose={() => setPlaying(null)} /> : null}
+      {playing === "clicker" ? <MoteClicker engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       <SpeechBubble
         bubble={bubble}
         anchor={anchor}

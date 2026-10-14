@@ -321,6 +321,49 @@ and going easy on Draw Twos, so the win stays within your reach. Games are
 saved as you go, the header keeps your record, and Mote remembers how each
 game went.
 
+## Mote Clicker
+
+Double-click Mote and say "clicker" (or "mote clicker", or pick it from the
+games). Click the little Mote for motes, and spend them on Mac things that
+make motes on their own: twenty of them, from a Magic Mouse and Stickies
+through Calculator, the iMac G3, Terminal and the Mac Pro to Apple silicon.
+Each one costs 15% more than the last of its kind.
+
+- **Upgrades** (the second tab; the number on it is how many you can
+  afford):
+  - Owning 1, 5, 25, 50 and then every 50 more of a thing unlocks an
+    upgrade that doubles it (Retina Calculator, Space Gray Stickies…),
+    forever.
+  - **Tap to click** and **Force Touch** double your clicks; after them,
+    each **Magic Trackpad** (2, 3, on and on) makes every click also earn 2%
+    of your motes a second.
+  - **macOS**, from Cheetah to Tahoe and then macOS 27, 28 and onwards:
+    each makes everything half as much again.
+  - **Continuity** (Handoff, AirDrop, Universal Clipboard…): each doubles
+    everything.
+  - Golden-mote upgrades (Night Shift, True Tone, Focus, Do Not Disturb).
+- **The ecosystem**: every Mac thing you own makes everything a little
+  better, and more so the more kinds you have. So even a cheap old Magic
+  Mouse is always worth buying. Hover over the line along the bottom for
+  the numbers.
+- **Golden motes** turn up every couple of minutes and drift about for a
+  few seconds. Catch one for a lump of motes, seven times the motes for a
+  while, or clicks worth 77 times as much.
+- Buy one at a time, or ×10, ×100 or as many as you can afford (Max).
+
+Nothing ever resets: the motes you've made in all only go up, and there's
+always something more to buy (numbers go far past the usual limits, with a
+name for every one up to a millinillion, 10^3003, and 10^n after that). The
+game is saved as you go, and keeps making motes while it's put away (Mote
+tells you how many when you're back). The pace is quick (a million motes in
+about a quarter of an hour, all twenty Mac things in a few hours of play)
+and then slows down very gently, without ever stopping.
+
+Mote watches while you play, cheers each new kind of thing, new macOS
+versions and every new named number from a million up, gets excited about
+golden motes, and goes back to their own business when you leave it
+running. Their remarks are spaced well apart.
+
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. It's kept
@@ -555,6 +598,7 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 - `src/components/companion/TicTacToe.tsx` and `tictactoe-lines.ts`, and `src/lib/tictactoe/game.ts` — tic-tac-toe
 - `src/components/companion/Solitaire.tsx`, `solitaire.css` and `solitaire-lines.ts`, and `src/lib/solitaire/game.ts` — Solitaire (the rules and Mote's advice)
 - `src/components/companion/Uno.tsx`, `uno.css` and `uno-lines.ts`, and `src/lib/uno/game.ts` — Uno (the rules and how Mote plays)
+- `src/components/companion/MoteClicker.tsx`, `clicker.css`, `clicker-icons.tsx` and `clicker-lines.ts`, and `src/lib/clicker/game.ts` — Mote Clicker (the economy, upgrades and big-number names)
 - `src/components/companion/cards.tsx` and `cards.css`, and `src/lib/cards.ts` — the playing cards the card games share
 - `src/components/companion/MoteMark.tsx` — Mote in miniature for game pieces and marks, in Mote's whole look
 - `src/components/companion/board-ui.tsx` and `board.css` — what both games share (level picker, header, end panel, the board's look)

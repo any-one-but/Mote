@@ -18,6 +18,7 @@ export type ReactionGroup =
   | "Tic-tac-toe"
   | "Solitaire"
   | "Uno"
+  | "Mote Clicker"
   | "Time"
   | "Lasting moods"
   | "Memories"
@@ -909,6 +910,113 @@ export const REACTIONS: Reaction[] = [
     name: "You win",
     when: "You play your last card",
     then: "A good-sport droop and a smile (Mote remembers the game)",
+    status: "live",
+  },
+
+  // Mote Clicker. (Remarks are spaced at least 40 seconds apart, apart
+  // from what was made while away and what a golden mote did.)
+  {
+    id: "clicker-start",
+    group: "Mote Clicker",
+    name: "Making motes",
+    when: "You open Mote Clicker for the first time",
+    then: "Delighted: “Click the little me. Gently.”",
+    status: "live",
+  },
+  {
+    id: "clicker-resume",
+    group: "Mote Clicker",
+    name: "Back to the motes",
+    when: "You open Mote Clicker again",
+    then: "Something cute, most of the time",
+    status: "live",
+  },
+  {
+    id: "clicker-away",
+    group: "Mote Clicker",
+    name: "Made while away",
+    when: "You open Mote Clicker after a minute or more away",
+    then: "Beams, and says how many motes were made meanwhile",
+    status: "live",
+  },
+  {
+    id: "clicker-first-thing",
+    group: "Mote Clicker",
+    name: "A new kind of thing",
+    when: "You buy the first of a Mac thing",
+    then: "Delight, and often names it",
+    status: "live",
+  },
+  {
+    id: "clicker-upgrade",
+    group: "Mote Clicker",
+    name: "An upgrade",
+    when: "You buy an upgrade",
+    then: "Something cute, now and then a word",
+    status: "live",
+  },
+  {
+    id: "clicker-os",
+    group: "Mote Clicker",
+    name: "A new macOS",
+    when: "You buy the next macOS",
+    then: "Beams, and often names it",
+    status: "live",
+  },
+  {
+    id: "clicker-milestone",
+    group: "Mote Clicker",
+    name: "A big number",
+    when: "Everything made in all passes a new named number, from a million up",
+    then: "Surprised: “A billion motes! Can you believe it?”",
+    status: "live",
+  },
+  {
+    id: "clicker-golden",
+    group: "Mote Clicker",
+    name: "A golden mote",
+    when: "A golden mote turns up",
+    then: "Surprised, and sometimes says to catch it",
+    status: "live",
+  },
+  {
+    id: "clicker-golden-lucky",
+    group: "Mote Clicker",
+    name: "Lucky",
+    when: "You catch a golden mote that gives a lump of motes",
+    then: "Beams, and often says how many",
+    status: "live",
+  },
+  {
+    id: "clicker-golden-frenzy",
+    group: "Mote Clicker",
+    name: "Frenzy",
+    when: "You catch a golden mote that makes everything seven times faster",
+    then: "Delight, and usually says so",
+    status: "live",
+  },
+  {
+    id: "clicker-golden-clicks",
+    group: "Mote Clicker",
+    name: "Click frenzy",
+    when: "You catch a golden mote that makes clicks worth 77 times as much",
+    then: "Delight, and usually says to click",
+    status: "live",
+  },
+  {
+    id: "clicker-golden-missed",
+    group: "Mote Clicker",
+    name: "Got away",
+    when: "A golden mote drifts off uncaught",
+    then: "A little worried; sometimes “Aw, it got away.”",
+    status: "live",
+  },
+  {
+    id: "clicker-spree",
+    group: "Mote Clicker",
+    name: "Clicking away",
+    when: "Lots of clicks in a few seconds (at most every five minutes)",
+    then: "Surprised, and often says so",
     status: "live",
   },
 

@@ -24,6 +24,7 @@ export type IntentId =
   | "tictactoe"
   | "solitaire"
   | "uno"
+  | "clicker"
   // Saved links: bring one up, or how to save one.
   | "links"
   | "saveLink"
@@ -39,7 +40,7 @@ export type IntentId =
 /** A keyword: a word or phrase, and how strongly it points to its intent. */
 type Word = string | [string, number];
 
-const GAMES = ["chess", "checkers", "tictactoe", "solitaire", "uno"] as const;
+const GAMES = ["chess", "checkers", "tictactoe", "solitaire", "uno", "clicker"] as const;
 export type GameIntent = (typeof GAMES)[number];
 export const isGame = (id: IntentId): id is GameIntent => (GAMES as readonly string[]).includes(id);
 
@@ -125,6 +126,13 @@ const INTENTS: Record<IntentId, Word[]> = {
     ["ttt", 1.1],
   ],
   uno: [["uno", 1.4]],
+  clicker: [
+    ["mote clicker", 1.5],
+    ["clicker", 1.4],
+    ["cookie clicker", 1.5],
+    ["clicking game", 1.4],
+    ["idle game", 1.3],
+  ],
   solitaire: [
     ["solitaire", 1.3],
     ["patience", 1.25],
@@ -709,6 +717,7 @@ const CHECK: Record<IntentId, string[]> = {
   tictactoe: ["Tic-tac-toe? Want to play?", "You mean tic-tac-toe?"],
   solitaire: ["Solitaire? I’ll help.", "You mean solitaire?"],
   uno: ["Uno? Want to play?", "You mean Uno?"],
+  clicker: ["Mote Clicker? Want to make some motes?", "You mean Mote Clicker?"],
   links: ["One of your saved links?", "Something saved to watch or read?"],
   saveLink: ["You want to save a link?"],
   settings: ["You want Settings?", "Open Settings?"],

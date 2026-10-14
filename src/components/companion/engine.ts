@@ -69,6 +69,12 @@ import {
 } from "@/components/companion/tictactoe-lines";
 import { pickUnoLine, UNO_CHANCE, UNO_FACE, type UnoEvent } from "@/components/companion/uno-lines";
 import {
+  CLICKER_CHANCE,
+  CLICKER_FACE,
+  pickClickerLine,
+  type ClickerEvent,
+} from "@/components/companion/clicker-lines";
+import {
   SOLITAIRE_CHANCE,
   SOLITAIRE_FACE,
   pickSolitaireLine,
@@ -447,6 +453,8 @@ export type FaceEngine = {
   /** Solitaire, with Mote helping: its moments. `move` is Mote's advice in
    * words, for them to say. */
   solitaire: (event: SolitaireEvent, move?: string) => void;
+  /** Mote Clicker: its big moments (the component keeps them spaced out). */
+  clicker: (event: ClickerEvent, words?: { thing?: string; amount?: string; os?: string }) => void;
   snapshot: () => EngineSnapshot;
 };
 
@@ -2520,6 +2528,19 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       event === "mote-uno" || event === "caught" || event === "mote-wild" || event === "mote-wild4",
     );
 
+  // What was made while you were away is news, so it's said even with
+  // talking during games switched off.
+  const clickerEvent = (event: ClickerEvent, words?: { thing?: string; amount?: string; os?: string }) => {
+    if (event === "start" || event === "resume" || event === "away") react("game-start");
+    gameMoment(
+      `clicker-${event}`,
+      CLICKER_FACE[event],
+      CLICKER_CHANCE[event],
+      () => pickClickerLine(event, recentGameLines, words),
+      event === "away",
+    );
+  };
+
   const ticTacToeEvent = (event: TicTacToeEvent) =>
     gameMoment(`tictactoe-${event}`, TICTACTOE_FACE[event], TICTACTOE_CHANCE[event], () =>
       pickTicTacToeLine(event, recentGameLines),
@@ -3588,6 +3609,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     tictactoe: ticTacToeEvent,
     uno: unoEvent,
     solitaire: solitaireEvent,
+    clicker: clickerEvent,
     say: (lineId) => {
       if (bubble) showBubble(null);
       const line = lineId ? lineById.get(lineId) : chooseLine(speechContext(), new Map(), clock);

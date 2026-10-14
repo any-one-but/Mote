@@ -1,0 +1,513 @@
+/* Mote Clicker in Mote's window, on the same card as the board games: the
+   little Mote to click on a sunk round pad, the count beside it, and the
+   shop below. No borders or outlines anywhere (see STYLE.md): rows are
+   separated by space, what you can afford is a lighter tone, and the
+   golden mote is a warm glow. */
+
+.mc {
+  --mc-gold: #e9b44c;
+  --mc-gold-deep: #c98f2a;
+  --mc-app-tile: #f6dccf;
+  --mc-row: var(--ck-soft-bg);
+  --mc-row-can: #fffaf3;
+  --mc-row-hover: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+:root[data-theme="dark"] .mc {
+  --mc-app-tile: #4d2f25;
+  --mc-row: var(--surface-soft);
+  --mc-row-can: #3e342d;
+  --mc-row-hover: #463b33;
+}
+
+/* The little Mote and the count. */
+.mc-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 4px 12px;
+}
+
+.mc-mote {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 124px;
+  height: 124px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ck-sunk);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background 0.18s ease,
+    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mc-mote:hover {
+  background: var(--ck-sunk-hover);
+  transform: translateY(-2px);
+}
+
+.mc-mark {
+  width: 96px;
+  height: 96px;
+  overflow: visible;
+  animation: mc-squish 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes mc-squish {
+  0% {
+    transform: scale(0.86, 0.8);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.mc-count {
+  flex: 1;
+  min-width: 0;
+}
+
+.mc-count p {
+  margin: 0;
+}
+
+.mc-bank {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+
+.mc-num {
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-unit {
+  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.mc-rate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 10px !important;
+  font-size: 13px;
+  color: var(--ck-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-per {
+  font-size: 12px;
+  color: var(--ck-soft);
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-buff {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--mc-gold) 30%, transparent);
+  color: var(--ck-ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* "+12" floating up from each click. */
+.mc-pop {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ck-ink);
+  white-space: nowrap;
+  animation: mc-pop 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes mc-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -30%) scale(0.7);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -70%) scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -260%) scale(1);
+  }
+}
+
+/* The golden mote: drifts about, glowing, then fades away. */
+.mc-golden {
+  position: absolute;
+  z-index: 3;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  animation-name: mc-drift;
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: forwards;
+}
+
+.mc-golden svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: mc-bob 1.8s ease-in-out infinite;
+}
+
+.mc-golden:hover svg {
+  transform: scale(1.15);
+}
+
+.mc-golden-glow {
+  fill: var(--mc-gold);
+  opacity: 0.28;
+  animation: mc-glow 1.6s ease-in-out infinite;
+  transform-origin: 16px 16px;
+}
+
+.mc-golden-body {
+  fill: var(--mc-gold);
+}
+
+.mc-golden-eye {
+  fill: #5a3d14;
+}
+
+@keyframes mc-drift {
+  0% {
+    opacity: 0;
+    transform: translate(0, 10px) scale(0.5);
+  }
+  8% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(18px, -8px) scale(1);
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-10px, -16px) scale(0.8);
+  }
+}
+
+@keyframes mc-bob {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -3px;
+  }
+}
+
+@keyframes mc-glow {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.25);
+  }
+}
+
+/* Tabs and how many to buy: sunk tracks with a surface segment. */
+.mc-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mc-tabs,
+.mc-amounts {
+  display: flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--ck-sunk);
+}
+
+.mc-tabs button,
+.mc-amounts button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ck-soft);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.mc-amounts button {
+  padding: 6px 9px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-tabs button:hover,
+.mc-amounts button:hover {
+  color: var(--ck-ink);
+}
+
+.mc-tabs button.is-on,
+.mc-amounts button.is-on {
+  background: var(--ck-card);
+  color: var(--ck-ink);
+  box-shadow: 0 2px 6px -2px rgb(var(--shade-rgb) / 0.2);
+}
+
+.mc-badge {
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--ck-accent);
+  color: #fffcf7;
+  font-size: 11px;
+  font-weight: 600;
+  animation: mc-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes mc-in {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+}
+
+/* The shop. Its height is whatever's left under Mote. */
+.mc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: max(180px, calc(100dvh - 560px));
+  margin: 0 -4px;
+  padding: 0 4px 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.mc-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px 8px 8px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--mc-row);
+  color: var(--ck-ink);
+  text-align: left;
+  opacity: 0.62;
+  transition:
+    background 0.15s ease,
+    opacity 0.2s ease,
+    transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mc-row.is-can {
+  background: var(--mc-row-can);
+  box-shadow: 0 4px 12px -8px rgb(var(--shade-rgb) / 0.35);
+  opacity: 1;
+  cursor: pointer;
+}
+
+.mc-row.is-can:hover {
+  background: var(--mc-row-hover);
+  transform: translateY(-1px);
+}
+
+.mc-row.is-can:active {
+  transform: scale(0.97);
+}
+
+.mc-row:disabled {
+  cursor: default;
+}
+
+.mc-row.is-unknown .mc-tile {
+  filter: blur(3px);
+}
+
+.mc-tile {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--ck-sunk);
+  color: var(--ck-ink);
+}
+
+.mc-tile.is-app,
+.mc-tile.is-os,
+.mc-tile.is-trackpad {
+  background: var(--mc-app-tile);
+}
+
+.mc-tile.is-gold {
+  background: color-mix(in oklab, var(--mc-gold) 28%, var(--ck-card));
+}
+
+.mc-ic {
+  width: 26px;
+  height: 26px;
+}
+
+.mc-ic .f {
+  fill: var(--ck-ink);
+}
+
+.mc-ic .d {
+  fill: var(--ck-card);
+}
+
+.mc-ic .d-line,
+.mc-ic .f-line,
+.mc-ic .mix-line {
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mc-ic .d-line {
+  stroke: var(--ck-card);
+}
+
+.mc-ic .f-line {
+  stroke: var(--ck-ink);
+}
+
+.mc-ic .f-line.is-thick {
+  stroke-width: 4.5;
+}
+
+/* Finder's smile crosses both halves of the face. */
+.mc-ic .mix-line {
+  stroke: var(--ck-accent);
+}
+
+.mc-ic .gold {
+  fill: var(--mc-gold);
+}
+
+.mc-ic .gold-eye {
+  fill: #5a3d14;
+}
+
+.mc-what {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mc-name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.mc-about {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--ck-soft);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.mc-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  max-width: 150px;
+  text-align: right;
+}
+
+.mc-cost {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-row.is-can .mc-cost {
+  color: var(--ck-accent-deep);
+}
+
+.mc-owned {
+  font-size: 12px;
+  color: var(--ck-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-empty {
+  margin: 24px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ck-soft);
+}
+
+.mc-status {
+  margin-top: 8px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-status.is-note {
+  color: var(--ck-ink);
+  font-weight: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-mark,
+  .mc-pop,
+  .mc-golden,
+  .mc-golden svg,
+  .mc-golden-glow,
+  .mc-badge {
+    animation: none;
+  }
+
+  .mc-pop {
+    display: none;
+  }
+}
