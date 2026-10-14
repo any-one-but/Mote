@@ -12,8 +12,6 @@ import {
   isRed,
   isWon,
   movingCard,
-  rearrangement,
-  relabel,
   reviveGame,
   stuck,
   type Card,
@@ -336,16 +334,11 @@ export function Solitaire({ engine, onClose }: Props) {
 
   /** Plays a move, if it's allowed, and says something if it's worth it. */
   const play = (m: Move): boolean => {
-    let g = gameRef.current;
+    const g = gameRef.current;
     if (!isLegal(g, m)) return false;
-    // If this would leave no way to win, the cards nobody's seen yet are
-    // dealt differently first: here, and back through everything undo can
-    // reach, so it's as if they'd always been that way.
-    const swap = rearrangement(g, m);
-    if (swap) g = gameRef.current = relabel(g, swap);
     const next = apply(g, m);
     remember();
-    setHistory((h) => [...(swap ? h.map((x) => relabel(x, swap)) : h).slice(-99), g]);
+    setHistory((h) => [...h.slice(-99), g]);
     setGame(next);
     gameRef.current = next;
     setHinted(null);
@@ -434,9 +427,7 @@ export function Solitaire({ engine, onClose }: Props) {
     if (!prev || finishing) return;
     remember();
     setHistory((h) => h.slice(0, -1));
-    // What you've seen stays seen.
-    const seen = game.seen && prev.seen ? [...new Set([...prev.seen, ...game.seen])] : prev.seen;
-    setGame({ ...prev, seen });
+    setGame(prev);
     setHinted(null);
     setNote(null);
     said.current = "";
@@ -593,9 +584,7 @@ export function Solitaire({ engine, onClose }: Props) {
               >
                 {col.map((c, k) => {
                   const style = { top: `calc(var(--cw) * ${tops[k].toFixed(3)})` } as CSSProperties;
-                  // Face down, a card is only its place: which card it is
-                  // isn't settled until it's seen.
-                  if (!c.up) return <CardBack key={`down-${i}-${k}`} id={`down-${i}-${k}`} style={style} />;
+                  if (!c.up) return <CardBack key={idOf(c)} id={idOf(c)} style={style} />;
                   const count = col.length - k;
                   const last = k === col.length - 1;
                   return (
