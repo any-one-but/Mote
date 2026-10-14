@@ -13,9 +13,18 @@
 //
 // Mote's part is `hint`: the most useful thing to do next, or nothing if
 // there's nothing left that helps (`stuck`).
+//
+// Every deal can be won, and so can every game as it's played: a card nobody
+// has seen yet (face down on a column, or in the stock before it's been turned)
+// could be any of the cards still unseen, so when a move would leave the game
+// with no way to win, those unseen cards are quietly dealt differently, to an
+// order that still has one (`rearrangement`). Only cards never seen change, and
+// they change everywhere they've been, undo included, so nothing on the table
+// ever looks different. The one time it can't help is when the cards still
+// unseen can't be laid out any way that wins.
 
 import { isCard, isRed, shuffledDeck, type Card } from "../cards.ts";
-import { solve } from "./solve.ts";
+import { solve, type Step } from "./solve.ts";
 
 export { cardWords, isRed, RANK_NAME, SUITS, type Card, type Suit } from "../cards.ts";
 
@@ -34,7 +43,14 @@ export type Game = {
   foundations: Card[][];
   tableau: Card[][];
   moves: number;
+  /** Every card that's been face up at some point (`keyOf`), undone or not.
+   * The rest are still anybody's guess. Missing: everything but the cards
+   * face down on the columns has been seen. */
+  seen?: string[];
 };
+
+/** A card's name, whichever way up it is. */
+export const keyOf = (c: Card) => `${c.suit}-${c.rank}`;
 
 const top = <T,>(pile: T[]): T | undefined => pile[pile.length - 1];
 
@@ -43,7 +59,7 @@ const top = <T,>(pile: T[]): T | undefined => pile[pile.length - 1];
 export function deal(rand: () => number = Math.random): Game {
   for (;;) {
     const g = shuffledDeal(rand);
-    if (solve(g.tableau, g.stock)) return g;
+    if (solve(g)) return g;
   }
 }
 
@@ -55,7 +71,8 @@ function shuffledDeal(rand: () => number): Game {
     cards[cards.length - 1].up = true;
     tableau.push(cards);
   }
-  return { stock: deck, waste: [], foundations: [[], [], [], []], tableau, moves: 0 };
+  const seen = tableau.map((col) => keyOf(col[col.length - 1]));
+  return { stock: deck, waste: [], foundations: [[], [], [], []], tableau, moves: 0, seen };
 }
 
 /** Can `card` go on top of this column? */
@@ -108,6 +125,7 @@ const clone = (g: Game): Game => ({
   foundations: g.foundations.map((f) => f.map((c) => ({ ...c }))),
   tableau: g.tableau.map((t) => t.map((c) => ({ ...c }))),
   moves: g.moves,
+  ...(g.seen ? { seen: g.seen.slice() } : {}),
 });
 
 /** The game after a move (which must be legal). A face-down card left on top
@@ -118,6 +136,7 @@ export function apply(g: Game, m: Move): Game {
   if (m.type === "draw") {
     const c = n.stock.pop()!;
     n.waste.push({ ...c, up: true });
+    see(n, c);
     return n;
   }
   if (m.type === "recycle") {
@@ -132,9 +151,75 @@ export function apply(g: Game, m: Move): Game {
   target.push(...cards);
   if (m.from.pile === "tableau") {
     const t = top(source);
-    if (t && !t.up) t.up = true;
+    if (t && !t.up) {
+      t.up = true;
+      see(n, t);
+    }
   }
   return n;
+}
+
+function see(g: Game, c: Card) {
+  if (g.seen && !g.seen.includes(keyOf(c))) g.seen.push(keyOf(c));
+}
+
+/** The cards nobody has seen yet: face down, and never once face up. */
+export function unseen(g: Game): Card[] {
+  const seen = new Set(g.seen ?? []);
+  const down = g.tableau.flat().filter((c) => !c.up);
+  // An old save, from before this was kept: only the columns are certain.
+  const deck = g.seen ? g.stock : [];
+  return [...down, ...deck].filter((c) => !seen.has(keyOf(c)));
+}
+
+/** Can this game still be won? (False also when it's too tangled to tell.) */
+export const winnable = (g: Game) => isWon(g) || !!solve(g);
+
+/** The same game with some unseen cards swapped about: `swap` says what each
+ * card (by `keyOf`) becomes. */
+export function relabel(g: Game, swap: Map<string, Card>): Game {
+  const re = (c: Card): Card => {
+    const to = swap.get(keyOf(c));
+    return to ? { suit: to.suit, rank: to.rank, up: c.up } : c;
+  };
+  return {
+    ...g,
+    stock: g.stock.map(re),
+    waste: g.waste.map(re),
+    foundations: g.foundations.map((f) => f.map(re)),
+    tableau: g.tableau.map((t) => t.map(re)),
+  };
+}
+
+/** How many different layouts of the unseen cards to try, and for how long
+ * at most (ms), so a move never hangs. */
+const TRIES = 40;
+const TRY_MS = 150;
+
+/**
+ * If playing `m` would leave no way to win, a different layout of the cards
+ * nobody has seen (which might include the one `m` turns over) that keeps
+ * one. Null when the game's fine as it is, or there's no layout that helps.
+ * Apply it to the game before the move, and to every earlier game undo can
+ * go back to.
+ */
+export function rearrangement(g: Game, m: Move, rand: () => number = Math.random): Map<string, Card> | null {
+  // Turning the deck over changes nothing: any card in it can be reached.
+  if (m.type !== "move" || !isLegal(g, m)) return null;
+  if (winnable(apply(g, m))) return null;
+  const pool = unseen(g);
+  if (pool.length < 2) return null;
+  const until = Date.now() + TRY_MS;
+  for (let t = 0; t < TRIES && Date.now() < until; t++) {
+    const order = pool.slice();
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    const swap = new Map(pool.map((c, i) => [keyOf(c), order[i]]));
+    if (winnable(apply(relabel(g, swap), m))) return swap;
+  }
+  return null;
 }
 
 export const isWon = (g: Game) => g.foundations.every((f) => f.length === 13);
@@ -233,10 +318,38 @@ export function hint(g: Game): Move | null {
     }
   }
   if (best) return best;
-  if (!deckHelps(g)) return null;
-  if (g.stock.length) return { type: "draw" };
-  if (g.waste.length) return { type: "recycle" };
-  return null;
+  if (deckHelps(g)) {
+    if (g.stock.length) return { type: "draw" };
+    if (g.waste.length) return { type: "recycle" };
+  }
+  // Nothing obvious: the first step of a way to win, if there is one.
+  const win = solved(g);
+  return win?.length ? moveFor(g, win[0]) : null;
+}
+
+/** A win from here, worked out once per game (the board asks a lot). */
+const wins = new WeakMap<Game, Step[] | null>();
+function solved(g: Game): Step[] | null {
+  if (!wins.has(g)) wins.set(g, solve(g));
+  return wins.get(g)!;
+}
+
+/** What to do now towards a step of a win: the move itself, or turning the
+ * deck until the card it wants comes up. */
+export function moveFor(g: Game, s: Step): Move {
+  const card = s.from === "deck" || s.from === "foundation" ? s.card : null;
+  if (s.from === "deck" && !(top(g.waste)?.suit === card!.suit && top(g.waste)?.rank === card!.rank))
+    return g.stock.length ? { type: "draw" } : { type: "recycle" };
+  const from: Place =
+    s.from === "deck"
+      ? { pile: "waste" }
+      : s.from === "foundation"
+        ? { pile: "foundation", i: g.foundations.findIndex((f) => top(f)?.suit === card!.suit) }
+        : { pile: "tableau", i: s.from };
+  const count = typeof s.from === "number" ? s.count : 1;
+  const moving = from.pile === "waste" ? top(g.waste)! : from.pile === "foundation" ? card! : g.tableau[from.i][g.tableau[from.i].length - count];
+  const to: Place = s.to === "foundation" ? { pile: "foundation", i: foundationFor(g, moving) } : { pile: "tableau", i: s.to };
+  return { type: "move", from, to, count };
 }
 
 /** Nothing left that helps. */
@@ -286,5 +399,6 @@ export function reviveGame(raw: unknown): Game | null {
     foundations: g.foundations,
     tableau: g.tableau,
     moves: Number.isFinite(g.moves) ? Number(g.moves) : 0,
+    ...(Array.isArray(g.seen) && g.seen.every((k) => typeof k === "string") ? { seen: g.seen } : {}),
   };
 }

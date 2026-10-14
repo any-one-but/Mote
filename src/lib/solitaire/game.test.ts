@@ -6,7 +6,13 @@ import {
   deal,
   finishMove,
   fitsColumn,
-  foundationFor,
+  moveFor,
+  keyOf,
+  placements,
+  rearrangement,
+  relabel,
+  unseen,
+  winnable,
   fitsFoundation,
   hint,
   isLegal,
@@ -48,43 +54,75 @@ test("a deal is the whole deck, laid out properly", () => {
  * reach each card it takes from there. */
 function playOut(g: Game, steps: Step[]): Game {
   for (const s of steps) {
-    let from: Extract<Move, { type: "move" }>["from"];
-    let count = 1;
-    if (s.from === "deck") {
-      for (let n = 0; !(top(g.waste)?.suit === s.card.suit && top(g.waste)?.rank === s.card.rank); n++) {
-        assert.ok(n < 60, "the card is in the deck");
-        g = apply(g, g.stock.length ? { type: "draw" } : { type: "recycle" });
-      }
-      from = { pile: "waste" };
-    } else {
-      from = { pile: "tableau", i: s.from };
-      count = s.count;
+    let m = moveFor(g, s);
+    for (let n = 0; m.type !== "move"; n++) {
+      assert.ok(n < 60, "the card is in the deck");
+      g = apply(g, m);
+      m = moveFor(g, s);
     }
-    const card = from.pile === "waste" ? top(g.waste)! : g.tableau[s.from as number][g.tableau[s.from as number].length - count];
-    const to = s.to === "foundation" ? { pile: "foundation" as const, i: foundationFor(g, card) } : { pile: "tableau" as const, i: s.to };
-    const m: Move = { type: "move", from, to, count };
     assert.ok(isLegal(g, m), "every step of the win is allowed");
     g = apply(g, m);
   }
   return g;
 }
-const top = (p: Card[]) => p[p.length - 1];
 
 test("every deal can be won, and the win really plays out", () => {
   for (let seed = 1; seed <= 40; seed++) {
     const g = deal(seeded(seed));
-    const win = solve(g.tableau, g.stock);
+    const win = solve(g);
     assert.ok(win, `deal ${seed} has a win`);
     assert.ok(isWon(playOut(g, win!)), `deal ${seed} plays out to a win`);
   }
 });
 
-test("a deal that can't be won is turned down", () => {
+test("a game that can't be won is turned down", () => {
   // Black cards on top of every column, none of which fit on another, and
   // the aces buried under them: nothing can ever move.
+  const g = empty();
   const tops = [c(13, "spades"), c(13, "clubs"), c(12, "spades"), c(12, "clubs"), c(11, "spades"), c(11, "clubs"), c(10, "spades")];
-  const tableau = tops.map((t, i) => [...(i < 4 ? [c(1, (["spades", "hearts", "diamonds", "clubs"] as Suit[])[i], false)] : []), t]);
-  assert.equal(solve(tableau, []), null);
+  g.tableau = tops.map((t, i) => [...(i < 4 ? [c(1, (["spades", "hearts", "diamonds", "clubs"] as Suit[])[i], false)] : []), t]);
+  assert.equal(solve(g), null);
+});
+
+test("a move that would lose the game deals the unseen cards differently, and nothing seen changes", () => {
+  // Play deals with a careless player until a move would leave no way to win.
+  const rand = seeded(7);
+  let found = false;
+  for (let n = 0; n < 60 && !found; n++) {
+    let g = deal(rand);
+    for (let t = 0; t < 400 && !isWon(g) && !found; t++) {
+      const options: Move[] = [...placements(g), g.stock.length ? { type: "draw" } : { type: "recycle" }];
+      const m = options[Math.floor(rand() * options.length)];
+      if (!isLegal(g, m)) break;
+      const swap = rearrangement(g, m, rand);
+      if (!swap) {
+        g = apply(g, m);
+        continue;
+      }
+      found = true;
+      assert.ok(!winnable(apply(g, m)), "it would have been lost");
+      const hidden = new Set(unseen(g).map(keyOf));
+      for (const k of swap.keys()) assert.ok(hidden.has(k), "only unseen cards change");
+      const after = relabel(g, swap);
+      const looks = (x: Game) =>
+        JSON.stringify([x.tableau.map((col) => col.map((c) => (c.up ? keyOf(c) : "?"))), x.waste, x.foundations, x.stock.length]);
+      assert.equal(looks(after), looks(g), "the table looks just the same");
+      assert.ok(winnable(apply(after, m)), "and it can still be won");
+    }
+  }
+  assert.ok(found);
+});
+
+test("a card once seen is never dealt differently, even after an undo", () => {
+  const g = deal(seeded(3));
+  const drawn = apply(g, { type: "draw" });
+  // Undo: back to the deal, but still knowing the card that came up.
+  const undone = { ...g, seen: drawn.seen };
+  const card = drawn.waste[0];
+  assert.ok(unseen(g).some((c) => keyOf(c) === keyOf(card)));
+  assert.ok(!unseen(undone).some((c) => keyOf(c) === keyOf(card)));
+  // A save from before this was kept: the deck is taken as seen.
+  assert.equal(unseen({ ...g, seen: undefined }).length, 21);
 });
 
 test("columns build down in alternating colours; only kings go in empty ones", () => {
