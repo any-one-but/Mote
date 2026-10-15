@@ -23,11 +23,13 @@ import { MiniMote, Page, Row, Section, Segmented, Toggle } from "./ui";
 const MOTE_APPEARANCE: Array<{ value: MoteAppearance; label: string }> = [
   { value: "normal", label: "Normal" },
   { value: "jack", label: "Jack-o’-lantern" },
+  { value: "snow", label: "Snowman" },
 ];
 
 const MOTE_APPEARANCE_HINT: Record<MoteAppearance, string> = {
   normal: "Just Mote.",
   jack: "Pumpkin orange, triangle eyes, and a carved, toothy grin. Happy Halloween!",
+  snow: "Snow white, with coal for eyes and a smile, a carrot nose and a top hat. Brr!",
 };
 
 const THEME: Array<{ value: Theme; label: string }> = [

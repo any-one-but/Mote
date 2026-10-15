@@ -12,6 +12,7 @@ import {
   type Mood,
   type Pose,
 } from "@/components/companion/engine";
+import { SnowBody, SnowHat } from "@/components/companion/Face";
 import { GEO, INK } from "@/lib/companion/theme";
 import "../src/styles.css";
 
@@ -147,6 +148,8 @@ function Still({
       >
         {eyesOnly ? null : look === "ghost" ? (
           <path className="skin" d={ghostSheet()} />
+        ) : look === "snow" ? (
+          <SnowBody id={id} />
         ) : (
           <ellipse className="skin" cx={GEO.cx} cy={GEO.cy} rx={GEO.faceRx} ry={GEO.faceRy} />
         )}
@@ -167,7 +170,17 @@ function Still({
             <path className={`mouth is-${look}`} d={lookMouth(look, pose, gx, gy)} />
           ) : null}
         </g>
-        {look === "snow" ? <path className="nose" d={noseShape(gx, gy)} /> : null}
+        {look === "snow" ? (
+          <>
+            <path className="nose-rim" transform="translate(0 2.6)" d={noseShape(gx, gy)} />
+            <path className="nose" d={noseShape(gx, gy)} />
+            {eyesOnly ? null : (
+              <g transform={`translate(${gx * 5} ${gy * 1.5})`}>
+                <SnowHat />
+              </g>
+            )}
+          </>
+        ) : null}
       </g>
     </svg>
   );

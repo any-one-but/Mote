@@ -1262,12 +1262,14 @@ const MODE: Array<{ value: Mode; label: string }> = [
   { value: "neutral", label: "Neutral" },
   { value: "jack", label: "Jack-o’-lantern" },
   { value: "ghost", label: "Ghost" },
+  { value: "snow", label: "Snowman" },
 ];
 
 const MODE_HINT: Record<Mode, string> = {
   neutral: "Just Mote.",
   jack: "Pumpkin orange, triangle eyes, and a carved, toothy grin if the mouth is on. Happy Halloween!",
   ghost: "Mote under a white sheet: round eye holes, and a wavy hem that floats along behind them. No mouth of its own.",
+  snow: "A snowball with a top hat and a carrot nose: coal eyes, and a smile of coal if the mouth is on.",
 };
 
 /** Everything Mote does, a switch each, sorted by kind. A few of Mote's

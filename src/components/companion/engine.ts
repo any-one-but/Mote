@@ -1800,20 +1800,94 @@ export function coalMouthShape(pose: Pose, gazeX: number, gazeY: number): string
 }
 
 /**
+ * The snowman's body: Mote's round face as a packed snowball, its edge
+ * gently lumpy all the way round (smooth curves, nothing sharp). The lumps
+ * are fixed, so the snowball keeps its own shape.
+ */
+export function snowBody(): string {
+  const { cx, cy, faceRx: rx, faceRy: ry } = GEO;
+  const n = 64;
+  const pts = Array.from({ length: n }, (_, i) => {
+    const a = (i / n) * Math.PI * 2;
+    const k =
+      1 +
+      0.008 * Math.sin(4 * a + 0.7) +
+      0.007 * Math.sin(7 * a + 2.1) +
+      0.005 * Math.sin(11 * a + 4) +
+      0.004 * Math.sin(17 * a + 1);
+    return [cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k];
+  });
+  const mid = (a: number[], b: number[]) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const start = mid(pts[n - 1], pts[0]);
+  let d = `M${f(start[0])} ${f(start[1])}`;
+  for (let i = 0; i < n; i++) {
+    const m = mid(pts[i], pts[(i + 1) % n]);
+    d += `Q${f(pts[i][0])} ${f(pts[i][1])} ${f(m[0])} ${f(m[1])}`;
+  }
+  return `${d}Z`;
+}
+
+/**
+ * The snowman's top hat, sitting a little askew on top of the head: a crown
+ * with a band round it, and a brim. Flat shapes in two tones, like a game
+ * piece: the brim has a deeper rim below it for its thickness, and the crown
+ * a lighter side where the light catches it.
+ */
+export const HAT = {
+  /** Where it tilts from (the middle of the brim), and how far. */
+  x: 120,
+  y: 50,
+  tilt: -8,
+  brim: { x: 70, y: 43, w: 100, h: 11, rim: 3.5 },
+  crown: { bottom: 46, top: 6, w: 62, taper: 3, r: 7 },
+  band: { y: 33, h: 9 },
+};
+
+/** The hat's crown (or, with `top`/`bottom`, just a slice of it: the band). */
+export function hatCrown(top: number = HAT.crown.top, bottom: number = HAT.crown.bottom): string {
+  const { w, taper, r } = HAT.crown;
+  const at = (y: number) => {
+    const t = (y - HAT.crown.top) / (HAT.crown.bottom - HAT.crown.top);
+    return w / 2 - taper * (1 - t);
+  };
+  const lt = HAT.x - at(top);
+  const rt = HAT.x + at(top);
+  const lb = HAT.x - at(bottom);
+  const rb = HAT.x + at(bottom);
+  // Rounded at the top corners only when it's the whole crown.
+  const k = top === HAT.crown.top ? r : 0;
+  return `M${f(lb)} ${f(bottom)}L${f(lt)} ${f(top + k)}Q${f(lt)} ${f(top)} ${f(lt + k)} ${f(top)}L${f(rt - k)} ${f(top)}Q${f(rt)} ${f(top)} ${f(rt)} ${f(top + k)}L${f(rb)} ${f(bottom)}Z`;
+}
+
+/**
  * The carrot nose: a little cone between the eyes and the mouth. It points
  * the way Mote looks (a touch to the right when looking straight ahead, as
- * snowmen's noses do), and seen head-on it's just its round end.
+ * snowmen's noses do), and seen head-on it's just its round end. It's drawn
+ * twice, the second time a little lower in a deeper orange underneath, for
+ * its thickness.
  */
 export function noseShape(gazeX: number, gazeY: number): string {
+  // Its round end, where it goes into the snow...
   const bx = GEO.cx + gazeX * 12;
   const by = GEO.eyeY + 22 + gazeY * 6;
+  const r = 8;
+  // ...and its rounded tip, out the way Mote looks, drooping a little.
   const turn = clamp(0.75 + gazeX * 2, -1, 1);
-  const len = 10 + 22 * Math.abs(turn);
-  const r = 7;
-  const tipX = bx + len * turn;
-  const tipY = by + 4;
-  const side = turn >= 0 ? 0 : 1;
-  return `M${f(bx)} ${f(by - r)}Q${f(bx + len * turn * 0.55)} ${f(by - r * 0.7)} ${f(tipX)} ${f(tipY)}Q${f(bx + len * turn * 0.55)} ${f(by + r * 0.9)} ${f(bx)} ${f(by + r)}A${r} ${r} 0 0 ${side} ${f(bx)} ${f(by - r)}Z`;
+  const tx = bx + 30 * turn;
+  const ty = by + 3 * Math.abs(turn) + gazeY * 4;
+  const rt = 2;
+  // The cone is what wraps round both circles.
+  const dx = tx - bx;
+  const dy = ty - by;
+  const d = Math.hypot(dx, dy);
+  const round = `M${f(bx - r)} ${f(by)}a${r} ${r} 0 1 0 ${r * 2} 0a${r} ${r} 0 1 0 ${-r * 2} 0Z`;
+  if (d <= r - rt + 0.5) return round;
+  const toward = Math.atan2(dy, dx);
+  const spread = Math.acos((r - rt) / d);
+  const at = (x: number, y: number, rr: number, a: number) => `${f(x + Math.cos(a) * rr)} ${f(y + Math.sin(a) * rr)}`;
+  const up = toward - spread;
+  const down = toward + spread;
+  return `M${at(bx, by, r, down)}L${at(tx, ty, rt, down)}A${rt} ${rt} 0 0 0 ${at(tx, ty, rt, up)}L${at(bx, by, r, up)}A${r} ${r} 0 1 0 ${at(bx, by, r, down)}Z`;
 }
 
 /**
@@ -1901,7 +1975,7 @@ export const LOOK_HAS_MOUTH: Record<Look, boolean> = { neutral: false, jack: tru
 
 /** A look's own body shape, in place of the round face (null: the round face). */
 export function lookBody(look: Look): string | null {
-  return look === "ghost" ? ghostSheet() : null;
+  return look === "ghost" ? ghostSheet() : look === "snow" ? snowBody() : null;
 }
 
 /** Each look's mouth. `talk` (0..1) works a jack-o'-lantern's jaw. (A ghost
@@ -1941,7 +2015,11 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     pillR: q<SVGRectElement>(svg, "pill-r"),
     ownL: q<SVGPathElement>(svg, "own-l"),
     ownR: q<SVGPathElement>(svg, "own-r"),
-    nose: q<SVGPathElement>(svg, "nose"),
+    snow: q<SVGGElement>(svg, "snow"),
+    hat: q<SVGGElement>(svg, "hat"),
+    nose: q<SVGGElement>(svg, "nose"),
+    noseRim: q<SVGPathElement>(svg, "nose-rim"),
+    noseCone: q<SVGPathElement>(svg, "nose-cone"),
     lidL: q<SVGPathElement>(svg, "lid-l"),
     lidR: q<SVGPathElement>(svg, "lid-r"),
     cheekL: q<SVGPathElement>(svg, "cheek-l"),
@@ -3253,8 +3331,10 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     // The ghost's sheet: each point of the hem on a soft spring of its own,
     // trailing behind the body as it moves (and the window as it's dragged),
     // and billowing a little all the time.
-    if (parts.skin) parts.skin.style.display = ghost ? "none" : "";
+    const snow = options.look === "snow";
+    if (parts.skin) parts.skin.style.display = ghost || snow ? "none" : "";
     if (parts.sheet) parts.sheet.style.display = ghost ? "" : "none";
+    if (parts.snow) parts.snow.style.display = snow ? "" : "none";
     if (ghost) {
       const dt = clamp((clock - cloth.at) / 1000, 0, 0.05);
       cloth.at = clock;
@@ -3334,8 +3414,15 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
       const talk = talking ? 0.5 + 0.5 * Math.sin((said / 1000) * Math.PI * 2 * 4) : 0;
       parts.mouth?.setAttribute("d", lookMouth(options.look, view, gaze.x, gaze.y, talk));
     }
-    if (parts.nose) parts.nose.style.display = options.look === "snow" ? "" : "none";
-    if (options.look === "snow") parts.nose?.setAttribute("d", noseShape(gaze.x, gaze.y));
+    if (parts.nose) parts.nose.style.display = snow ? "" : "none";
+    if (parts.hat) parts.hat.style.display = snow ? "" : "none";
+    if (snow) {
+      const nose = noseShape(gaze.x, gaze.y);
+      parts.noseRim?.setAttribute("d", nose);
+      parts.noseCone?.setAttribute("d", nose);
+      // The hat turns a little with the head, as the eyes do.
+      parts.hat?.setAttribute("transform", `translate(${f(gaze.x * 5)} ${f(gaze.y * 1.5)})`);
+    }
     if (parts.glints) parts.glints.style.display = options.glint ? "" : "none";
     if (options.glint) {
       parts.glints?.setAttribute("transform", eyeShift);

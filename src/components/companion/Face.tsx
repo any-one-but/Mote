@@ -1,8 +1,11 @@
 import { useEffect, useRef } from "react";
 import {
+  HAT,
   REST,
   eyeShape,
   ghostSheet,
+  hatCrown,
+  snowBody,
   startFaceEngine,
   type EngineHooks,
   type FaceEngine,
@@ -77,6 +80,10 @@ export function Face({ onEngine, onMood, onEvent, onSpeech, onOpenLink, onSugges
         <ellipse data-part="skin" cx={cx} cy={cy} rx={faceRx} ry={faceRy} className="skin" />
         {/* Ghost mode's sheet, in place of the round body. */}
         <path data-part="sheet" className="skin" d={ghostSheet()} style={{ display: "none" }} />
+        {/* Snowman mode's snowball, in place of the round body. */}
+        <g data-part="snow" style={{ display: "none" }}>
+          <SnowBody id="mote" />
+        </g>
 
         <g data-part="eyes" filter="url(#mote-soft)">
           <g mask="url(#mote-eye-l)">
@@ -94,8 +101,14 @@ export function Face({ onEngine, onMood, onEvent, onSpeech, onOpenLink, onSugges
           <path data-part="mouth" className="mouth" style={{ display: "none" }} />
         </g>
 
-        {/* Snowman mode's carrot nose. */}
-        <path data-part="nose" className="nose" style={{ display: "none" }} />
+        {/* Snowman mode's carrot nose (placed by the engine) and top hat. */}
+        <g data-part="nose" style={{ display: "none" }}>
+          <path data-part="nose-rim" className="nose-rim" transform="translate(0 2.6)" />
+          <path data-part="nose-cone" className="nose" />
+        </g>
+        <g data-part="hat" style={{ display: "none" }}>
+          <SnowHat />
+        </g>
 
         {/* Reflection dots (an experimental feature). Masked by the eyes, so
             lids and blinks cover them; placed and tinted by the engine. */}
@@ -127,6 +140,48 @@ export function Face({ onEngine, onMood, onEvent, onSpeech, onOpenLink, onSugges
         <circle className="prop-dot" cx={15} cy={-3} r={2.4} />
       </g>
     </svg>
+  );
+}
+
+const SNOW_BODY = snowBody();
+
+/**
+ * Snowman mode's snowball: snow white, with a soft blue-grey shade round its
+ * lower right (the light comes from the top left, as the eyes' glints do),
+ * so it reads round without any outline.
+ */
+export function SnowBody({ id }: { id: string }) {
+  return (
+    <>
+      <clipPath id={`snow-${id}`}>
+        <path d={SNOW_BODY} />
+      </clipPath>
+      <path className="snow-shade" d={SNOW_BODY} />
+      <path className="skin" d={SNOW_BODY} transform="translate(-5 -10)" clipPath={`url(#snow-${id})`} />
+    </>
+  );
+}
+
+/** Snowman mode's top hat (see HAT): a soft shadow on the snow under the
+ * brim, the crown with its lit side and band, then the brim and its rim. */
+export function SnowHat() {
+  const { brim, crown, band } = HAT;
+  return (
+    <g transform={`rotate(${HAT.tilt} ${HAT.x} ${HAT.y})`}>
+      <ellipse className="hat-shadow" cx={HAT.x + 2} cy={brim.y + brim.h + 3} rx={brim.w * 0.42} ry={5} />
+      <path className="hat" d={hatCrown()} />
+      <path
+        className="hat-lit"
+        d={hatCrown()}
+        clipPath="url(#hat-lit)"
+      />
+      <clipPath id="hat-lit">
+        <rect x={HAT.x - crown.w / 2 - 4} y={crown.top} width={crown.w * 0.3} height={crown.bottom - crown.top} />
+      </clipPath>
+      <path className="hat-band" d={hatCrown(band.y, band.y + band.h)} />
+      <rect className="hat-rim" x={brim.x} y={brim.y + brim.rim} width={brim.w} height={brim.h} rx={brim.h / 2} />
+      <rect className="hat" x={brim.x} y={brim.y} width={brim.w} height={brim.h} rx={brim.h / 2} />
+    </g>
   );
 }
 

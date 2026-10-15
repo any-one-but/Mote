@@ -8,6 +8,7 @@ import {
   lookEye,
   lookMouth,
   lookPose,
+  noseShape,
   type Look,
 } from "@/components/companion/engine";
 
@@ -16,6 +17,9 @@ import {
 // from the very shapes the real Mote is, just smaller. So a jack-o'-lantern's
 // pieces are little jack-o'-lanterns, a ghost's are little ghosts, and any
 // look added later reaches the pieces with no work here (see LOOK_HAS_MOUTH).
+
+/** A snowman piece's carrot nose, looking straight ahead. */
+const SNOW_NOSE = noseShape(0, 0);
 
 /** Mote's face at rest, worked out once per look. */
 const faces = new Map<Look, { body: string | null; eyes: Array<{ x: number; y: number; d: string }>; mouth: string | null }>();
@@ -98,6 +102,11 @@ export function MoteMark({
         {face.mouth ? (
           <g transform={place}>
             <path className={`mm-ink mm-mouth is-${look}`} d={face.mouth} />
+          </g>
+        ) : null}
+        {look === "snow" ? (
+          <g transform={place}>
+            <path className="nose" d={SNOW_NOSE} />
           </g>
         ) : null}
       </g>

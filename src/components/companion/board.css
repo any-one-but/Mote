@@ -28,9 +28,10 @@
   --tt-win: #5a3a2c;
 }
 
-/* A ghost's pieces are white in dark mode too, so yours go back to ink
-   there, to stay apart from them. */
-:root[data-mode="ghost"][data-theme="dark"] .ck {
+/* A ghost's or a snowman's pieces are white in dark mode too, so yours go
+   back to ink there, to stay apart from them. */
+:root[data-mode="ghost"][data-theme="dark"] .ck,
+:root[data-mode="snow"][data-theme="dark"] .ck {
   --ck-you: #2e2520;
   --ck-you-rim: #140f0c;
   --ck-you-ring: #3a2f28;
@@ -298,6 +299,11 @@
 
 .mm-rim {
   fill: var(--ck-mote-rim);
+}
+
+/* A snowman's pieces are snowballs, with a snowy blue-grey rim. */
+:root[data-mode="snow"] .mm-rim {
+  fill: var(--snow-shade);
 }
 
 .mm-ink {

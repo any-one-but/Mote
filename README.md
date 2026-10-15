@@ -217,7 +217,7 @@ keeps going while it can, and a piece that reaches the far side is crowned.
 Mote's pieces are tiny Motes that blink and look at whichever piece you pick
 up. In every game, Mote's pieces and marks are Mote in miniature, in Mote's
 whole look: little jack-o'-lanterns with triangle eyes and a carved grin,
-little ghosts, and so on (chess pieces keep their shapes and get Mote's
+little ghosts, little snowballs, and so on (chess pieces keep their shapes and get Mote's
 eyes). They're drawn from the same shapes as Mote (`MoteMark.tsx`), so any
 new look reaches them too.
 
@@ -367,8 +367,8 @@ running. Their remarks are spaced well apart.
 ## Settings and debug mode
 
 In the Mac app, press **⌘,** (Command + comma) to open Settings. It's kept
-short: **Your name** (what Mote calls you), **Mote Appearance** (Normal or the
-Jack-o'-lantern, see below), **Light or dark** (Light, Dark, or System to
+short: **Your name** (what Mote calls you), **Mote Appearance** (Normal, the
+Jack-o'-lantern or the Snowman, see below), **Light or dark** (Light, Dark, or System to
 follow the Mac), whether Mote opens when you log in, and whether the window floats above
 others. Everything else (Friendly mode, Energy, Debug's own
 Mode, saved links) is in Debug. Mote's eyes
@@ -382,8 +382,9 @@ swap like Mote does: Mote's pieces (and tic-tac-toe marks) are dark with
 cream eyes, yours cream. Chess is the exception: you're white and Mote is
 black in both modes. The playing cards stay paper.
 
-**Mote Appearance** (in Settings) gives Mote a special look: **Normal**, or the
-**Jack-o'-lantern**, which always has its carved grin there (the mouth is
+**Mote Appearance** (in Settings) gives Mote a special look: **Normal**, the
+**Jack-o'-lantern**, which always has its carved grin there, or the
+**Snowman**, which always has its smile of coal (the mouth is
 otherwise an experimental switch, and plain Mote never gets one from
 Settings). Debug's own **Mode** (in the Features tab, with the Looks) does the
 same for testing, but leaves the mouth to its switch, and also has the
@@ -397,7 +398,19 @@ standing up, soft and cartoony. It follows the face like the little mouth
 does (corners up when happy, a droop when glum, taller when surprised), and
 works its jaw while Mote talks. In dark mode it's inverted like everything
 else: a dark pumpkin with glowing orange eyes and grin. The expression sheet
-shows it with ?jack=1.
+shows it with ?jack=1. **Snowman** (for winter) makes Mote a packed snowball:
+snow white, its edge gently lumpy, with a soft blue-grey shade round the
+lower right so it reads round without an outline. The eyes are lumps of coal
+(they still squint, scowl and blink), the mouth a smile of five bits of coal
+that gathers into a little "o" when surprised, and there's a carrot nose that
+points the way Mote looks (seen head-on, it's just its round end) and a top
+hat with a red band, perched a little askew. The nose and hat are flat
+shapes with a bit of depth, like the game pieces: a deeper-toned rim under
+the nose and the brim, a lit side on the hat, and a soft shadow under the
+brim. The hat turns a touch with Mote's head. Snow stays snow in dark mode,
+a touch dimmer, and the hat goes a lighter grey there so it doesn't vanish.
+Mote's game pieces become little snowballs with carrot noses (no hats). The
+expression sheet shows it with ?snow=1.
 
 **Ghost** (Debug's Mode only, for now) puts Mote under a sheet: Mote's own round top, falling to the
 classic wavy ghost hem, and round eye holes, perfectly round at rest (they
