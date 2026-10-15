@@ -78,29 +78,19 @@
   --mote-eyes: #231c18;
 }
 
-/* Snowman mode: a snowball, with coal for the eyes and mouth, a carrot nose
-   and a top hat. Snow stays snow in dark mode, a touch dimmer, and the hat
-   gets a lighter tone there so it doesn't vanish into the dark window. */
+/* Snowman mode: a snowball, with coal for the eyes and mouth and a carrot
+   nose. Snow stays snow in dark mode, a touch dimmer. */
 :root[data-mode="snow"] {
   --mote-face: #fbfdff;
   --mote-eyes: #2a2a30;
   --snow-shade: #d6e0ec;
-  --hat: #2e2a2c;
-  --hat-lit: #433d40;
-  --hat-rim: #171415;
-  --hat-band: #c4523c;
   --carrot: #f08a3c;
-  --carrot-rim: #c9662a;
 }
 
 :root[data-mode="snow"][data-theme="dark"] {
   --mote-face: #e9eff6;
   --mote-eyes: #222227;
   --snow-shade: #c3d0de;
-  --hat: #4b4448;
-  --hat-lit: #5e565a;
-  --hat-rim: #2c2729;
-  --hat-band: #c4523c;
 }
 
 @layer base {
@@ -170,42 +160,22 @@
 
 /* The carved mouth keeps a thin edge, so its teeth stay chunky; the bits
    of coal, a thin one too, so they stay apart. */
-.mouth.is-jack,
-.mouth.is-snow {
+.mouth.is-jack {
   stroke-width: 3;
 }
 
-/* Snowman mode's snowball, carrot nose and top hat. */
+/* Snowman mode's smile of coal. */
+.coal {
+  fill: var(--mote-eyes);
+}
+
+/* Snowman mode's snowball and carrot nose. */
 .snow-shade {
   fill: var(--snow-shade);
 }
 
 .nose {
   fill: var(--carrot);
-}
-
-.nose-rim {
-  fill: var(--carrot-rim);
-}
-
-.hat {
-  fill: var(--hat);
-}
-
-.hat-lit {
-  fill: var(--hat-lit);
-}
-
-.hat-rim {
-  fill: var(--hat-rim);
-}
-
-.hat-band {
-  fill: var(--hat-band);
-}
-
-.hat-shadow {
-  fill: var(--snow-shade);
 }
 
 .brow {

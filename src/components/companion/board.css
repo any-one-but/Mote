@@ -310,8 +310,7 @@
   fill: var(--mote-eyes);
 }
 
-.mm-mouth.is-jack,
-.mm-mouth.is-snow {
+.mm-mouth.is-jack {
   stroke: var(--mote-eyes);
   stroke-width: 3;
   stroke-linejoin: round;

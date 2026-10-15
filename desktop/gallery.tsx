@@ -12,7 +12,7 @@ import {
   type Mood,
   type Pose,
 } from "@/components/companion/engine";
-import { SnowBody, SnowHat } from "@/components/companion/Face";
+import { SnowBody } from "@/components/companion/Face";
 import { GEO, INK } from "@/lib/companion/theme";
 import "../src/styles.css";
 
@@ -166,21 +166,12 @@ function Still({
             />
           ))}
           {brows ? eyes.map((e) => <path key={`b${e.side}`} className="brow" d={e.brow} />) : null}
-          {mouth ? (
+          {mouth && look !== "snow" ? (
             <path className={`mouth is-${look}`} d={lookMouth(look, pose, gx, gy)} />
           ) : null}
         </g>
-        {look === "snow" ? (
-          <>
-            <path className="nose-rim" transform="translate(0 2.6)" d={noseShape(gx, gy)} />
-            <path className="nose" d={noseShape(gx, gy)} />
-            {eyesOnly ? null : (
-              <g transform={`translate(${gx * 5} ${gy * 1.5})`}>
-                <SnowHat />
-              </g>
-            )}
-          </>
-        ) : null}
+        {look === "snow" && mouth ? <path className="coal" d={lookMouth(look, pose, gx, gy)} /> : null}
+        {look === "snow" ? <path className="nose" d={noseShape(gx, gy)} /> : null}
       </g>
     </svg>
   );

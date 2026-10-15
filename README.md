@@ -401,15 +401,14 @@ else: a dark pumpkin with glowing orange eyes and grin. The expression sheet
 shows it with ?jack=1. **Snowman** (for winter) makes Mote a packed snowball:
 snow white, its edge gently lumpy, with a soft blue-grey shade round the
 lower right so it reads round without an outline. The eyes are lumps of coal
-(they still squint, scowl and blink), the mouth a smile of five bits of coal
-that gathers into a little "o" when surprised, and there's a carrot nose that
-points the way Mote looks (seen head-on, it's just its round end) and a top
-hat with a red band, perched a little askew. The nose and hat are flat
-shapes with a bit of depth, like the game pieces: a deeper-toned rim under
-the nose and the brim, a lit side on the hat, and a soft shadow under the
-brim. The hat turns a touch with Mote's head. Snow stays snow in dark mode,
-a touch dimmer, and the hat goes a lighter grey there so it doesn't vanish.
-Mote's game pieces become little snowballs with carrot noses (no hats). The
+(they still squint, scowl and blink), and the mouth is a smile of five bits
+of coal, each its own lumpy shape, that gathers into a little "o" when
+surprised. The carrot nose is one flat orange, but it's worked out in 3D: a
+cone stuck into the front of the head, pointing the way Mote looks, and
+drawn as it would look from the front as it turns. Looking off to the side
+it's long and side-on; turning toward you it gets shorter; looking straight
+at you it's just its round end. Snow stays snow in dark mode, a touch dimmer.
+Mote's game pieces become little snowballs with carrot noses. The
 expression sheet shows it with ?snow=1.
 
 **Ghost** (Debug's Mode only, for now) puts Mote under a sheet: Mote's own round top, falling to the
