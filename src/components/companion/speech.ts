@@ -1,5 +1,6 @@
 import type { Effects, LastingMood, MindValues } from "@/components/companion/mind";
 import { forName } from "@/components/companion/converse";
+import type { Look } from "@/components/companion/engine";
 
 // Everything Mote can say on their own, and when. Mote speaks up when
 // something happens that they'd naturally react to, when they need something
@@ -44,6 +45,8 @@ export type SpeechContext = {
   interest: "media" | "you" | null;
   event: SpeechEvent | null;
   hour: number;
+  /** How Mote looks right now (plain, jack-o'-lantern, ghost, snowman). */
+  look: Look;
   /** Where Mote's window sits on the screen, 0..1 from the left / top. */
   placement: { x: number; y: number } | null;
   /** Sound coming from a window Mote can see. */
@@ -101,6 +104,9 @@ export type Line = {
   /** A check-in on how you're doing: never picked as ordinary chat, only by
    * `chooseCheckIn`, and never more than one an hour or so. */
   checkIn?: boolean;
+  /** Said in a shuffled order that's kept between visits: every one comes
+   * up once before any of them comes round again. */
+  inOrder?: boolean;
   /** Group name shown in the debug list. */
   group: string;
 };
@@ -127,6 +133,61 @@ export const PLACE_WORDS: Record<Direction, string> = {
   up: "up toward the top",
   down: "down toward the bottom",
 };
+
+/** Mote's horror stories, told as a jack-o'-lantern. */
+export const JACK_TALES = [
+  "The call came from inside the house. It was Mom.",
+  "I looked in the mirror. It was me.",
+  "A ghost said boo. So I said boo back.",
+  "The lights went out. It was bedtime.",
+  "Something was under my bed. It was a sock.",
+  "There was a knock at the door. Pizza.",
+  "The vampire wanted my blood. I said no.",
+  "I heard footsteps behind me. They were mine.",
+  "A spider! A small one. Very polite.",
+  "The doll’s eyes followed me. Nice of it.",
+  "The mummy’s bandage came loose. I helped.",
+  "The zombies wanted brains. I didn’t have any.",
+  "I poured the cereal. There was no milk.",
+  "It was a dark and stormy night. Then morning.",
+  "The witch cackled. Then she offered me soup.",
+  "Bats! Lots of bats. They were having fun.",
+  "The floorboard creaked. Floors do that.",
+  "Something scratched at the window. A branch. Hi, branch.",
+  "A skeleton jumped out. It had nice bones.",
+  "The old house was haunted. By a friendly cat.",
+  "I went down to the basement. It was a basement.",
+  "The werewolf howled at the moon. The moon didn’t answer.",
+  "My candle blew out. So I lit it again.",
+  "The phone rang. Wrong number. Spooky.",
+  "Boo. …That’s the whole story.",
+  "I opened the closet. Coats.",
+  "A hand grabbed my shoulder. It was my other hand.",
+  "I heard a noise. Then a different noise.",
+  "The ghost walked right through the wall. Show-off.",
+  "Someone ate the last cookie. It was me.",
+  "The spirit board spelled H-I. So I waved.",
+  "The black cat crossed my path. Then came back.",
+  "A pumpkin with a face! Oh. Mirror again.",
+  "The bridge troll asked a riddle. I said “cheese.”",
+  "I climbed the creepy stairs. They went up.",
+  "Something in the attic! Dust. So much dust.",
+  "The scarecrow moved! The wind did it.",
+  "Dracula came over. He didn’t want any garlic bread.",
+  "My reflection waved at me. I waved first, though.",
+  "The graveyard was very quiet. Nice and peaceful.",
+  "A spooky whisper said: “Your shoe’s untied.”",
+  "The ghost said boo. I said bless you.",
+  "My shadow followed me all day. All day!",
+  "The haunted doll was just a regular doll.",
+  "In the woods, a cabin. In the cabin, a chair.",
+  "I was a pumpkin. Then I got carved. It tickled.",
+  "The monster under my bed was very shy.",
+  "The moon was full. I was also full.",
+  "Thirteen black cats. I petted all of them.",
+  "Behind you! …Oh, that’s just your chair.",
+  "The headless horseman lost his hat, too.",
+];
 
 export const LINES: Line[] = [
   // Reacting to something that just happened
@@ -469,6 +530,18 @@ export const LINES: Line[] = [
     unkind: true,
     when: (c) => c.event === "chat" && (c.moods.includes("annoyed") || c.moods.includes("frustrated")),
     say: ["Hmph.", "Still a bit cross, if you were wondering.", "I’m fine. (I’m not.)"],
+  },
+  {
+    // As a jack-o'-lantern, Mote tells tiny horror stories. They're trying
+    // very hard to be scary. They are not scary.
+    id: "chat-jack",
+    group: "Just chatting",
+    kind: "flavor",
+    cooldown: 0,
+    weight: 5,
+    inOrder: true,
+    when: (c) => c.event === "chat" && c.look === "jack",
+    say: JACK_TALES,
   },
   {
     id: "drop-file",
@@ -1022,7 +1095,42 @@ export function chooseCheckIn(c: SpeechContext, lastSaid: Map<string, number>, n
 
 export function textFor(l: Line, c: SpeechContext) {
   const options = forName(typeof l.say === "function" ? l.say(c) : l.say, c.name);
+  if (l.inOrder) return nextInOrder(l.id, options);
   return options[Math.floor(Math.random() * options.length)] ?? "…";
+}
+
+/**
+ * The next of a line's sayings in its shuffled order. What's left of the
+ * order is saved, so it carries on next time Mote is opened; once they've
+ * all been said, it's shuffled afresh (never starting with the one just said).
+ */
+export function nextInOrder(id: string, options: string[]): string {
+  if (!options.length) return "…";
+  const key = `mote.inOrder.${id}`;
+  let saved: { left: string[]; last: string | null } = { left: [], last: null };
+  try {
+    const raw = JSON.parse(localStorage.getItem(key) ?? "null");
+    if (raw && Array.isArray(raw.left)) saved = { left: raw.left, last: raw.last ?? null };
+  } catch {
+    // Nothing saved (or no storage): start a fresh order.
+  }
+  // Sayings since removed are dropped from the order; new ones wait for the next.
+  let left = saved.left.filter((t) => options.includes(t));
+  if (!left.length) {
+    left = [...options];
+    for (let i = left.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [left[i], left[j]] = [left[j], left[i]];
+    }
+    if (left.length > 1 && left[0] === saved.last) left.push(left.shift()!);
+  }
+  const text = left.shift()!;
+  try {
+    localStorage.setItem(key, JSON.stringify({ left, last: text }));
+  } catch {
+    // Can't save: the order just won't carry over.
+  }
+  return text;
 }
 
 /** A bubble on screen. */

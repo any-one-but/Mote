@@ -2315,6 +2315,7 @@ export function startFaceEngine(svg: SVGSVGElement, hooks: EngineHooks): FaceEng
     interest,
     event: pendingEvent?.event ?? null,
     hour: new Date().getHours(),
+    look: options.look,
     placement: options.placement,
     media: interest === "media",
     games: options.games,
