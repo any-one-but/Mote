@@ -34,6 +34,7 @@ export type FeatureId =
   | "games"
   | "links"
   | "apps"
+  | "countdowns"
   | "noticing"
   | "dizzy"
   | "antics"
@@ -156,6 +157,13 @@ export const FEATURES: Array<{
     section: "together",
     name: "Reacting to apps",
     about: "Apps dragged onto Mote: games get played (Chess, Minecraft, any game) and the Mac’s own apps get a reaction. Off, Mote doesn’t take apps.",
+  },
+  {
+    id: "countdowns",
+    section: "together",
+    name: "Countdowns",
+    about: "Counting down to days worth waiting for, weeks, months or years away. Say “countdown”, “timer” or “alarm” to Mote and the list opens: make a new one, see them all ticking, and click one to rename it, move its day or delete it. Say one’s name (“birthday”, “how long until the trip?”) and Mote tells you how long is left. When one runs out, Mote says so, once. Off, Mote doesn’t know about them (the ones you made are kept).",
+    needs: "talk",
   },
 
   // Noticing and moving

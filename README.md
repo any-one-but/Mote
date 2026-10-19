@@ -149,6 +149,8 @@ however you like, and press Return:
 - "a video", "something to watch", "my links" — one of your saved links
   (or how to save one, if there are none)
 - "settings", "dark mode" — opens Settings
+- "countdown", "timer", "alarm" — your countdowns (with Countdowns switched
+  on, see below)
 - "what can you do", "help", "idk" — a list of everything Mote can do right
   now, to pick from
 - and a few friendly ones: "hi", "thanks", "how are you", "never mind"
@@ -485,6 +487,22 @@ open. A tab about a feature that's switched off (Links) isn't shown.
     never brings them up: a lonely Mote asks for a pet instead,
     and "not having fun" gets a nudge toward something fun rather than a
     game. Games already played are still remembered.
+  - **Countdowns** (off until switched on; needs Conversations): counting
+    down to days that are weeks, months or years away. Say "countdown", "timer" or
+    "alarm" (or "my timers", "set a countdown"…) and the list opens in
+    Mote's window, soonest first, each ticking down ("2 months and 8 days",
+    "1 year and 5 months", and in its last day a clock, "3:00:55"). Make a
+    new one with a name, a day and, if it matters, a time; click one to
+    rename it, move its day or delete it (Delete asks once). "Countdown to
+    my birthday" opens the list on a new one already named. Saying a
+    countdown's name ("birthday", "how long until the trip?", typos and all)
+    doesn't open the list: Mote just says how long is left ("2 months and 8
+    days left until Mum's birthday. I'm counting!"). A name always wins
+    over Mote's other keywords, so a countdown called "Chess club" is about
+    the countdown. When one runs out, Mote says so once ("It's Tea! The
+    countdown's done."), when they're awake and not busy with a game; one
+    that ran out while Mote was closed gets its word next time. Finished
+    ones stay in the list ("Here!") until deleted. Kept in this Mac only.
 
   **Noticing and moving**
   - **Noticing the screen**: turning to look at sound in another window. Off,
@@ -614,6 +632,7 @@ Add `?brows=1` to see them with eyebrows, `?mouth=1` with the mouth.
 - `src/components/companion/cards.tsx` and `cards.css`, and `src/lib/cards.ts` — the playing cards the card games share
 - `src/components/companion/MoteMark.tsx` — Mote in miniature for game pieces and marks, in Mote's whole look
 - `src/components/companion/board-ui.tsx` and `board.css` — what both games share (level picker, header, end panel, the board's look)
+- `src/components/companion/Countdowns.tsx` and `countdowns.css` — the countdowns list; `countdown-store.ts` — keeping them, time left in words, hearing a name, and what Mote says
 - `src/components/companion/links.ts` — saved links, their history, and how Mote picks one to suggest
 - `src-tauri/src/links.rs` — reading a dragged link, and opening one in your browser
 - `src-tauri/src/apps.rs` — reading an app dropped on Mote: its name, and whether it's a game

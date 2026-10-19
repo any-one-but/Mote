@@ -41,6 +41,16 @@ import { TicTacToe } from "@/components/companion/TicTacToe";
 import { Solitaire } from "@/components/companion/Solitaire";
 import { Uno } from "@/components/companion/Uno";
 import { MoteClicker } from "@/components/companion/MoteClicker";
+import { Countdowns } from "@/components/companion/Countdowns";
+import {
+  doneLine,
+  heardName,
+  leftLine,
+  loadCountdowns,
+  nameAsked,
+  saveCountdowns,
+  wantsNew,
+} from "@/components/companion/countdown-store";
 
 type MediaInfo = EngineOptions["media"];
 
@@ -80,9 +90,12 @@ export function Companion() {
   const engineRef = useRef<FaceEngine | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [settings, updateSettings] = useSettings();
-  const [playing, setPlaying] = useState<"checkers" | "chess" | "tictactoe" | "solitaire" | "uno" | "clicker" | null>(
-    null,
-  );
+  // A game in Mote's window, or the countdowns.
+  const [playing, setPlaying] = useState<
+    "checkers" | "chess" | "tictactoe" | "solitaire" | "uno" | "clicker" | "countdowns" | null
+  >(null);
+  /** The countdowns opened straight on a new one (with a name to start, or none). */
+  const [countdownStart, setCountdownStart] = useState<{ name: string } | null>(null);
   const debugState = useRef<DebugState>({ ...DEBUG_DEFAULTS });
   const events = useRef<string[]>([]);
   const realMedia = useRef<MediaInfo>(null);
@@ -101,7 +114,9 @@ export function Companion() {
     const size =
       playing === "solitaire" || playing === "uno" || playing === "clicker"
         ? { width: 480, height: 800 }
-        : playing
+        : playing === "countdowns"
+          ? { width: 430, height: 680 }
+          : playing
           ? { width: 430, height: 740 }
           : undefined;
     growWindow(!!playing, size);
@@ -182,6 +197,7 @@ export function Companion() {
   const noticing = featureOn(features, "noticing");
   const dizzy = featureOn(features, "dizzy");
   const antics = featureOn(features, "antics");
+  const countdownsOn = featureOn(features, "countdowns");
   const linksOn = useRef(links);
   linksOn.current = links;
   const noticingOn = useRef(noticing);
@@ -211,8 +227,12 @@ export function Companion() {
   }, [debugOn]);
   // Toy chest switched off: a game that's open is put away.
   useEffect(() => {
-    if (!games) setPlaying(null);
+    if (!games) setPlaying((p) => (p === "countdowns" ? p : null));
   }, [games]);
+  // Countdowns switched off: the list goes away.
+  useEffect(() => {
+    if (!countdownsOn) setPlaying((p) => (p === "countdowns" ? null : p));
+  }, [countdownsOn]);
   const engineOptions: Partial<EngineOptions> = {
     energy,
     friendly,
@@ -414,6 +434,7 @@ export function Companion() {
     "links",
     "saveLink",
     "settings",
+    ...(countdownsOn ? (["countdowns"] as const) : []),
     "help",
     "greet",
     "thanks",
@@ -459,6 +480,9 @@ export function Companion() {
   };
   const offerGames = (text: string = say(LINES.games)) =>
     offer(text, ["checkers", "chess", "tictactoe", "solitaire", "uno", "clicker"], GAME_NAMES);
+
+  /** What was typed last, for the countdowns ("countdown to my birthday"). */
+  const said = useRef("");
 
   /** Whatever was open goes away: a game (it's saved). */
   const putAway = () => {
@@ -565,10 +589,20 @@ export function Companion() {
       case "settings":
         openSettingsWindow();
         return remark(LINES.settings);
+      case "countdowns": {
+        const text = said.current;
+        const name = nameAsked(text);
+        engine.endTalk();
+        putAway();
+        setCountdownStart(name || wantsNew(text) || !loadCountdowns().length ? { name: name ?? "" } : null);
+        setPlaying("countdowns");
+        return;
+      }
       case "help": {
         const labels: Partial<Record<IntentId, string>> = {
           games: "Play a game",
           links: "Something you saved",
+          countdowns: "Countdowns",
           settings: "Settings",
         };
         const ids = (Object.keys(labels) as IntentId[]).filter((i) => ready.has(i));
@@ -589,6 +623,15 @@ export function Companion() {
 
   /** Something typed (or a choice picked by typing it). */
   const heard = (text: string) => {
+    said.current = text;
+    // A countdown's name: how long is left, and that's all.
+    const named = countdownsOn ? heardName(text, loadCountdowns()) : null;
+    if (named) {
+      menu.current = null;
+      checking.current = null;
+      engineRef.current?.react("talk-understood");
+      return talk({ kind: "flavor", text: leftLine(named) });
+    }
     const h = understand(text, { known, choices: menu.current ?? undefined });
     engineRef.current?.react(h.kind === "do" ? "talk-understood" : h.kind === "check" ? "talk-check" : "talk-unknown");
     if (h.kind === "do") return act(h.intent);
@@ -607,6 +650,33 @@ export function Companion() {
     if (guess && yes) return act(guess);
     question(say(AFTER_NO));
   };
+
+  // A countdown ran out (just now, or while Mote was closed): Mote says so,
+  // once, when they're awake and not in the middle of something.
+  const bubbleNow = useRef(bubble);
+  bubbleNow.current = bubble;
+  const playingNow = useRef(playing);
+  playingNow.current = playing;
+  useEffect(() => {
+    if (!countdownsOn) return;
+    const check = () => {
+      const engine = engineRef.current;
+      if (!engine || engine.drowsy() || bubbleNow.current || meeting.current) return;
+      if (playingNow.current && playingNow.current !== "countdowns") return;
+      const list = loadCountdowns();
+      const now = Date.now();
+      const due = list.filter((c) => !c.told && c.end <= now).sort((a, b) => a.end - b.end)[0];
+      if (!due) return;
+      saveCountdowns(list.map((c) => (c.id === due.id ? { ...c, told: true } : c)));
+      talk({ kind: "flavor", text: doneLine(due, now) });
+    };
+    const first = window.setTimeout(check, 5000);
+    const t = window.setInterval(check, 15_000);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(t);
+    };
+  }, [countdownsOn]);
 
   // A click on Mote is a poke: a happy hop, or waking them up, or a glance
   // up from a job. A second click close behind it (a double-click) starts a
@@ -732,13 +802,20 @@ export function Companion() {
       {playing === "solitaire" ? <Solitaire engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "uno" ? <Uno engine={getEngine} onClose={() => setPlaying(null)} /> : null}
       {playing === "clicker" ? <MoteClicker engine={getEngine} onClose={() => setPlaying(null)} /> : null}
+      {playing === "countdowns" ? (
+        <Countdowns engine={getEngine} start={countdownStart} onClose={() => setPlaying(null)} />
+      ) : null}
       <SpeechBubble
         bubble={bubble}
         anchor={anchor}
         onAnswer={(yes) => (bubble?.lineId === TALK ? answered(yes) : engineRef.current?.answer(yes))}
         onDismiss={() => engineRef.current?.dismissSpeech()}
         onSubmit={(text) => (meeting.current ? meetText(text) : heard(text))}
-        onChoose={(id) => (meeting.current ? meetChoice(id) : act(id as IntentId))}
+        onChoose={(id) => {
+          said.current = "";
+          if (meeting.current) meetChoice(id);
+          else act(id as IntentId);
+        }}
         onTyping={() => engineRef.current?.stillTalking()}
       />
     </div>

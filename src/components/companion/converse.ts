@@ -29,6 +29,8 @@ export type IntentId =
   | "links"
   | "saveLink"
   | "settings"
+  // Countdowns: the list of them.
+  | "countdowns"
   // Talking about the talking.
   | "help"
   | "greet"
@@ -193,6 +195,20 @@ const INTENTS: Record<IntentId, Word[]> = {
     ["float", 0.9],
     ["on top", 0.9],
   ],
+  countdowns: [
+    ["countdown", 1.3],
+    ["count down", 1.3],
+    ["counting down", 1.3],
+    ["timer", 1.25],
+    ["alarm", 1.2],
+    ["countdown timer", 1.4],
+    ["deadline", 1],
+    ["how long until", 1.1],
+    ["how many days until", 1.2],
+    ["days until", 1.1],
+    ["days left", 1.05],
+    ["count the days", 1.2],
+  ],
   help: [
     ["help", 1],
     ["what can you do", 1.3],
@@ -356,6 +372,12 @@ const KEEP_PHRASES = [
   "lights out",
   "xs and os",
   "bookmark this",
+  "how long until",
+  "how many days until",
+  "days until",
+  "count the days",
+  "count down",
+  "counting down",
 ];
 
 /** Common words that look like keywords with a typo, but aren't. */
@@ -721,6 +743,7 @@ const CHECK: Record<IntentId, string[]> = {
   links: ["One of your saved links?", "Something saved to watch or read?"],
   saveLink: ["You want to save a link?"],
   settings: ["You want Settings?", "Open Settings?"],
+  countdowns: ["Your countdowns?", "You mean the countdowns?"],
   help: ["You want to know what I can do?"],
   greet: ["Was that a hello?"],
   thanks: ["Was that a thank you?"],
